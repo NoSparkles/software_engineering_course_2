@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import '../../games/fourInRowGame/components/styles.css'
 import {Board} from '../../games/fourInRowGame/components/Board'
 
@@ -7,7 +8,7 @@ const FourInARowGame = () => {
   return (
     <>
       <div className="back-button">
-        <a href="/">&#8592; Back to Home</a>
+        <Link to="/">Home</Link>
       </div>
 
       <div>
