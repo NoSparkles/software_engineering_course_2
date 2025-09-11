@@ -6,6 +6,7 @@ namespace Hubs
     public class GameHub : Hub
     {
         // Maps roomKey → playerId → connectionId
+        private static readonly ConcurrentDictionary<string, CancellationTokenSource> RoomCleanupTimers = new();
         private static readonly ConcurrentDictionary<string, Dictionary<string, string>> RoomUsers = new();
         public async Task JoinRoom(string gameType, string roomCode, string playerId)
         {   
@@ -43,7 +44,8 @@ namespace Hubs
         }
 
         public Task<bool> RoomExists(string gameType, string roomCode)
-        {
+        {   
+            Console.WriteLine($"Checking if room {roomCode} exists for game {gameType}");
             var roomKey = $"{gameType}:{roomCode.ToUpper()}";
             return Task.FromResult(RoomUsers.ContainsKey(roomKey));
         }
@@ -83,7 +85,18 @@ namespace Hubs
 
                         if (users.Count == 0)
                         {
-                            RoomUsers.TryRemove(roomKey, out _);
+                            var cts = new CancellationTokenSource();
+                            RoomCleanupTimers[roomKey] = cts;
+
+                            _ = Task.Delay(TimeSpan.FromMinutes(3), cts.Token).ContinueWith(task =>
+                            {
+                                if (!task.IsCanceled)
+                                {
+                                    RoomUsers.TryRemove(roomKey, out _);
+                                    RoomCleanupTimers.TryRemove(roomKey, out _);
+                                    Console.WriteLine($"Room {roomKey} cleaned up after timeout.");
+                                }
+                            });
                         }
 
                         break;

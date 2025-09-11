@@ -30,7 +30,7 @@ export default function ReturnToGameBanner() {
         await connection.start();
         const exists = await connection.invoke("RoomExists", gameType, code);
         await connection.stop();
-
+        console.log("checking if exists: " + exists)
         if (exists) {
           setGameInfo({ gameType, code });
           setShowBanner(true);
@@ -41,6 +41,7 @@ export default function ReturnToGameBanner() {
         console.error("Room check failed:", err);
       }
     };
+    console.log(gameInfo)
 
     checkRoom();
   }, [location]);
@@ -50,7 +51,7 @@ export default function ReturnToGameBanner() {
   return (
     <div className="return-banner">
       <p>You have an active game session.</p>
-      <button onClick={() => navigate(`/${gameInfo.gameType}/session/${gameInfo.roomCode}`)}>
+      <button onClick={() => navigate(`/${gameInfo.gameType}/session/${gameInfo.code}`)}>
         Return to Game
       </button>
     </div>
