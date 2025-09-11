@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getConnection } from '../services/signalRService';
+import { getConnection } from '../../utils/signalRService';
 import './styles.css';
 
 export default function WaitingRoom() {

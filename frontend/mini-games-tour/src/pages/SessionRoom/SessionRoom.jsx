@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getConnection } from '../services/signalRService';
+import { getConnection } from '../../utils/signalRService';
 import PMBoard from '../../games/PairMatchingGame/components/GameBoard';
-import FourInARowGameBoard from '../games/FourInARowGame/components/Board';
-import './styles.css';
+import {Board as FourInARowGameBoard} from '../../games/fourInRowGame/components/Board';
 
 export default function SessionRoom() {
   const { gameType, code } = useParams();
@@ -16,7 +15,7 @@ export default function SessionRoom() {
             setBoard(undefined); // placeholder for Dominykas
             break;
         case 'four-in-a-row':
-            setBoard(<FourInARowGameBoard />);
+            setBoard(<FourInARowGameBoard/>);
             break;
         case 'pair-matching':
             setBoard(<PMBoard />);
