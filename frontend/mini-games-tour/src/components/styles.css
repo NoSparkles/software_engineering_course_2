@@ -1,0 +1,40 @@
+.game-entry-container {
+  text-align: center;
+  padding: 30px;
+}
+
+.entry-section {
+  margin: 20px 0;
+}
+
+input {
+  padding: 10px;
+  font-size: 1rem;
+  width: 200px;
+  margin-right: 10px;
+  text-transform: uppercase;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #2980b9;
+}
+
+.disabled-button {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.error {
+  color: red;
+  margin-top: 10px;
+}
