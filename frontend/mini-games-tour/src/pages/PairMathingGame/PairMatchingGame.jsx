@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import GameBoard from '../../games/PairMatchingGame/components/GameBoard'
 
 const PairMatchingGame = () => {
+  
   return (
     <div>
       <div className="back-button">

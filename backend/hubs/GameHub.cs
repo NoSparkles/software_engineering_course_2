@@ -52,6 +52,9 @@ namespace Hubs
 
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
+            string? roomKeyToNotify = null;
+            string? remainingConnectionId = null;
+
             foreach (var kvp in RoomUsers)
             {
                 var roomKey = kvp.Key;
@@ -62,14 +65,28 @@ namespace Hubs
                     if (users.Contains(Context.ConnectionId))
                     {
                         users.Remove(Context.ConnectionId);
+
+                        if (users.Count == 1)
+                        {
+                            roomKeyToNotify = roomKey;
+                            remainingConnectionId = users.First();
+                        }
+
                         if (users.Count == 0)
                         {
                             RoomUsers.TryRemove(roomKey, out _);
                         }
+
+                        break; // Found the room, no need to continue
                     }
                 }
 
                 await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomKey);
+            }
+
+            if (roomKeyToNotify != null && remainingConnectionId != null)
+            {
+                await Clients.Client(remainingConnectionId).SendAsync("PlayerLeft", roomKeyToNotify);
             }
 
             await base.OnDisconnectedAsync(exception);
