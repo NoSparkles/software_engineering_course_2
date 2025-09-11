@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
+using games;
 
 namespace Hubs
 {
     public class GameHub : Hub
     {
-        // Maps roomKey → playerId → connectionId
+        private static readonly ConcurrentDictionary<string, GameInstance> ActiveGames = new();
         private static readonly ConcurrentDictionary<string, CancellationTokenSource> RoomCleanupTimers = new();
         private static readonly ConcurrentDictionary<string, Dictionary<string, string>> RoomUsers = new();
         public async Task JoinRoom(string gameType, string roomCode, string playerId)
@@ -28,11 +29,18 @@ namespace Hubs
 
             if (shouldNotifyStart)
             {
+                GameInstance game = gameType switch
+                {
+                    // to be implemented
+                    "rock-paper-scissors" => null, //new RockPaperScissorsGame(),
+                    "four-in-a-row" => null, //new FourInARowGame(),
+                    "pair-matching" => new PairMatching(),
+                    _ => throw new Exception("Unknown game type")
+                };
+
+                ActiveGames[roomKey] = game;
+
                 await Clients.Group(roomKey).SendAsync("StartGame", roomCode);
-            }
-            else
-            {
-                await Clients.Caller.SendAsync("WaitingForOpponent", roomCode);
             }
         }
 
