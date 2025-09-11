@@ -1,0 +1,23 @@
+.waiting-room {
+  text-align: center;
+  padding: 40px;
+}
+
+.waiting-room p {
+  font-size: 1.2rem;
+  margin: 10px 0;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  background-color: #2ecc71;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #27ae60;
+}
