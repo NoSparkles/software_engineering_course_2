@@ -17,6 +17,15 @@ export default function SessionRoom() {
     roomCode: code,
     playerId,
   });
+
+  useEffect(() => {
+      localStorage.setItem("activeGame", JSON.stringify({
+        gameType,
+        code: code,
+        playerId: playerId
+      }));
+  }, [code, gameType, playerId]);
+
   useEffect(() => {
     switch (gameType) {
         case 'rock-paper-scissors':

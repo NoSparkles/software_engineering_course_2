@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import './styles.css';
+import { usePlayerId } from '../utils/usePlayerId';
 
 export default function GameEntry() {
-    const [code, setCode] = useState('');
+  const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
+  const playerId = usePlayerId();
 
   const gameType = location.pathname.split('/')[1]; // e.g. 'rps', '4inarow', 'matching'
 

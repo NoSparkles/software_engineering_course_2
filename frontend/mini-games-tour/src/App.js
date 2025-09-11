@@ -3,10 +3,12 @@ import Home from './pages/home/Home';
 import GameEntry from './components/GameEntry';
 import WaitingRoom from './pages/WaitingRoom/WaitingRoom';
 import SessionRoom from './pages/SessionRoom/SessionRoom';
+import ReturnToGameBanner from './utils/ReturnToGameBanner';
 
 function App() {
   return (
     <Router>
+      <ReturnToGameBanner />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/rock-paper-scissors" element={<GameEntry />} />

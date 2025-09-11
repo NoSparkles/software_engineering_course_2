@@ -7,9 +7,8 @@ namespace Hubs
     {
         // Maps roomKey → playerId → connectionId
         private static readonly ConcurrentDictionary<string, Dictionary<string, string>> RoomUsers = new();
-
         public async Task JoinRoom(string gameType, string roomCode, string playerId)
-        {
+        {   
             var roomKey = $"{gameType}:{roomCode.ToUpper()}";
             Console.WriteLine($"Player {playerId} joining room {roomCode} for game {gameType}");
 
