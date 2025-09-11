@@ -4,7 +4,7 @@ import { HubConnectionBuilder } from '@microsoft/signalr';
 import './styles.css';
 
 export default function GameEntry() {
-  const [code, setCode] = useState('');
+    const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
@@ -47,9 +47,29 @@ export default function GameEntry() {
     }
   };
 
-  const handleCreateRoom = () => {
+  const handleCreateRoom = async () => {
     const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-    navigate(`/${gameType}/waiting/${newCode}`);
+
+    try {
+      const connection = new HubConnectionBuilder()
+        .withUrl("http://localhost:5236/gamehub")
+        .build();
+
+      await connection.start();
+      const created = await connection.invoke("CreateRoom", gameType, newCode);
+      await connection.stop();
+
+      if (!created) {
+        setError("Failed to create room. Try again.");
+        return;
+      }
+
+      setError('');
+      navigate(`/${gameType}/waiting/${newCode}`);
+    } catch (err) {
+      console.error("Error creating room:", err);
+      setError("Could not create room. Try again.");
+    }
   };
 
   return (

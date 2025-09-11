@@ -5,43 +5,42 @@ namespace Hubs
 {
     public class GameHub : Hub
     {
-        // Thread-safe dictionary to track room participants
-        private static readonly ConcurrentDictionary<string, HashSet<string>> RoomUsers = new();
+        // Maps roomKey → playerId → connectionId
+        private static readonly ConcurrentDictionary<string, Dictionary<string, string>> RoomUsers = new();
 
-        public async Task JoinRoom(string gameType, string roomCode)
+        public async Task JoinRoom(string gameType, string roomCode, string playerId)
         {
-            Console.WriteLine($"Connection {Context.ConnectionId} joining room {roomCode} for game {gameType}");
             var roomKey = $"{gameType}:{roomCode.ToUpper()}";
+            Console.WriteLine($"Player {playerId} joining room {roomCode} for game {gameType}");
 
-            // Ensure room exists
-            RoomUsers.TryAdd(roomKey, new HashSet<string>());
-
+            RoomUsers.TryAdd(roomKey, new Dictionary<string, string>());
             var users = RoomUsers[roomKey];
+
+            bool shouldNotifyStart;
 
             lock (users)
             {
-                if (users.Count >= 2)
-                {
-                    // Room is full
-                    Clients.Caller.SendAsync("RoomFull", roomCode);
-                    return;
-                }
-
-                users.Add(Context.ConnectionId);
+                users[playerId] = Context.ConnectionId;
+                shouldNotifyStart = users.Count == 2;
             }
 
             await Groups.AddToGroupAsync(Context.ConnectionId, roomKey);
 
-            if (users.Count == 2)
+            if (shouldNotifyStart)
             {
-                // Notify both players to start the game
                 await Clients.Group(roomKey).SendAsync("StartGame", roomCode);
             }
             else
             {
-                // Notify first player to wait
                 await Clients.Caller.SendAsync("WaitingForOpponent", roomCode);
             }
+        }
+
+        public Task<bool> CreateRoom(string gameType, string roomCode)
+     {
+            var roomKey = $"{gameType}:{roomCode.ToUpper()}";
+            var created = RoomUsers.TryAdd(roomKey, new Dictionary<string, string>());
+            return Task.FromResult(created);
         }
 
         public Task<bool> RoomExists(string gameType, string roomCode)
@@ -50,11 +49,27 @@ namespace Hubs
             return Task.FromResult(RoomUsers.ContainsKey(roomKey));
         }
 
+        public async Task ReconnectToRoom(string gameType, string roomCode, string playerId)
+        {
+            var roomKey = $"{gameType}:{roomCode.ToUpper()}";
+
+            if (!RoomUsers.TryGetValue(roomKey, out var users) || !users.ContainsKey(playerId))
+            {
+                await Clients.Caller.SendAsync("UnauthorizedReconnect", roomCode);
+                return;
+            }
+
+            lock (users)
+            {
+                users[playerId] = Context.ConnectionId;
+            }
+
+            await Groups.AddToGroupAsync(Context.ConnectionId, roomKey);
+            await Clients.Caller.SendAsync("Reconnected", roomCode);
+        }
+
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            string? roomKeyToNotify = null;
-            string? remainingConnectionId = null;
-
             foreach (var kvp in RoomUsers)
             {
                 var roomKey = kvp.Key;
@@ -62,31 +77,21 @@ namespace Hubs
 
                 lock (users)
                 {
-                    if (users.Contains(Context.ConnectionId))
+                    var playerToRemove = users.FirstOrDefault(p => p.Value == Context.ConnectionId);
+                    if (!string.IsNullOrEmpty(playerToRemove.Key))
                     {
-                        users.Remove(Context.ConnectionId);
-
-                        if (users.Count == 1)
-                        {
-                            roomKeyToNotify = roomKey;
-                            remainingConnectionId = users.First();
-                        }
+                        users.Remove(playerToRemove.Key);
 
                         if (users.Count == 0)
                         {
                             RoomUsers.TryRemove(roomKey, out _);
                         }
 
-                        break; // Found the room, no need to continue
+                        break;
                     }
                 }
 
                 await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomKey);
-            }
-
-            if (roomKeyToNotify != null && remainingConnectionId != null)
-            {
-                await Clients.Client(remainingConnectionId).SendAsync("PlayerLeft", roomKeyToNotify);
             }
 
             await base.OnDisconnectedAsync(exception);

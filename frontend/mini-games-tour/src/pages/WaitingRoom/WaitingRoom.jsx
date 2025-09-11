@@ -1,72 +1,59 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getConnection } from '../../utils/signalRService';
-import './styles.css';
+import { usePlayerId } from '../../utils/usePlayerId';
+import { useSignalRService } from '../../utils/useSignalRService';
 
 export default function WaitingRoom() {
   const { gameType, code } = useParams();
   const navigate = useNavigate();
+  const playerId = usePlayerId();
+  const { connection, connectionState, reconnected } = useSignalRService({
+    hubUrl: "http://localhost:5236/gamehub",
+    gameType,
+    roomCode: code,
+    playerId,
+  });
+
   const [status, setStatus] = useState("Connecting...");
 
   useEffect(() => {
-    const connection = getConnection();
-
-    if (connection.state === "Disconnected") {
-      connection.start()
-        .then(() => {
-          console.log("Connected to SignalR");
-          setStatus("Connected. Joining room...");
-          return connection.invoke("JoinRoom", gameType, code);
-        })
+    if (connection && connectionState === "Connected") {
+      connection.invoke("JoinRoom", gameType, code, playerId)
+        .then(() => setStatus("Joined room. Waiting for opponent..."))
         .catch(err => {
-          console.error("Connection failed:", err);
-          setStatus("Failed to connect.");
+          console.error("JoinRoom failed:", err);
+          setStatus("Failed to join room.");
         });
-    } else {
-      // Already connected, just join the room
-      connection.invoke("JoinRoom", gameType, code);
+
+      connection.on("WaitingForOpponent", () => {
+        setStatus("Waiting for second player...");
+      });
+
+      connection.on("StartGame", (roomCode) => {
+        if (roomCode === code) {
+          setStatus("Opponent joined. Starting game...");
+          navigate(`/${gameType}/session/${code}`);
+        }
+      });
+
+      connection.on("PlayerLeft", () => {
+        setStatus("Opponent disconnected. Waiting...");
+      });
+
+      connection.on("Reconnected", () => {
+        setStatus("Reconnected to room.");
+      });
     }
-
-    connection.on("WaitingForOpponent", () => {
-      setStatus("Waiting for second player...");
-    });
-
-    connection.on("StartGame", (roomCode) => {
-      if (roomCode === code) {
-        setStatus("Opponent joined. Starting game...");
-        navigate(`/${gameType}/session/${code}`);
-      }
-    });
-
-    connection.onclose(() => {
-      setStatus("Disconnected.");
-    });
-
-    connection.onreconnecting(() => {
-      setStatus("Reconnecting...");
-    });
-
-    connection.onreconnected(() => {
-      setStatus("Reconnected.");
-    });
-
-    return () => {
-      // Optional: remove handlers to avoid memory leaks
-      connection.off("WaitingForOpponent");
-      connection.off("StartGame");
-      connection.off("onclose");
-      connection.off("onreconnecting");
-      connection.off("onreconnected");
-    };
-  }, [gameType, code, navigate]);
+  }, [connection, connectionState, playerId, gameType, code, navigate]);
 
   return (
     <div className="waiting-room">
       <h2>Waiting Room</h2>
       <p>Game: <strong>{gameType.toUpperCase()}</strong></p>
       <p>Room Code: <strong>{code}</strong></p>
-      <p>Share this code with a friend to join.</p>
+      <p>Player ID: <strong>{playerId}</strong></p>
       <p>Status: <strong>{status}</strong></p>
+      <p>Connection: <strong>{connectionState}</strong></p>
     </div>
   );
 }

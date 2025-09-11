@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getConnection } from '../../utils/signalRService';
+import { useSignalRService } from '../../utils/useSignalRService';
+import { usePlayerId } from '../../utils/usePlayerId';
 import PMBoard from '../../games/PairMatchingGame/components/GameBoard';
 import {Board as FourInARowGameBoard} from '../../games/fourInRowGame/components/Board';
 
@@ -9,6 +10,13 @@ export default function SessionRoom() {
   const navigate = useNavigate();
   const [status, setStatus] = useState("Game in progress...");
   const [board, setBoard] = useState(null);
+  const playerId = usePlayerId();
+  const { connection, connectionState, reconnected } = useSignalRService({
+    hubUrl: "http://localhost:5236/gamehub",
+    gameType,
+    roomCode: code,
+    playerId,
+  });
   useEffect(() => {
     switch (gameType) {
         case 'rock-paper-scissors':
@@ -26,45 +34,42 @@ export default function SessionRoom() {
   }, [gameType]);
 
   useEffect(() => {
-    const connection = getConnection();
-
-    if (connection.state === "Disconnected") {
-      connection.start()
-        .then(() => {
-          console.log("Reconnected in session");
-          return connection.invoke("JoinRoom", gameType, code);
-        })
+    if (connection && connectionState === "Connected") {
+      connection.invoke("JoinRoom", gameType, code, playerId)
+        .then(() => setStatus("Joined room. Waiting for opponent..."))
         .catch(err => {
-          console.error("Failed to reconnect:", err);
-          setStatus("Connection error.");
+          console.error("JoinRoom failed:", err);
+          setStatus("Failed to join room.");
         });
+
+      connection.on("WaitingForOpponent", () => {
+        setStatus("Waiting for second player...");
+      });
+
+      connection.on("StartGame", (roomCode) => {
+        if (roomCode === code) {
+          setStatus("Opponent joined. Starting game...");
+          navigate(`/${gameType}/session/${code}`);
+        }
+      });
+
+      connection.on("PlayerLeft", () => {
+        setStatus("Opponent disconnected. Waiting...");
+      });
+
+      connection.on("Reconnected", () => {
+        setStatus("Reconnected to room.");
+      });
+
+      return () => {
+        connection.off("PlayerLeft");
+        connection.off("ReceiveMove");
+        connection.off("onclose");
+        connection.off("onreconnecting");
+        connection.off("onreconnected");
+      };
     }
-
-    connection.on("PlayerLeft", () => {
-      alert("Your opponent has left the game.");
-      navigate(`/${gameType}/exit`);
-    });
-
-    connection.onclose(() => {
-      setStatus("Disconnected.");
-    });
-
-    connection.onreconnecting(() => {
-      setStatus("Reconnecting...");
-    });
-
-    connection.onreconnected(() => {
-      setStatus("Reconnected.");
-    });
-
-    return () => {
-      connection.off("PlayerLeft");
-      connection.off("ReceiveMove");
-      connection.off("onclose");
-      connection.off("onreconnecting");
-      connection.off("onreconnected");
-    };
-  }, [gameType, code, navigate]);
+  }, [gameType, code, navigate, connection, connectionState, playerId]);
   return (
     <div className="session-room">
       <h2>{gameType.toUpperCase()} Session</h2>
