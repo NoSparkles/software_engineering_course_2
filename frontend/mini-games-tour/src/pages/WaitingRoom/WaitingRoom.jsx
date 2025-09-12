@@ -7,6 +7,7 @@ export default function WaitingRoom() {
   const { gameType, code } = useParams();
   const navigate = useNavigate();
   const playerId = usePlayerId();
+  const [playerColor, setPlayerColor] = useState(null); // only for four-in-a-row
   const { connection, connectionState, reconnected } = useSignalRService({
     hubUrl: "http://localhost:5236/gamehub",
     gameType,
@@ -28,6 +29,7 @@ export default function WaitingRoom() {
       connection.on("WaitingForOpponent", () => {
         setStatus("Waiting for second player...");
       });
+      
 
       connection.on("StartGame", (roomCode) => {
         if (roomCode === code) {
@@ -43,6 +45,11 @@ export default function WaitingRoom() {
       connection.on("Reconnected", () => {
         setStatus("Reconnected to room.");
       });
+
+      connection.on("SetPlayerColor", (color) => {
+        setPlayerColor(color); // only for four-in-a-row
+        console.log(`Assigned color: ${color}`);
+      });
     }
   }, [connection, connectionState, playerId, gameType, code, navigate]);
 
@@ -52,6 +59,11 @@ export default function WaitingRoom() {
       <p>Game: <strong>{gameType.toUpperCase()}</strong></p>
       <p>Room Code: <strong>{code}</strong></p>
       <p>Player ID: <strong>{playerId}</strong></p>
+      {gameType === "four-in-a-row" && (
+      <p>
+        Assigned Color: <strong>{playerColor ? (playerColor === "R" ? "Red" : "Yellow") : "Not assigned yet"}</strong>
+      </p>
+    )}
       <p>Status: <strong>{status}</strong></p>
       <p>Connection: <strong>{connectionState}</strong></p>
     </div>
