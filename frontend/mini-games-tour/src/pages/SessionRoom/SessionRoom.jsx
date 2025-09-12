@@ -10,6 +10,7 @@ export default function SessionRoom() {
   const navigate = useNavigate();
   const [status, setStatus] = useState("Game in progress...");
   const [board, setBoard] = useState(null);
+  const [playerColor, setPlayerColor] = useState(null); // only for four-in-a-row
   const playerId = usePlayerId();
   const { connection, connectionState, reconnected } = useSignalRService({
     hubUrl: "http://localhost:5236/gamehub",
@@ -32,7 +33,7 @@ export default function SessionRoom() {
             setBoard(undefined); // placeholder for Dominykas
             break;
         case 'four-in-a-row':
-            setBoard(<FourInARowGameBoard/>);
+            setBoard(<FourInARowGameBoard playerColor={playerColor} connection={connection} roomCode={code}/>);
             break;
         case 'pair-matching':
             setBoard(<PMBoard />);
@@ -40,7 +41,7 @@ export default function SessionRoom() {
         default:
             setBoard(null);
     }
-  }, [gameType]);
+  }, [gameType, playerColor, connection, code]);
 
   useEffect(() => {
     if (connection && connectionState === "Connected") {
@@ -70,6 +71,11 @@ export default function SessionRoom() {
         setStatus("Reconnected to room.");
       });
 
+      connection.on("SetPlayerColor", (color) => {
+        setPlayerColor(color);
+      });
+
+
       return () => {
         connection.off("PlayerLeft");
         connection.off("ReceiveMove");
@@ -83,8 +89,14 @@ export default function SessionRoom() {
     <div className="session-room">
       <h2>{gameType.toUpperCase()} Session</h2>
       <p>Room Code: <strong>{code}</strong></p>
+      <p>Player ID: <strong>{playerId}</strong></p>
+      {gameType === "four-in-a-row" && (
+        <p>
+          Assigned Color: <strong>{playerColor ? (playerColor === "R" ? "Red" : "Yellow") : "Not assigned yet"}</strong>
+        </p>
+      )}
       <p>Status: <strong>{status}</strong></p>
-
+      <p>Connection: <strong>{connectionState}</strong></p>
       <div className="game-board">
         {board}
       </div>

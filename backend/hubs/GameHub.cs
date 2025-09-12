@@ -33,10 +33,28 @@ namespace Hubs
                 {
                     // to be implemented
                     "rock-paper-scissors" => null, //new RockPaperScissorsGame(),
-                    "four-in-a-row" => null, //new FourInARowGame(),
+                    "four-in-a-row" => new FourInARowGame(), //new FourInARowGame(),
                     "pair-matching" => new PairMatching(),
                     _ => throw new Exception("Unknown game type")
                 };
+
+                if (gameType == "four-in-a-row")
+                {
+                    var playerIds = users.Keys.ToList();
+                    if (playerIds.Count == 2 && game is FourInARowGame fourGame)
+                    {
+                        fourGame.AssignPlayerColors(playerIds[0], playerIds[1]);
+                    }
+                    Console.WriteLine($"Assigned colors: {string.Join(", ", ((FourInARowGame)game).GetPlayerColor(playerIds[0]) + " to " + playerIds[0] + ", " + ((FourInARowGame)game).GetPlayerColor(playerIds[1]) + " to " + playerIds[1])}");
+                    foreach (var pid in playerIds)
+                    {
+                        var color = ((FourInARowGame)game).GetPlayerColor(pid);
+                        if (users.TryGetValue(pid, out var connId))
+                        {
+                            await Clients.Client(connId).SendAsync("SetPlayerColor", color);
+                        }
+                    }
+                }
 
                 ActiveGames[roomKey] = game;
 
