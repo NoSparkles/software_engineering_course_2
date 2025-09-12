@@ -9,8 +9,20 @@ namespace Hubs
         private static readonly ConcurrentDictionary<string, GameInstance> ActiveGames = new();
         private static readonly ConcurrentDictionary<string, CancellationTokenSource> RoomCleanupTimers = new();
         private static readonly ConcurrentDictionary<string, Dictionary<string, string>> RoomUsers = new();
+        
+        public async Task MakeMove(string gameType, string roomCode, string playerId, int col)
+        {
+            if (gameType == "four-in-a-row")
+            {
+                var roomKey = $"{gameType}:{roomCode.ToUpper()}"; 
+                if (ActiveGames.TryGetValue(roomKey, out var game) && game is FourInARowGame fourGame)
+                {
+                    await fourGame.HandleCommand(playerId, $"MOVE:{col}", Clients);
+                }
+            }
+        }
         public async Task JoinRoom(string gameType, string roomCode, string playerId)
-        {   
+        {
             var roomKey = $"{gameType}:{roomCode.ToUpper()}";
             Console.WriteLine($"Player {playerId} joining room {roomCode} for game {gameType}");
 
@@ -43,6 +55,7 @@ namespace Hubs
                     var playerIds = users.Keys.ToList();
                     if (playerIds.Count == 2 && game is FourInARowGame fourGame)
                     {
+                        fourGame.RoomCode = roomKey;
                         fourGame.AssignPlayerColors(playerIds[0], playerIds[1]);
                     }
                     Console.WriteLine($"Assigned colors: {string.Join(", ", ((FourInARowGame)game).GetPlayerColor(playerIds[0]) + " to " + playerIds[0] + ", " + ((FourInARowGame)game).GetPlayerColor(playerIds[1]) + " to " + playerIds[1])}");
@@ -54,6 +67,8 @@ namespace Hubs
                             await Clients.Client(connId).SendAsync("SetPlayerColor", color);
                         }
                     }
+
+
                 }
 
                 ActiveGames[roomKey] = game;
@@ -61,9 +76,11 @@ namespace Hubs
                 await Clients.Group(roomKey).SendAsync("StartGame", roomCode);
             }
         }
+        
+        
 
         public Task<bool> CreateRoom(string gameType, string roomCode)
-     {
+        {
             var roomKey = $"{gameType}:{roomCode.ToUpper()}";
             var created = RoomUsers.TryAdd(roomKey, new Dictionary<string, string>());
             return Task.FromResult(created);

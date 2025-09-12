@@ -33,7 +33,7 @@ export default function SessionRoom() {
             setBoard(undefined); // placeholder for Dominykas
             break;
         case 'four-in-a-row':
-            setBoard(<FourInARowGameBoard playerColor={playerColor} connection={connection} roomCode={code}/>);
+            setBoard(<FourInARowGameBoard playerColor={playerColor} connection={connection} roomCode={code} playerId={playerId}/>);
             break;
         case 'pair-matching':
             setBoard(<PMBoard />);
@@ -41,7 +41,7 @@ export default function SessionRoom() {
         default:
             setBoard(null);
     }
-  }, [gameType, playerColor, connection, code]);
+  }, [gameType, playerColor]);
 
   useEffect(() => {
     if (connection && connectionState === "Connected") {
