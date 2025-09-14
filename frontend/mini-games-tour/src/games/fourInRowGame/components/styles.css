@@ -1,11 +1,37 @@
-h1{
-    text-align: center;
-    margin-top: 20px;
-}
 .four-in-a-row-game {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
 
+}
+.winnerText {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 28px;
+    font-weight: bold;
+    border-radius: 50px;
+    padding: 20px 40px;
+    margin: 15px auto;
+    width: fit-content;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    animation: popIn 0.4s ease-out;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.winnerText:hover {
+    transform: scale(1.05);
+}
+
+/* Smooth entrance animation */
+@keyframes popIn {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
 }

@@ -83,7 +83,7 @@ namespace games
                 var color = GetPlayerColor(playerId);
                 if (color == null) return;
                 if (!int.TryParse(command.Substring(5), out int col)) return;
-        
+
                 if (ApplyMove(col, color))
                 {
                     // Convert Board to jagged array for JS
@@ -94,7 +94,7 @@ namespace games
                         for (int c = 0; c < 7; c++)
                             boardToSend[r][c] = Board[r, c];
                     }
-        
+
                     await clients.Group(RoomCode).SendAsync("ReceiveMove", new
                     {
                         board = boardToSend,
@@ -102,6 +102,14 @@ namespace games
                         winner = WinnerColor
                     });
                 }
+            }
+
+            if (command.StartsWith("RESET"))
+            {
+                Board = new string[6, 7];
+                CurrentPlayerColor = "R";
+                WinnerColor = null;
+                await clients.Group(RoomCode).SendAsync("GameReset");
             }
         }
     }
