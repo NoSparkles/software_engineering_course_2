@@ -10,14 +10,14 @@ namespace Hubs
         private static readonly ConcurrentDictionary<string, CancellationTokenSource> RoomCleanupTimers = new();
         private static readonly ConcurrentDictionary<string, Dictionary<string, string>> RoomUsers = new();
         
-        public async Task MakeMove(string gameType, string roomCode, string playerId, int col)
+        public async Task MakeMove(string gameType, string roomCode, string playerId, string command)
         {
             if (gameType == "four-in-a-row")
             {
                 var roomKey = $"{gameType}:{roomCode.ToUpper()}"; 
                 if (ActiveGames.TryGetValue(roomKey, out var game) && game is FourInARowGame fourGame)
                 {
-                    await fourGame.HandleCommand(playerId, $"MOVE:{col}", Clients);
+                    await fourGame.HandleCommand(playerId, command, Clients);
                 }
             }
         }

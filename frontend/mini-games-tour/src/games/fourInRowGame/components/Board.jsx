@@ -22,7 +22,7 @@ export const Board = ({ playerColor, connection, roomCode, playerId }) => {
     const handleColumnClick = (col) => {
     if (winner || currentPlayer !== playerColor) return;
     if (connection) {
-        connection.invoke("MakeMove", "four-in-a-row", roomCode, playerId, col);
+        connection.invoke("MakeMove", "four-in-a-row", roomCode, playerId, `MOVE:${col}`);
     }
 };
 
