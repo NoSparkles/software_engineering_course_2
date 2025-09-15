@@ -9,8 +9,20 @@ namespace Hubs
         private static readonly ConcurrentDictionary<string, GameInstance> ActiveGames = new();
         private static readonly ConcurrentDictionary<string, CancellationTokenSource> RoomCleanupTimers = new();
         private static readonly ConcurrentDictionary<string, Dictionary<string, string>> RoomUsers = new();
+        
+        public async Task MakeMove(string gameType, string roomCode, string playerId, string command)
+        {
+            if (gameType == "four-in-a-row")
+            {
+                var roomKey = $"{gameType}:{roomCode.ToUpper()}"; 
+                if (ActiveGames.TryGetValue(roomKey, out var game) && game is FourInARowGame fourGame)
+                {
+                    await fourGame.HandleCommand(playerId, command, Clients);
+                }
+            }
+        }
         public async Task JoinRoom(string gameType, string roomCode, string playerId)
-        {   
+        {
             var roomKey = $"{gameType}:{roomCode.ToUpper()}";
             Console.WriteLine($"Player {playerId} joining room {roomCode} for game {gameType}");
 
@@ -33,19 +45,42 @@ namespace Hubs
                 {
                     // to be implemented
                     "rock-paper-scissors" => null, //new RockPaperScissorsGame(),
-                    "four-in-a-row" => null, //new FourInARowGame(),
+                    "four-in-a-row" => new FourInARowGame(), //new FourInARowGame(),
                     "pair-matching" => new PairMatching(),
                     _ => throw new Exception("Unknown game type")
                 };
+
+                if (gameType == "four-in-a-row")
+                {
+                    var playerIds = users.Keys.ToList();
+                    if (playerIds.Count == 2 && game is FourInARowGame fourGame)
+                    {
+                        fourGame.RoomCode = roomKey;
+                        fourGame.AssignPlayerColors(playerIds[0], playerIds[1]);
+                    }
+                    Console.WriteLine($"Assigned colors: {string.Join(", ", ((FourInARowGame)game).GetPlayerColor(playerIds[0]) + " to " + playerIds[0] + ", " + ((FourInARowGame)game).GetPlayerColor(playerIds[1]) + " to " + playerIds[1])}");
+                    foreach (var pid in playerIds)
+                    {
+                        var color = ((FourInARowGame)game).GetPlayerColor(pid);
+                        if (users.TryGetValue(pid, out var connId))
+                        {
+                            await Clients.Client(connId).SendAsync("SetPlayerColor", color);
+                        }
+                    }
+
+
+                }
 
                 ActiveGames[roomKey] = game;
 
                 await Clients.Group(roomKey).SendAsync("StartGame", roomCode);
             }
         }
+        
+        
 
         public Task<bool> CreateRoom(string gameType, string roomCode)
-     {
+        {
             var roomKey = $"{gameType}:{roomCode.ToUpper()}";
             var created = RoomUsers.TryAdd(roomKey, new Dictionary<string, string>());
             return Task.FromResult(created);
