@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import getShuffledCards from './getShuffledCards.js'
-export function useGameEngine() {
+export function useGameEngine({ playerColor, connection, roomCode, playerId }) {
   const [cards, setCards] = useState([]);
   const [flipped, setFlipped] = useState([]);
   const [matched, setMatched] = useState([]);
@@ -8,10 +7,18 @@ export function useGameEngine() {
   const [scores, setScores] = useState({ 1: 0, 2: 0 });
   const [gameOver, setGameOver] = useState(false);
 
+  const gameType = 'pair-matching'
+
   useEffect(() => {
-    const deck = getShuffledCards(); // returns shuffled array of 18 cards
-    setCards(deck);
-  }, []);
+    if (!connection) return
+      connection.on("receiveBoard", receiveBoard)
+
+      connection.invoke("makeMove", gameType, roomCode, playerId, 'getBoard')
+  }, [connection]);
+
+  useEffect(() => {
+    if (!connection) return
+  }, [connection])
 
   useEffect(() => {
     if (flipped.length === 2) {
@@ -35,6 +42,11 @@ export function useGameEngine() {
     }
   }, [flipped]);
 
+  const receiveBoard = cards => {
+    setCards(cards)
+    console.log("cards ", cards)
+  }
+
   const flipCard = index => {
     if (
       flipped.length < 2 &&
@@ -46,13 +58,14 @@ export function useGameEngine() {
   };
 
   const resetGame = () => {
-    setCards(getShuffledCards());
+    setCards(); // todo
     setFlipped([]);
     setMatched([]);
     setScores({ 1: 0, 2: 0 });
     setCurrentPlayer(1);
     setGameOver(false);
   };
+
 
   return {
     cards,

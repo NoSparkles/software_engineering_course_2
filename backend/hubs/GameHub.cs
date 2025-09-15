@@ -9,15 +9,24 @@ namespace Hubs
         private static readonly ConcurrentDictionary<string, GameInstance> ActiveGames = new();
         private static readonly ConcurrentDictionary<string, CancellationTokenSource> RoomCleanupTimers = new();
         private static readonly ConcurrentDictionary<string, Dictionary<string, string>> RoomUsers = new();
-        
+
         public async Task MakeMove(string gameType, string roomCode, string playerId, string command)
         {
+            Console.WriteLine("from makemove {0}", gameType);
             if (gameType == "four-in-a-row")
             {
-                var roomKey = $"{gameType}:{roomCode.ToUpper()}"; 
+                var roomKey = $"{gameType}:{roomCode.ToUpper()}";
                 if (ActiveGames.TryGetValue(roomKey, out var game) && game is FourInARowGame fourGame)
                 {
                     await fourGame.HandleCommand(playerId, command, Clients);
+                }
+            }
+            else if (gameType == "pair-matching")
+            {
+                var roomKey = $"{gameType}:{roomCode.ToUpper()}";
+                if (ActiveGames.TryGetValue(roomKey, out var game) && game is PairMatching pairGame)
+                {
+                    await pairGame.HandleCommand(playerId, command, Clients);
                 }
             }
         }
@@ -67,10 +76,25 @@ namespace Hubs
                             await Clients.Client(connId).SendAsync("SetPlayerColor", color);
                         }
                     }
-
-
                 }
-
+                else if (gameType == "pair-matching")
+                {
+                    var playerIds = users.Keys.ToList();
+                    if (playerIds.Count == 2 && game is PairMatching pairGame)
+                    {
+                        pairGame.RoomCode = roomKey;
+                        pairGame.AssignPlayerColors(playerIds[0], playerIds[1]);
+                    }
+                    Console.WriteLine($"Assigned colors: {string.Join(", ", ((PairMatching)game).GetPlayerColor(playerIds[0]) + " to " + playerIds[0] + ", " + ((PairMatching)game).GetPlayerColor(playerIds[1]) + " to " + playerIds[1])}");
+                    foreach (var pid in playerIds)
+                    {
+                        var color = ((PairMatching)game).GetPlayerColor(pid);
+                        if (users.TryGetValue(pid, out var connId))
+                        {
+                            await Clients.Client(connId).SendAsync("SetPlayerColor", color);
+                        }
+                    }
+                }
                 ActiveGames[roomKey] = game;
 
                 await Clients.Group(roomKey).SendAsync("StartGame", roomCode);
