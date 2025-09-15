@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Configuration.CommandLine;
 
 namespace games
 {
@@ -8,7 +7,7 @@ namespace games
         public Dictionary<string, string> playerColors = new();
         private Card[,] Board { get; set; } = new Card[6, 3];
         public string CurrentPlayerColor { get; private set; } = "R";
-        public int[,] FlippedCards { get; set; }
+        public List<List<int>> FlippedCards { get; set; }
         public string WinnerColor { get; set; }
 
         public string RoomCode { get; set; }
@@ -16,7 +15,7 @@ namespace games
         public PairMatching()
         {
             GenerateBoard();
-            FlippedCards = new int[2, 2];
+            FlippedCards = new List<List<int>>();
         }
 
         public string GetPlayerColor(string playerId)
@@ -35,13 +34,13 @@ namespace games
             {
                 return clients.Caller.SendAsync("ReceiveBoard", GetGameState());
             }
-            if (command.StartsWith("flip"))
+            else if (command.StartsWith("flip"))
             {
                 string[] parts = command.Split(' ');
                 Card card = Board[int.Parse(parts[1]), int.Parse(parts[2])];
                 if (card.state == CardState.FaceDown)
                 {
-                    
+
                 }
 
             }
@@ -68,23 +67,28 @@ namespace games
                 }
             }
         }
-        public Object GetGameState()
+        public object GetGameState()
         {
-            var boardState = new List<string[]>();
+            var boardState = new List<object>();
             for (int i = 0; i < 6; i++)
             {
                 for (int j = 0; j < 3; j++)
                 {
                     var card = Board[i, j];
-                    boardState.Add(new string[] { card.Value.ToString(), card.state.ToString() }); // Corrected string array creation
+                    boardState.Add(new {
+                        value = card.Value,
+                        state = card.state.ToString(),
+                        x = i,
+                        y = j
+                    });
                 }
             }
-            return new
-            {
-                BoardState = boardState,
-                CurrentPlayerColor,
-                FlippedCards,
-                WinnerColor
+
+            return new {
+                board = boardState,
+                currentPlayer = CurrentPlayerColor,
+                flipped = FlippedCards,
+                winner = WinnerColor ?? ""
             };
         }
     }

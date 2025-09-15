@@ -49,7 +49,8 @@ namespace Hubs
             await Groups.AddToGroupAsync(Context.ConnectionId, roomKey);
 
             if (shouldNotifyStart)
-            {
+            {   
+                // need to change this:
                 GameInstance game = gameType switch
                 {
                     // to be implemented
