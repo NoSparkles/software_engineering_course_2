@@ -6,6 +6,7 @@ export function useGameEngine({ playerColor, connection, roomCode, playerId }) {
   const [currentPlayer, setCurrentPlayer] = useState(1);
   const [scores, setScores] = useState({ 1: 0, 2: 0 });
   const [gameOver, setGameOver] = useState(false);
+  const [winner, setWinner] = useState(null)
 
   const gameType = 'pair-matching'
 
@@ -42,9 +43,12 @@ export function useGameEngine({ playerColor, connection, roomCode, playerId }) {
     }
   }, [flipped]);
 
-  const receiveBoard = cards => {
-    setCards(cards)
-    console.log("cards ", cards)
+  const receiveBoard = gameState => {
+    console.log(gameState)
+    setCards(gameState.boardState)
+    setCurrentPlayer(gameState.currentPlayerColor)
+    setFlipped(gameState.flippedCards)
+    setWinner(gameState.winnerColor)
   }
 
   const flipCard = index => {

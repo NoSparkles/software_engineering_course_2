@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Configuration.CommandLine;
 
 namespace games
 {
@@ -7,32 +8,15 @@ namespace games
         public Dictionary<string, string> playerColors = new();
         private Card[,] Board { get; set; } = new Card[6, 3];
         public string CurrentPlayerColor { get; private set; } = "R";
+        public int[,] FlippedCards { get; set; }
         public string WinnerColor { get; set; }
 
         public string RoomCode { get; set; }
 
-        private class Card
-        {
-            public int Value { get; set; }
-            public CardState state { get; set; }
-
-            public Card(int value)
-            {
-                Value = value;
-                state = CardState.FaceDown;
-            }
-        }
-
-        private enum CardState
-        {
-            FaceDown,
-            FaceUp,
-            Matched
-        }
-
         public PairMatching()
         {
             GenerateBoard();
+            FlippedCards = new int[2, 2];
         }
 
         public string GetPlayerColor(string playerId)
@@ -49,8 +33,17 @@ namespace games
         {
             if (command.StartsWith("getBoard"))
             {
-                Console.WriteLine("received get board");
-                return clients.Caller.SendAsync("ReceiveBoard", GetBoardState());
+                return clients.Caller.SendAsync("ReceiveBoard", GetGameState());
+            }
+            if (command.StartsWith("flip"))
+            {
+                string[] parts = command.Split(' ');
+                Card card = Board[int.Parse(parts[1]), int.Parse(parts[2])];
+                if (card.state == CardState.FaceDown)
+                {
+                    
+                }
+
             }
 
             return Task.CompletedTask;
@@ -75,7 +68,7 @@ namespace games
                 }
             }
         }
-        public List<string[]> GetBoardState()
+        public Object GetGameState()
         {
             var boardState = new List<string[]>();
             for (int i = 0; i < 6; i++)
@@ -86,7 +79,13 @@ namespace games
                     boardState.Add(new string[] { card.Value.ToString(), card.state.ToString() }); // Corrected string array creation
                 }
             }
-            return boardState;
+            return new
+            {
+                BoardState = boardState,
+                CurrentPlayerColor,
+                FlippedCards,
+                WinnerColor
+            };
         }
     }
 }
