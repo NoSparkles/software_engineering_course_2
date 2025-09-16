@@ -151,21 +151,21 @@ namespace Hubs
                     {
                         users.Remove(playerToRemove.Key);
 
-                        if (users.Count == 0)
-                        {
-                            var cts = new CancellationTokenSource();
-                            RoomCleanupTimers[roomKey] = cts;
+                        // if (users.Count == 0)
+                        // {
+                        //     var cts = new CancellationTokenSource();
+                        //     RoomCleanupTimers[roomKey] = cts;
 
-                            _ = Task.Delay(TimeSpan.FromMinutes(3), cts.Token).ContinueWith(task =>
-                            {
-                                if (!task.IsCanceled)
-                                {
-                                    RoomUsers.TryRemove(roomKey, out _);
-                                    RoomCleanupTimers.TryRemove(roomKey, out _);
-                                    Console.WriteLine($"Room {roomKey} cleaned up after timeout.");
-                                }
-                            });
-                        }
+                        //     _ = Task.Delay(TimeSpan.FromMinutes(3), cts.Token).ContinueWith(task =>
+                        //     {
+                        //         if (!task.IsCanceled)
+                        //         {
+                        //             RoomUsers.TryRemove(roomKey, out _);
+                        //             RoomCleanupTimers.TryRemove(roomKey, out _);
+                        //             Console.WriteLine($"Room {roomKey} cleaned up after timeout.");
+                        //         }
+                        //     });
+                        // }
 
                         break;
                     }

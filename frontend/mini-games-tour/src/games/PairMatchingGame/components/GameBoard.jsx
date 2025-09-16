@@ -8,7 +8,6 @@ export default function GameBoard({ playerColor, connection, roomCode, playerId 
   const {
     cards,
     flipped,
-    matched,
     currentPlayer,
     scores,
     gameOver,

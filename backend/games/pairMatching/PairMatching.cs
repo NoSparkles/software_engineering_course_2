@@ -5,7 +5,7 @@ namespace games
     public class PairMatching : GameInstance
     {
         public Dictionary<string, string> playerColors = new();
-        private Card[,] Board { get; set; } = new Card[6, 3];
+        private Card[,] Board { get; set; } = new Card[3, 6];
         public string CurrentPlayerColor { get; private set; } = "R";
         public List<List<int>> FlippedCards { get; set; }
         public string WinnerColor { get; set; }
@@ -37,12 +37,44 @@ namespace games
             else if (command.StartsWith("flip"))
             {
                 string[] parts = command.Split(' ');
-                Card card = Board[int.Parse(parts[1]), int.Parse(parts[2])];
+                var col = int.Parse(parts[1]);
+                var row = int.Parse(parts[2]);
+                Card card = Board[row, col];
+                Console.WriteLine("card: {0} {1} {2}", int.Parse(parts[1]), int.Parse(parts[2]), playerColors[playerId]);
                 if (card.state == CardState.FaceDown)
                 {
-
+                    card.state = CardState.FaceUp;
+                    FlippedCards.Add(new List<int> { row, col });
                 }
 
+                for (int i = 0; i < 3; i++)
+                {
+                    for (int j = 0; j < 6; j++)
+                    {
+                        Console.Write("{0} ", Board[i, j].state == CardState.FaceDown ? -1 : Board[i, j].Value);
+                    }
+                    Console.WriteLine();
+                }
+
+                if (FlippedCards.Count() == 2)
+                {
+                    Card first = Board[FlippedCards[0][0], FlippedCards[0][1]];
+                    Card second = Board[FlippedCards[1][0], FlippedCards[1][1]];
+
+                    if (first.Value == second.Value)
+                    {
+                        first.state = CardState.Matched;
+                        second.state = CardState.Matched;
+                    }
+                    else
+                    {
+                        first.state = CardState.FaceDown;
+                        second.state = CardState.FaceDown;
+                    }
+                    FlippedCards.Clear();
+                    CurrentPlayerColor = CurrentPlayerColor == "R" ? "Y" : "R";
+                }
+                return clients.Group(RoomCode).SendAsync("ReceiveBoard", GetGameState());
             }
 
             return Task.CompletedTask;
@@ -57,9 +89,9 @@ namespace games
                 values.Add(i);
             }
             var rand = new Random();
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < 3; i++)
             {
-                for (int j = 0; j < 3; j++)
+                for (int j = 0; j < 6; j++)
                 {
                     int index = rand.Next(values.Count);
                     Board[i, j] = new Card(values[index]);
@@ -70,12 +102,13 @@ namespace games
         public object GetGameState()
         {
             var boardState = new List<object>();
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < 3; i++)
             {
-                for (int j = 0; j < 3; j++)
+                for (int j = 0; j < 6; j++)
                 {
                     var card = Board[i, j];
-                    boardState.Add(new {
+                    boardState.Add(new
+                    {
                         value = card.Value,
                         state = card.state.ToString(),
                         x = i,
@@ -84,10 +117,16 @@ namespace games
                 }
             }
 
-            return new {
+            // Convert flipped (row, col) pairs to flat indices
+            var flippedIndices = FlippedCards
+                .Select(coords => coords[0] * 6 + coords[1])
+                .ToList();
+
+            return new
+            {
                 board = boardState,
                 currentPlayer = CurrentPlayerColor,
-                flipped = FlippedCards,
+                flipped = flippedIndices,
                 winner = WinnerColor ?? ""
             };
         }

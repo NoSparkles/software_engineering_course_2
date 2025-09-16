@@ -2,11 +2,12 @@
   export function useGameEngine({ playerColor, connection, roomCode, playerId }) {
     const [cards, setCards] = useState([]);
     const [flipped, setFlipped] = useState([]);
-    const [matched, setMatched] = useState([]);
-    const [currentPlayer, setCurrentPlayer] = useState(1);
+    const [currentPlayer, setCurrentPlayer] = useState('Red');
     const [scores, setScores] = useState({ 1: 0, 2: 0 });
     const [gameOver, setGameOver] = useState(false);
     const [winner, setWinner] = useState(null)
+    
+    //let changePlayer = false
 
     const gameType = 'pair-matching'
 
@@ -27,22 +28,47 @@
     }, [connection])
 
     useEffect(() => {
+      console.log("Flipped: ", flipped)
       if (flipped.length === 2) {
         const [first, second] = flipped;
-        if (cards[first].id === cards[second].id) {
-          setMatched([...matched, cards[first].id]);
+        if (cards[first].value === cards[second].value) {
+          setCards(prev =>
+            prev.map((card, i) => {
+              if (i === first || i === second) {
+                return { ...card, state: "Matched" };
+              }
+              return card;
+            })
+          );
+
           setScores(prev => ({
             ...prev,
             [currentPlayer]: prev[currentPlayer] + 1
           }));
+
           if (scores[currentPlayer] + 1 === 5) {
             setGameOver(true);
+            setWinner(currentPlayer);
           }
+
           setFlipped([]);
         } else {
+          // Flip back after delay
           setTimeout(() => {
+            setCards(prev =>
+              prev.map((card, i) => {
+                if (i === first || i === second) {
+                  return { ...card, state: "FaceDown" };
+                }
+                return card;
+              })
+            );
+
             setFlipped([]);
-            setCurrentPlayer(currentPlayer === 1 ? 2 : 1);
+          //  if (changePlayer) {
+              setCurrentPlayer(currentPlayer === "Red" ? "Yellow" : "Red");
+          //  }
+            
           }, 1000);
         }
       }
@@ -51,25 +77,41 @@
     const receiveBoard = gameState => {
       console.log(gameState)
       setCards(gameState.board)
-      setCurrentPlayer(gameState.currentPlayer)
       setFlipped(gameState.flipped)
+      setCurrentPlayer(gameState.currentPlayer === "R" ? "Red" : "Yellow")
       setWinner(gameState.winner)
     }
 
     const flipCard = index => {
+      console.log(currentPlayer, playerColor)
+      let col = Math.floor(index % 6)
+      let row = Math.floor(index / 6)
+      console.log(row, col, index)
       if (
+        currentPlayer === (playerColor === "R" ? "Red" : "Yellow") &&
         flipped.length < 2 &&
-        !flipped.includes(index) &&
-        !matched.includes(cards[index].id)
+        cards[index].state === "FaceDown"
       ) {
-        setFlipped([...flipped, index]);
+        setFlipped(prev => [...prev, index]);;
+        setCards(prev => {
+          return prev.map((card, i) => {
+            if (i === index) {
+              return {
+                ...card,
+                state: "FaceUp"
+              };
+            }
+            return card;
+          });
+        });
+        if (!connection) return
+        connection.invoke("makeMove", gameType, roomCode, playerId, `flip ${col} ${row}`)
       }
     };
 
     const resetGame = () => {
       setCards(); // todo
       setFlipped([]);
-      setMatched([]);
       setScores({ 1: 0, 2: 0 });
       setCurrentPlayer(1);
       setGameOver(false);
@@ -79,7 +121,6 @@
     return {
       cards,
       flipped,
-      matched,
       currentPlayer,
       scores,
       gameOver,
