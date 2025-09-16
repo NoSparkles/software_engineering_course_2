@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useSignalRService } from '../../utils/useSignalRService';
 import { usePlayerId } from '../../utils/usePlayerId';
 import PMBoard from '../../games/PairMatchingGame/components/GameBoard';
+import RpsBoard from '../../games/rockPaperScissors/components/RpsBoard';
 import {Board as FourInARowGameBoard} from '../../games/fourInRowGame/components/Board';
 
 export default function SessionRoom() {
@@ -30,7 +31,7 @@ export default function SessionRoom() {
   useEffect(() => {
     switch (gameType) {
         case 'rock-paper-scissors':
-            setBoard(undefined); // placeholder for Dominykas
+            setBoard(<RpsBoard playerColor={playerColor} connection={connection} roomCode={code} playerId={playerId} />);
             break;
         case 'four-in-a-row':
             setBoard(<FourInARowGameBoard playerColor={playerColor} connection={connection} roomCode={code} playerId={playerId}/>);
