@@ -5,6 +5,7 @@
     const [currentPlayer, setCurrentPlayer] = useState('Red');
     const [scores, setScores] = useState({ R: 0, Y: 0 });
     const [winner, setWinner] = useState(null)
+    const [resetVote, setResetVote] = useState(false)
 
     let changePlayer = false
     
@@ -107,11 +108,11 @@
     };
 
     const resetGame = () => {
-      setCards(); // todo
-      setFlipped([]);
-      setScores({ R: 0, Y: 0 });
-      setCurrentPlayer(1);
-      setWinner(null);
+      setResetVote(prev => {
+        let temp = {...prev}
+        temp[playerColor] = true
+        return temp
+      })
     };
 
 
@@ -121,6 +122,7 @@
       currentPlayer,
       scores,
       winner,
+      resetVote,
       flipCard,
       resetGame
     };
