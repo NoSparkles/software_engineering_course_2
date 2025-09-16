@@ -6,6 +6,8 @@
     const [scores, setScores] = useState({ 1: 0, 2: 0 });
     const [gameOver, setGameOver] = useState(false);
     const [winner, setWinner] = useState(null)
+
+    let changePlayer = false
     
     //let changePlayer = false
 
@@ -65,9 +67,9 @@
             );
 
             setFlipped([]);
-          //  if (changePlayer) {
+            if (changePlayer) {
               setCurrentPlayer(currentPlayer === "Red" ? "Yellow" : "Red");
-          //  }
+            }
             
           }, 1000);
         }
@@ -80,6 +82,10 @@
       setFlipped(gameState.flipped)
       setCurrentPlayer(gameState.currentPlayer === "R" ? "Red" : "Yellow")
       setWinner(gameState.winner)
+
+      if (gameState.flipped.length === 2) {
+        changePlayer = false
+      }
     }
 
     const flipCard = index => {

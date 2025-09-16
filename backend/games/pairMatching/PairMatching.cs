@@ -30,6 +30,16 @@ namespace games
         }
         public override Task HandleCommand(string playerId, string command, IHubCallerClients clients)
         {
+            if (FlippedCards.Count() == 2)
+            {
+                Card first = Board[FlippedCards[0][0], FlippedCards[0][1]];
+                Card second = Board[FlippedCards[1][0], FlippedCards[1][1]];
+                // they are not matching for sure
+                first.state = CardState.FaceDown;
+                second.state = CardState.FaceDown;
+                FlippedCards.Clear();
+
+            }
             if (command.StartsWith("getBoard"))
             {
                 return clients.Caller.SendAsync("ReceiveBoard", GetGameState());
@@ -65,13 +75,8 @@ namespace games
                     {
                         first.state = CardState.Matched;
                         second.state = CardState.Matched;
+                        FlippedCards.Clear();
                     }
-                    else
-                    {
-                        first.state = CardState.FaceDown;
-                        second.state = CardState.FaceDown;
-                    }
-                    FlippedCards.Clear();
                     CurrentPlayerColor = CurrentPlayerColor == "R" ? "Y" : "R";
                 }
                 return clients.Group(RoomCode).SendAsync("ReceiveBoard", GetGameState());
