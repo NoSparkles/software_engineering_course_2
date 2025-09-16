@@ -6,8 +6,8 @@ export default function ScoreBoard({ currentPlayer, scores }) {
     <div className="scoreboard">
       <h2>Player {currentPlayer}'s Turn</h2>
       <div className="scores">
-        <span>Player 1: {scores[1]}</span>
-        <span>Player 2: {scores[2]}</span>
+        <span>Red: {scores.R}</span>
+        <span>Yellow: {scores.Y}</span>
       </div>
     </div>
   );

@@ -36,7 +36,7 @@ export default function SessionRoom() {
             setBoard(<FourInARowGameBoard playerColor={playerColor} connection={connection} roomCode={code} playerId={playerId}/>);
             break;
         case 'pair-matching':
-            setBoard(<PMBoard />);
+            setBoard(<PMBoard playerColor={playerColor} connection={connection} roomCode={code} playerId={playerId}/>);
             break;
         default:
             setBoard(null);
@@ -90,11 +90,9 @@ export default function SessionRoom() {
       <h2>{gameType.toUpperCase()} Session</h2>
       <p>Room Code: <strong>{code}</strong></p>
       <p>Player ID: <strong>{playerId}</strong></p>
-      {gameType === "four-in-a-row" && (
-        <p>
-          Assigned Color: <strong>{playerColor ? (playerColor === "R" ? "Red" : "Yellow") : "Not assigned yet"}</strong>
-        </p>
-      )}
+      <p>
+        Assigned Color: <strong>{playerColor ? (playerColor === "R" ? "Red" : "Yellow") : "Not assigned yet"}</strong>
+      </p>
       <p>Status: <strong>{status}</strong></p>
       <p>Connection: <strong>{connectionState}</strong></p>
       <div className="game-board">

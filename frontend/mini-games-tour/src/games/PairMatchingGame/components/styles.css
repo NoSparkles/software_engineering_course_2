@@ -44,11 +44,20 @@ body {
 }
 
 /* Card Component */
-.card {
+.card{
   width: 80px;
   height: 80px;
+  font-weight: bold;
   perspective: 1000px;
   cursor: pointer;
+}
+
+.card.FaceUp {
+  color: #edbd39;
+}
+
+.card.Matched {
+  color: #219150;
 }
 
 .card-inner {

@@ -4,17 +4,17 @@ import Card from './Card';
 import ScoreBoard from './ScoreBoard';
 import './styles.css';
 
-export default function GameBoard() {
+export default function GameBoard({ playerColor, connection, roomCode, playerId }) {
   const {
     cards,
     flipped,
-    matched,
     currentPlayer,
     scores,
-    gameOver,
+    winner,
+    resetVote,
     flipCard,
     resetGame
-  } = useGameEngine();
+  } = useGameEngine({playerColor, connection, roomCode, playerId});
 
   return (
     <div className="game-container">
@@ -22,22 +22,23 @@ export default function GameBoard() {
 
       <div className="card-grid">
         {cards.map((card, index) => {
-          const isFlipped = flipped.includes(index) || matched.includes(card.id);
           return (
             <Card
-              key={card.key}
+              key={index}
               card={card}
-              isFlipped={isFlipped}
               onClick={() => flipCard(index)}
             />
           );
         })}
       </div>
 
-      { gameOver && (
+      { winner && (
         <div className="game-over">
           <h3>🎉 Player {scores[1] === 5 ? 1 : 2} Wins!</h3>
           <button onClick={resetGame}>Play Again</button>
+          {resetVote && (
+            <p>Waiting for other player to confirm</p>
+          )}
         </div>
       )}
     </div>
