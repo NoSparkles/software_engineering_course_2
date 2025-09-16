@@ -10,6 +10,7 @@ namespace games
         public string CurrentPlayerColor { get; private set; } = "R";
         public List<List<int>> FlippedCards { get; set; }
         public string WinnerColor { get; set; }
+        private Dictionary<string, bool> resetVotes = new();
 
         public string RoomCode { get; set; }
 
@@ -19,6 +20,8 @@ namespace games
             FlippedCards = new List<List<int>>();
             Scores["R"] = 0;
             Scores["Y"] = 0;
+            resetVotes["R"] = false;
+            resetVotes["Y"] = false;
         }
 
         public string GetPlayerColor(string playerId)
@@ -89,6 +92,15 @@ namespace games
                 }
                 return clients.Group(RoomCode).SendAsync("ReceiveBoard", GetGameState());
             }
+            else if (command.StartsWith("reset"))
+            {
+                resetVotes[playerColors[playerId]] = true;
+                if (resetVotes["R"] && resetVotes["Y"])
+                {
+                    ResetGame();
+                    return clients.Group(RoomCode).SendAsync("ResetGame", GetGameState());
+                }
+            }
 
             return Task.CompletedTask;
         }
@@ -111,6 +123,18 @@ namespace games
                     values.RemoveAt(index);
                 }
             }
+        }
+
+        private void ResetGame()
+        {
+            GenerateBoard();
+            FlippedCards.Clear();
+            WinnerColor = "";
+            CurrentPlayerColor = "R";
+            Scores["R"] = 0;
+            Scores["Y"] = 0;
+            resetVotes["R"] = false;
+            resetVotes["Y"] = false;
         }
         public object GetGameState()
         {

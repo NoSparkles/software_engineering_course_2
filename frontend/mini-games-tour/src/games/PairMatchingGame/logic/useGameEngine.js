@@ -9,8 +9,6 @@
 
     let changePlayer = false
     
-    //let changePlayer = false
-
     const gameType = 'pair-matching'
 
     useEffect(() => {
@@ -20,6 +18,8 @@
       }
         console.log("receiving board")
         connection.on("receiveBoard", receiveBoard)
+
+        connection.on("ResetGame", onResetGame)
 
         console.log("getting board")
         connection.invoke("makeMove", gameType, roomCode, playerId, 'getBoard')
@@ -65,6 +65,12 @@
         }
       }
     }, [flipped]);
+
+    useEffect(() => {
+      if (resetVote && connection) {
+        connection.invoke("makeMove", gameType, roomCode, playerId, 'reset')
+      }
+    }, [connection, resetVote])
 
     const receiveBoard = gameState => {
       console.log(gameState)
@@ -114,6 +120,16 @@
         return temp
       })
     };
+
+    const onResetGame = gameState => {
+      setCards(gameState.board)
+      setFlipped(gameState.flipped)
+      setCurrentPlayer(gameState.currentPlayer === "R" ? "Red" : "Yellow")
+      setScores(gameState.scores)
+      setWinner(gameState.winner)
+      setResetVote(false)
+      changePlayer = false
+    }
 
 
     return {
