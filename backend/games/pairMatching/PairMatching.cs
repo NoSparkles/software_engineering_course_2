@@ -5,6 +5,7 @@ namespace games
     public class PairMatching : GameInstance
     {
         public Dictionary<string, string> playerColors = new();
+        private Dictionary<string, int> Scores = new();
         private Card[,] Board { get; set; } = new Card[3, 6];
         public string CurrentPlayerColor { get; private set; } = "R";
         public List<List<int>> FlippedCards { get; set; }
@@ -16,6 +17,8 @@ namespace games
         {
             GenerateBoard();
             FlippedCards = new List<List<int>>();
+            Scores["R"] = 0;
+            Scores["Y"] = 0;
         }
 
         public string GetPlayerColor(string playerId)
@@ -76,6 +79,11 @@ namespace games
                         first.state = CardState.Matched;
                         second.state = CardState.Matched;
                         FlippedCards.Clear();
+                        Scores[CurrentPlayerColor] += 1;
+                        if (Scores[CurrentPlayerColor] == 5)
+                        {
+                            WinnerColor = CurrentPlayerColor;
+                        }
                     }
                     CurrentPlayerColor = CurrentPlayerColor == "R" ? "Y" : "R";
                 }
@@ -132,6 +140,7 @@ namespace games
                 board = boardState,
                 currentPlayer = CurrentPlayerColor,
                 flipped = flippedIndices,
+                scores = Scores,
                 winner = WinnerColor ?? ""
             };
         }

@@ -10,7 +10,7 @@ export default function GameBoard({ playerColor, connection, roomCode, playerId 
     flipped,
     currentPlayer,
     scores,
-    gameOver,
+    winner,
     flipCard,
     resetGame
   } = useGameEngine({playerColor, connection, roomCode, playerId});
@@ -31,7 +31,7 @@ export default function GameBoard({ playerColor, connection, roomCode, playerId 
         })}
       </div>
 
-      { gameOver && (
+      { winner && (
         <div className="game-over">
           <h3>🎉 Player {scores[1] === 5 ? 1 : 2} Wins!</h3>
           <button onClick={resetGame}>Play Again</button>

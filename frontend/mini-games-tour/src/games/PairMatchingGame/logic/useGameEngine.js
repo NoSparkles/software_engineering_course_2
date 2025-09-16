@@ -3,8 +3,7 @@
     const [cards, setCards] = useState([]);
     const [flipped, setFlipped] = useState([]);
     const [currentPlayer, setCurrentPlayer] = useState('Red');
-    const [scores, setScores] = useState({ 1: 0, 2: 0 });
-    const [gameOver, setGameOver] = useState(false);
+    const [scores, setScores] = useState({ R: 0, Y: 0 });
     const [winner, setWinner] = useState(null)
 
     let changePlayer = false
@@ -43,16 +42,6 @@
             })
           );
 
-          setScores(prev => ({
-            ...prev,
-            [currentPlayer]: prev[currentPlayer] + 1
-          }));
-
-          if (scores[currentPlayer] + 1 === 5) {
-            setGameOver(true);
-            setWinner(currentPlayer);
-          }
-
           setFlipped([]);
         } else {
           // Flip back after delay
@@ -81,6 +70,7 @@
       setCards(gameState.board)
       setFlipped(gameState.flipped)
       setCurrentPlayer(gameState.currentPlayer === "R" ? "Red" : "Yellow")
+      setScores(gameState.scores)
       setWinner(gameState.winner)
 
       if (gameState.flipped.length === 2) {
@@ -89,6 +79,7 @@
     }
 
     const flipCard = index => {
+      if (winner) return
       console.log(currentPlayer, playerColor)
       let col = Math.floor(index % 6)
       let row = Math.floor(index / 6)
@@ -118,9 +109,9 @@
     const resetGame = () => {
       setCards(); // todo
       setFlipped([]);
-      setScores({ 1: 0, 2: 0 });
+      setScores({ R: 0, Y: 0 });
       setCurrentPlayer(1);
-      setGameOver(false);
+      setWinner(null);
     };
 
 
@@ -129,7 +120,7 @@
       flipped,
       currentPlayer,
       scores,
-      gameOver,
+      winner,
       flipCard,
       resetGame
     };
