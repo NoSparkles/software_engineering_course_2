@@ -59,6 +59,8 @@ namespace games
 
                 if (CurrentChoices[color] == null) CurrentChoices[color] = choice;
 
+                LastRoundWasDraw = false;
+
                 if (CurrentChoices["R"] != null && CurrentChoices["Y"] != null)
                     await ResolveRoundAndBroadcast(clients);
                 else
