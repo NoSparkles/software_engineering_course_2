@@ -29,7 +29,16 @@ namespace Hubs
                     await pairGame.HandleCommand(playerId, command, Clients);
                 }
             }
+            else if (gameType == "rock-paper-scissors")
+            {
+                var roomKey = $"{gameType}:{roomCode.ToUpper()}";
+                if (ActiveGames.TryGetValue(roomKey, out var game) && game is RockPaperScissors rpsGame)
+                {
+                    await rpsGame.HandleCommand(playerId, command, Clients);
+                }
+            }
         }
+
         public async Task JoinRoom(string gameType, string roomCode, string playerId)
         {
             var roomKey = $"{gameType}:{roomCode.ToUpper()}";
@@ -49,13 +58,12 @@ namespace Hubs
             await Groups.AddToGroupAsync(Context.ConnectionId, roomKey);
 
             if (shouldNotifyStart)
-            {   
+            {
                 // need to change this:
                 GameInstance game = gameType switch
                 {
-                    // to be implemented
-                    "rock-paper-scissors" => null, //new RockPaperScissorsGame(),
-                    "four-in-a-row" => new FourInARowGame(), //new FourInARowGame(),
+                    "rock-paper-scissors" => new RockPaperScissors(), // new RockPaperScissors()
+                    "four-in-a-row" => new FourInARowGame(),
                     "pair-matching" => new PairMatching(),
                     _ => throw new Exception("Unknown game type")
                 };
@@ -96,13 +104,32 @@ namespace Hubs
                         }
                     }
                 }
+                else if (gameType == "rock-paper-scissors")
+                {
+                    var playerIds = users.Keys.ToList();
+                    if (playerIds.Count == 2 && game is RockPaperScissors rpsGame)
+                    {
+                        rpsGame.RoomCode = roomKey;
+                        rpsGame.AssignPlayerColors(playerIds[0], playerIds[1]);
+                    }
+                    Console.WriteLine($"Assigned colors: {((RockPaperScissors)game).GetPlayerColor(playerIds[0])} to {playerIds[0]}, {((RockPaperScissors)game).GetPlayerColor(playerIds[1])} to {playerIds[1]}");
+                    foreach (var pid in playerIds)
+                    {
+                        var color = ((RockPaperScissors)game).GetPlayerColor(pid);
+                        if (users.TryGetValue(pid, out var connId))
+                        {
+                            await Clients.Client(connId).SendAsync("SetPlayerColor", color);
+                        }
+                    }
+                }
+
                 ActiveGames[roomKey] = game;
 
                 await Clients.Group(roomKey).SendAsync("StartGame", roomCode);
             }
         }
-        
-        
+
+
 
         public Task<bool> CreateRoom(string gameType, string roomCode)
         {
@@ -112,7 +139,7 @@ namespace Hubs
         }
 
         public Task<bool> RoomExists(string gameType, string roomCode)
-        {   
+        {
             Console.WriteLine($"Checking if room {roomCode} exists for game {gameType}");
             var roomKey = $"{gameType}:{roomCode.ToUpper()}";
             return Task.FromResult(RoomUsers.ContainsKey(roomKey));
