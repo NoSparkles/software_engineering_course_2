@@ -19,7 +19,7 @@ export function useAuth() {
     const response = await fetch('http://localhost:5236/User/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, passwordHash: password }),
+      body: JSON.stringify({ username, password: password }),
     });
 
     return response.ok;
