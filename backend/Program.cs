@@ -1,4 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using Hubs;
+using Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +23,9 @@ builder.Services.AddCors(options =>
               .SetIsOriginAllowed(origin => true); // or specify your frontend origin
     });
 });
+
+builder.Services.AddDbContext<GameDbContext>(options =>
+    options.UseSqlite("Data Source=game.db")); 
 
 var app = builder.Build();
 
