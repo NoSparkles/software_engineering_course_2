@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Models;
 using Services;
@@ -15,7 +17,23 @@ namespace Controllers
             _userService = userService;
         }
 
-        // GET: api/user/{username}
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<ActionResult<User>> GetMe()
+        {
+            var username = User.FindFirstValue(ClaimTypes.Name);
+            if (string.IsNullOrEmpty(username))
+                return Unauthorized("Missing username claim.");
+
+            var user = await _userService.GetUserAsync(username);
+            if (user == null)
+                return NotFound("User not found.");
+
+            return Ok(user);
+        }
+
+
+        // GET: User/{username}
         [HttpGet("{username}")]
         public async Task<ActionResult<User>> GetUser(string username)
         {
@@ -25,7 +43,7 @@ namespace Controllers
             return Ok(user);
         }
 
-        // POST: api/user/register
+        // POST: /User/register
         [HttpPost("register")]
         public async Task<ActionResult<User>> Register([FromBody] RegisterDto registerDto)
         {
@@ -40,7 +58,47 @@ namespace Controllers
             return CreatedAtAction(nameof(GetUser), new { username = registerDto.Username }, createdUser);
         }
 
-        // PUT: api/user/{username}/add-friend
+        // POST: /User/login
+        [HttpPost("login")]
+        public async Task<ActionResult<object>> Login([FromBody] LoginDto loginDto)
+        {
+            if (string.IsNullOrWhiteSpace(loginDto.Username) || string.IsNullOrWhiteSpace(loginDto.Password))
+                return BadRequest("Username and password are required.");
+
+            var user = await _userService.GetUserAsync(loginDto.Username);
+            if (user == null)
+                return Unauthorized("Invalid username or password.");
+
+            // ✅ Hash the incoming password and compare
+            var hashedInput = _userService.HashPassword(loginDto.Password);
+            if (user.PasswordHash != hashedInput)
+                return Unauthorized("Invalid username or password.");
+
+            // ✅ Generate JWT
+            var token = _userService.GenerateJwtToken(user);
+
+            // ✅ Return token + user info
+            return Ok(new
+            {
+                token,
+                user = new
+                {
+                    user.Username,
+                    user.Friends,
+                    user.RockPaperScissorsMMR,
+                    user.FourInARowMMR,
+                    user.PairMatchingMMR,
+                    user.TournamentMMR,
+                    user.RockPaperScissorsWinStreak,
+                    user.FourInARowWinStreak,
+                    user.PairMatchingWinStreak,
+                    user.TournamentWinStreak
+                }
+            });
+        }
+
+
+        // PUT: User/{username}/add-friend
         [HttpPut("{username}/add-friend")]
         public async Task<ActionResult> AddFriend(string username, [FromBody] string friendUsername)
         {
@@ -52,7 +110,7 @@ namespace Controllers
             return Ok(updatedUser?.Friends);
         }
 
-        // PUT: api/user/{username}/update-mmr
+        // PUT: User/{username}/update-mmr
         [HttpPut("{username}/update-mmr")]
         public async Task<ActionResult> UpdateMMR(string username, [FromBody] Dictionary<string, int> mmrUpdates)
         {
@@ -64,7 +122,7 @@ namespace Controllers
             return Ok(updatedUser);
         }
 
-        // GET: api/user
+        // GET: User
         [HttpGet]
         public async Task<ActionResult<List<User>>> GetAllUsers()
         {
@@ -79,4 +137,11 @@ namespace Controllers
         public string Username { get; set; } = null!;
         public string Password { get; set; } = null!;
     }
+
+    public class LoginDto
+    {
+        public string Username { get; set; } = null!;
+        public string Password { get; set; } = null!;
+    }
+
 }

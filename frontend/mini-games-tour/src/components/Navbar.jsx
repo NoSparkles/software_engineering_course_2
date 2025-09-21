@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../Utils/useAuth';
+import useAuth from '../Utils/useAuth';
 import './styles.css';
 
 export default function Navbar() {

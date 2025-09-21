@@ -1,10 +1,11 @@
-using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
+using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Models;
 using Data;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace Services
 {
@@ -45,6 +46,25 @@ namespace Services
             _context.Users.Add(newUser);
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public string GenerateJwtToken(User user)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes("YOUR_SECRET_KEY_HERE"); // use appsettings in production
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new Claim[]
+                {
+                    new Claim(ClaimTypes.Name, user.Username)
+                }),
+                Expires = DateTime.UtcNow.AddDays(7),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
         }
 
         // Add a friend (mutual)
@@ -103,7 +123,7 @@ namespace Services
         }
 
         // Simple SHA256 password hash
-        private string HashPassword(string password)
+        public string HashPassword(string password)
         {
             using var sha = SHA256.Create();
             var bytes = Encoding.UTF8.GetBytes(password);
