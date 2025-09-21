@@ -5,7 +5,7 @@ using Services;
 namespace Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     public class UserController : ControllerBase
     {
         private readonly UserService _userService;

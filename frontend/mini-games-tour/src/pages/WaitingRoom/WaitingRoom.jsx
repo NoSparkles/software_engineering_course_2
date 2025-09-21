@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { usePlayerId } from '../../utils/usePlayerId';
-import { useSignalRService } from '../../utils/useSignalRService';
+import { usePlayerId } from '../../Utils/usePlayerId';
+import { useSignalRService } from '../../Utils/useSignalRService';
 
 export default function WaitingRoom() {
   const { gameType, code } = useParams();

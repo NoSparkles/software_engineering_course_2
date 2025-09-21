@@ -1,5 +1,5 @@
 import React from 'react';
-import { useGameEngine } from '../logic/useGameEngine';
+import { useGameEngine } from '../Logic/useGameEngine';
 import Card from './Card';
 import ScoreBoard from './ScoreBoard';
 import './styles.css';

@@ -1,0 +1,55 @@
+/* Home page styles */
+.games {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  height: 80vh;
+  font-family: Arial, sans-serif;
+  background-color: #f9f9f9;
+}
+
+/* Game card */
+.game-card {
+  background-color: #ffffff;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  padding: 15px 30px;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Links inside game card */
+.game-card a {
+  text-decoration: none;
+  font-size: 1.2rem;
+  color: #333;
+  font-weight: bold;
+}
+
+/* Hover effect */
+.game-card:hover {
+  background-color: #007bff;
+  border-color: #007bff;
+  transform: scale(1.05);
+}
+
+.game-card:hover a {
+  color: #fff;
+}
+
+/* Disabled card for not-yet-implemented games */
+.game-card.disabled {
+  background-color: #eee;
+  border-color: #bbb;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.game-card.disabled span {
+  font-size: 1.2rem;
+  color: #777;
+  font-weight: bold;
+}

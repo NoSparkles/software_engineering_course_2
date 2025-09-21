@@ -1,3 +1,38 @@
+/* Navbar.css */
+nav {
+  background-color: #1e1e2f;
+  color: #fff;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+nav a {
+  color: #fff;
+  text-decoration: none;
+  margin-right: 1rem;
+  font-weight: 500;
+}
+
+nav a:hover {
+  color: #ffcc00;
+}
+
+nav button {
+  background-color: #ff4c4c;
+  color: #fff;
+  border: none;
+  padding: 0.3rem 0.7rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+nav button:hover {
+  background-color: #ff1a1a;
+}
+
+/* GameEntry.css */
 .game-entry-container {
   text-align: center;
   padding: 30px;
@@ -7,7 +42,7 @@
   margin: 20px 0;
 }
 
-input {
+input.room-code {
   padding: 10px;
   font-size: 1rem;
   width: 200px;
