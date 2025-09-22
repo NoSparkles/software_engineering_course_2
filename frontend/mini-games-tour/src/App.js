@@ -7,23 +7,27 @@ import ReturnToGameBanner from './Utils/ReturnToGameBanner';
 import Navbar from './Components/Navbar';
 import Login from './Pages/Login/Login';
 import Register from './Pages/Register/Register';
+import { AuthProvider } from './Utils/AuthProvider';
 
 function App() {
   return (
-    <Router>
-      <Navbar />
-      <ReturnToGameBanner />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path='/login' element={<Login />} />
-        <Route path='/register' element={<Register />} />
-        <Route path="/rock-paper-scissors" element={<GameEntry />} />
-        <Route path="/four-in-a-row" element={<GameEntry />} />
-        <Route path="/pair-matching" element={<GameEntry />} />
-        <Route path="/:gameType/waiting/:code" element={<WaitingRoom />} />
-        <Route path="/:gameType/session/:code" element={<SessionRoom />} />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Navbar />
+        <ReturnToGameBanner />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path='/login' element={<Login />} />
+          <Route path='/register' element={<Register />} />
+          <Route path="/rock-paper-scissors" element={<GameEntry />} />
+          <Route path="/four-in-a-row" element={<GameEntry />} />
+          <Route path="/pair-matching" element={<GameEntry />} />
+          <Route path="/:gameType/waiting/:code" element={<WaitingRoom />} />
+          <Route path="/:gameType/session/:code" element={<SessionRoom />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
+    
   );
 }
 

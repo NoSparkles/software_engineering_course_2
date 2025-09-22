@@ -31,6 +31,9 @@ nav button {
 nav button:hover {
   background-color: #ff1a1a;
 }
+nav .navbar-right button {
+  margin-left: 20px;
+}
 
 /* GameEntry.css */
 .game-entry-container {

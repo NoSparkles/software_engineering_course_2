@@ -51,7 +51,7 @@ namespace Services
         public string GenerateJwtToken(User user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes("YOUR_SECRET_KEY_HERE"); // use appsettings in production
+            var key = Encoding.ASCII.GetBytes("hc328fh283h23d89h32d3g2hd7820hd8237h238d7h27f832hf2o783hfo782g7832fg7o28gf7238o"); // use appsettings in production
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
@@ -65,6 +65,17 @@ namespace Services
 
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
+        }
+
+        public async Task<bool> DeleteUserAsync(string username)
+        {
+            var user = await _context.Users.FindAsync(username);
+            if (user == null)
+                return false;
+
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         // Add a friend (mutual)

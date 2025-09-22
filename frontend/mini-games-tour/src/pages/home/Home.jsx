@@ -5,21 +5,13 @@ import './styles.css'
 const Home = () => {
   return (
     <div className="games">
-      <div className="game-card">
-        <Link to="/rock-paper-scissors">Rock Paper Scissors</Link>
-      </div>
+      <Link className="game-card" to="/rock-paper-scissors">Rock Paper Scissors</Link>
 
-      <div className="game-card">
-        <Link to="/pair-matching">Pair Matching</Link>
-      </div>
+      <Link className="game-card" to="/pair-matching">Pair Matching</Link>
 
-      <div className="game-card">
-        <Link to="/four-in-a-row">Four In A Row</Link>
-      </div>
+      <Link className="game-card" to="/four-in-a-row">Four In A Row</Link>
 
-      <div className="game-card disabled">
-        <span>Tournament (Coming Soon)</span>
-      </div>
+      <Link className="game-card disabled" >Tournament (Coming Soon)</Link>
     </div>
   )
 }

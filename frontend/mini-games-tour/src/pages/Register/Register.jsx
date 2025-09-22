@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import useAuth from '../../Utils/useAuth';
+import { useAuth } from '../../Utils/AuthProvider';
 import './styles.css';
 
 export default function Register() {

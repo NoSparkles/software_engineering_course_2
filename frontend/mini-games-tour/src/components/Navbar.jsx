@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import useAuth from '../Utils/useAuth';
+import { useAuth } from '../Utils/AuthProvider';
 import './styles.css';
 
 export default function Navbar() {
@@ -12,9 +12,9 @@ export default function Navbar() {
         <Link to="/">Home</Link>
       </div>
       <div className="navbar-right">
-        {user ? (
+        {user?.username ? (
           <>
-            <span>{user.username}</span>
+            <span>Hello, {user.username}</span>
             <button onClick={logout}>Log out</button>
           </>
         ) : (

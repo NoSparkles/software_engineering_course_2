@@ -32,6 +32,20 @@ namespace Controllers
             return Ok(user);
         }
 
+        [Authorize]
+        [HttpDelete("me")]
+        public async Task<IActionResult> DeleteMe()
+        {
+            var username = User.FindFirstValue(ClaimTypes.Name);
+            if (string.IsNullOrEmpty(username))
+                return Unauthorized("Missing username claim.");
+
+            var success = await _userService.DeleteUserAsync(username);
+            if (!success)
+                return NotFound("User not found or could not be deleted.");
+
+            return NoContent();
+        }
 
         // GET: User/{username}
         [HttpGet("{username}")]
@@ -41,6 +55,16 @@ namespace Controllers
             if (user == null)
                 return NotFound();
             return Ok(user);
+        }
+
+        [HttpDelete("{username}")]
+        public async Task<IActionResult> DeleteUser(string username)
+        {
+            var success = await _userService.DeleteUserAsync(username);
+            if (!success)
+                return NotFound("User not found or could not be deleted.");
+
+            return NoContent();
         }
 
         // POST: /User/register

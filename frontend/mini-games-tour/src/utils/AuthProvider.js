@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export default function useAuth() {
+const AuthContext = createContext();
+
+export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('token'));
 
@@ -23,18 +25,10 @@ export default function useAuth() {
 
     if (!response.ok) return false;
 
-    const jwt = await response.text();
-    localStorage.setItem('token', jwt);
-    setToken(jwt);
-
-    const meResponse = await fetch('http://localhost:5236/User/me', {
-      headers: { Authorization: `Bearer ${jwt}` },
-    });
-
-    if (!meResponse.ok) return false;
-
-    const userData = await meResponse.json();
-    setUser(userData);
+    const data = await response.json();
+    localStorage.setItem('token', data.token);
+    setToken(data.token);
+    setUser(data.user);
     return true;
   };
 
@@ -54,5 +48,13 @@ export default function useAuth() {
     setToken(null);
   };
 
-  return { user, token, login, register, logout };
+  return (
+    <AuthContext.Provider value={{ user, token, login, register, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  return useContext(AuthContext);
 }
