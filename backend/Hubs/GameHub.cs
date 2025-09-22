@@ -152,6 +152,7 @@ namespace Hubs
             Console.WriteLine($"Authenticated matchmaking request from {user.Username}");
 
             // TODO: Matchmaking logic
+            
         }
 
         public async Task JoinAsSpectator(string gameType)
