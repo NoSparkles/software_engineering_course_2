@@ -6,11 +6,15 @@ using Models;
 using Data;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.VisualBasic;
 
 namespace Services
 {
     public class UserService
     {
+        static public byte[] KEY = Encoding.ASCII.GetBytes("hc328fh283h23d89h32d3g2hd7820hd8237h238d7h27f832hf2o783hfo782g7832fg7o28gf7238o");
+        private JwtSecurityTokenHandler TokenHandler = new JwtSecurityTokenHandler();
         private readonly GameDbContext _context;
 
         public UserService(GameDbContext context)
@@ -50,9 +54,6 @@ namespace Services
 
         public string GenerateJwtToken(User user)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes("hc328fh283h23d89h32d3g2hd7820hd8237h238d7h27f832hf2o783hfo782g7832fg7o28gf7238o"); // use appsettings in production
-
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new Claim[]
@@ -60,26 +61,23 @@ namespace Services
                     new Claim(ClaimTypes.Name, user.Username)
                 }),
                 Expires = DateTime.UtcNow.AddDays(7),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(KEY), SecurityAlgorithms.HmacSha256Signature)
             };
 
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
+            var token = TokenHandler.CreateToken(tokenDescriptor);
+            return TokenHandler.WriteToken(token);
         }
 
         public async Task<User?> GetUserFromTokenAsync(string jwtToken)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes("hc328fh283h23d89h32d3g2hd7820hd8237h238d7h27f832hf2o783hfo782g7832fg7o28gf7238o");
-
             try
             {
-                var principal = tokenHandler.ValidateToken(jwtToken, new TokenValidationParameters
+                var principal = TokenHandler.ValidateToken(jwtToken, new TokenValidationParameters
                 {
                     ValidateIssuer = false,
                     ValidateAudience = false,
                     ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    IssuerSigningKey = new SymmetricSecurityKey(KEY),
                     ClockSkew = TimeSpan.Zero
                 }, out _);
 
