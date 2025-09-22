@@ -63,6 +63,7 @@ export default function GameEntry() {
       await connection.start();
 
       const roomCode = await connection.invoke("JoinMatchmaking", token, gameType);
+      await connection.stop();
       
       if (!roomCode) {
         setError("Failed to find room. Try again.");
