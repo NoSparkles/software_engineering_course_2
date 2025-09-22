@@ -158,14 +158,14 @@ namespace Hubs
             }
         }
 
-        public async Task JoinMatchmaking(string jwtToken, string gameType)
+        public async Task<string?> JoinMatchmaking(string jwtToken, string gameType)
         {
             User user = await _userService.GetUserFromTokenAsync(jwtToken);
 
             if (user == null)
             {
                 await Clients.Caller.SendAsync("UnauthorizedMatchmaking");
-                return;
+                return null;
             }
 
             Console.WriteLine($"Authenticated matchmaking request from {user.Username}");
@@ -188,8 +188,13 @@ namespace Hubs
             else
             {
                 //Rooms are not available, creating new one with random code
-                
+                roomCode = GenerateRoomCode();
+                await CreateRoom(gameType, roomCode);
+                await JoinRoom(gameType, roomCode, user.Username);
+                await Clients.Caller.SendAsync("WaitingForOpponent", roomCode);
+
             }
+            return roomCode;
         }
 
         public async Task JoinAsSpectator(string gameType)

@@ -53,22 +53,25 @@ export default function GameEntry() {
 
   const handleJoinMatchmaking = async () => {
     try {
-      
-
       const connection = new HubConnectionBuilder()
         .withUrl("http://localhost:5236/gamehub", {
-          accessTokenFactory: () => token
+          accessTokenFactory: () => token 
         })
+        .withAutomaticReconnect()
         .build();
-      
+
       await connection.start();
-      const found = await connection.invoke("JoinMatchmaking", token, gameType);
-      await connection.stop();
-      if (!found) {
+
+      const roomCode = await connection.invoke("JoinMatchmaking", token, gameType);
+      
+      if (!roomCode) {
         setError("Failed to find room. Try again.");
+        await connection.stop();
         return;
       }
 
+      setError(''); 
+      navigate(`/${gameType}/waiting/${roomCode}`);
     } catch (err) {
       console.error("Error with matchmaking:", err);
       setError("Could not start matchmaking. Try again.");
