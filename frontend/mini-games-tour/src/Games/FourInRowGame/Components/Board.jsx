@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Slot } from '../components/Slot';
-import { createEmptyBoard, checkWin, ROWS, COLS } from '../logic/connectFourLogic';
-import '../components/styles.css'
+import { Slot } from './Slot';
+import { createEmptyBoard, checkWin, ROWS, COLS } from '../Logic/connectFourLogic';
+import './styles.css'
 
 export const Board = ({ playerColor, connection, roomCode, playerId }) => {
     const [board, setBoard] = useState(createEmptyBoard());

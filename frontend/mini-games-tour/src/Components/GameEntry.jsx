@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import './styles.css';
-import { usePlayerId } from '../utils/usePlayerId';
+import { usePlayerId } from '../Utils/usePlayerId';
 
 export default function GameEntry() {
   const [code, setCode] = useState('');
@@ -83,6 +83,7 @@ export default function GameEntry() {
         <h3>Or</h3>
         <h3>Join by Code</h3>
         <input
+          className='room-code'
           type="text"
           value={code}
           onChange={e => setCode(e.target.value.toUpperCase())}

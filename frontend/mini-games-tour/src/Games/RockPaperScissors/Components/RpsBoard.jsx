@@ -1,8 +1,8 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import RpsScoreBoard from './RpsScoreBoard';
 import RpsHistory from './RpsHistory';
-import { useRpsEngine } from '../logic/useRpsEngine';
-import '../../fourInRowGame/components/styles.css';
+import { useRpsEngine } from '../Logic/useRpsEngine';
+import '../../FourInRowGame/Components/styles.css';
 
 export default function RpsBoard({ playerColor, connection, roomCode, playerId }) {
   const { state, isMyTurn, choose, reset, resetVote } =

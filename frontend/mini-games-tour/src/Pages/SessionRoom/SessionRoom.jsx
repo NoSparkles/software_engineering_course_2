@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useSignalRService } from '../../utils/useSignalRService';
-import { usePlayerId } from '../../utils/usePlayerId';
-import PMBoard from '../../games/PairMatchingGame/components/GameBoard';
-import RpsBoard from '../../games/rockPaperScissors/components/RpsBoard';
-import {Board as FourInARowGameBoard} from '../../games/fourInRowGame/components/Board';
+import { useSignalRService } from '../../Utils/useSignalRService';
+import { usePlayerId } from '../../Utils/usePlayerId';
+import PMBoard from '../../Games/PairMatchingGame/Components/GameBoard';
+import RpsBoard from '../../Games/RockPaperScissors/Components/RpsBoard';
+import {Board as FourInARowGameBoard} from '../../Games/FourInRowGame/Components/Board';
 
 export default function SessionRoom() {
   const { gameType, code } = useParams();
