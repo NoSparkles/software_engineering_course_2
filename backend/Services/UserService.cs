@@ -67,6 +67,35 @@ namespace Services
             return tokenHandler.WriteToken(token);
         }
 
+        public async Task<User?> GetUserFromTokenAsync(string jwtToken)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes("hc328fh283h23d89h32d3g2hd7820hd8237h238d7h27f832hf2o783hfo782g7832fg7o28gf7238o");
+
+            try
+            {
+                var principal = tokenHandler.ValidateToken(jwtToken, new TokenValidationParameters
+                {
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ClockSkew = TimeSpan.Zero
+                }, out _);
+
+                var username = principal.FindFirst(ClaimTypes.Name)?.Value;
+                if (string.IsNullOrWhiteSpace(username))
+                    return null;
+
+                return await GetUserAsync(username);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+
         public async Task<bool> DeleteUserAsync(string username)
         {
             var user = await _context.Users.FindAsync(username);

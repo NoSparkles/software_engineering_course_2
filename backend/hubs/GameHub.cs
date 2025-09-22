@@ -1,14 +1,24 @@
 using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
 using games;
+using Models;
+using Services;
+using System.Security.Principal;
 
 namespace Hubs
 {
     public class GameHub : Hub
     {
+         private readonly UserService _userService;
+
         private static readonly ConcurrentDictionary<string, GameInstance> ActiveGames = new();
         private static readonly ConcurrentDictionary<string, CancellationTokenSource> RoomCleanupTimers = new();
         private static readonly ConcurrentDictionary<string, Dictionary<string, string>> RoomUsers = new();
+
+         public GameHub(UserService userService)
+        {
+            _userService = userService;
+        }
 
         public async Task MakeMove(string gameType, string roomCode, string playerId, string command)
         {
@@ -129,7 +139,35 @@ namespace Hubs
             }
         }
 
+        public async Task JoinMatchmaking(string jwtToken, string gameType)
+        {
+            User user = await _userService.GetUserFromTokenAsync(jwtToken);
 
+            if (user == null)
+            {
+                await Clients.Caller.SendAsync("UnauthorizedMatchmaking");
+                return;
+            }
+
+            Console.WriteLine($"Authenticated matchmaking request from {user.Username}");
+
+            // TODO: Matchmaking logic
+        }
+
+        public async Task JoinAsSpectator(string gameType)
+        {
+            var activeRoom = ActiveGames.Keys
+                .FirstOrDefault(key => key.StartsWith($"{gameType}:"));
+
+            if (activeRoom == null)
+            {
+                await Clients.Caller.SendAsync("SpectatorJoinFailed", "No active rooms found.");
+                return;
+            }
+
+            // TODO
+
+        }
 
         public Task<bool> CreateRoom(string gameType, string roomCode)
         {
