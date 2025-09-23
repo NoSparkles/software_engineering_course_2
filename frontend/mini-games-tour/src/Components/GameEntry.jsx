@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import './styles.css';
 import { usePlayerId } from '../Utils/usePlayerId';
+import {useAuth} from '../Utils/AuthProvider';
 
 export default function GameEntry() {
   const [code, setCode] = useState('');
@@ -10,6 +11,7 @@ export default function GameEntry() {
   const location = useLocation();
   const navigate = useNavigate();
   const playerId = usePlayerId();
+  const { token } = useAuth();
 
   const gameType = location.pathname.split('/')[1]; // e.g. 'rps', '4inarow', 'matching'
 
@@ -47,6 +49,35 @@ export default function GameEntry() {
       console.error("Error checking room:", err);
       setError("Could not verify room. Try again.");
     }
+  };
+
+  const handleJoinMatchmaking = async () => {
+    try {
+      const connection = new HubConnectionBuilder()
+        .withUrl("http://localhost:5236/gamehub", {
+          accessTokenFactory: () => token 
+        })
+        .withAutomaticReconnect()
+        .build();
+
+      await connection.start();
+
+      const roomCode = await connection.invoke("JoinMatchmaking", token, gameType);
+      await connection.stop();
+      
+      if (!roomCode) {
+        setError("Failed to find room. Try again.");
+        await connection.stop();
+        return;
+      }
+
+      setError(''); 
+      navigate(`/${gameType}/waiting/${roomCode}`);
+    } catch (err) {
+      console.error("Error with matchmaking:", err);
+      setError("Could not start matchmaking. Try again.");
+    }
+    return;
   };
 
   const handleCreateRoom = async () => {
@@ -96,7 +127,8 @@ export default function GameEntry() {
 
       <div className="entry-section">
         <h3>Or</h3>
-        <button className="disabled-button">Matchmaking (coming soon)</button>
+        <button onClick={handleJoinMatchmaking}>Matchmaking</button>
+        {error && <p className="error">{error}</p>}
       </div>
     </div>
   );

@@ -20,6 +20,25 @@ namespace Hubs
             _userService = userService;
         }
 
+        //Generating room code to make sure it doesnt exist anywhere else
+        private static string GenerateRoomCode(int length = 6)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            var rng = new Random();
+            string code;
+
+            do
+            {
+                code = new string(Enumerable.Repeat(chars, length)
+                    .Select(s => s[rng.Next(s.Length)]).ToArray());
+            }
+            while (RoomUsers.ContainsKey($"four-in-a-row:{code}") ||
+                   RoomUsers.ContainsKey($"pair-matching:{code}") ||
+                   RoomUsers.ContainsKey($"rock-paper-scissors:{code}"));
+
+            return code;
+        }
+
         public async Task MakeMove(string gameType, string roomCode, string playerId, string command)
         {
             Console.WriteLine("from makemove {0}", gameType);
@@ -139,19 +158,43 @@ namespace Hubs
             }
         }
 
-        public async Task JoinMatchmaking(string jwtToken, string gameType)
+        public async Task<string?> JoinMatchmaking(string jwtToken, string gameType)
         {
             User user = await _userService.GetUserFromTokenAsync(jwtToken);
 
             if (user == null)
             {
                 await Clients.Caller.SendAsync("UnauthorizedMatchmaking");
-                return;
+                return null;
             }
 
             Console.WriteLine($"Authenticated matchmaking request from {user.Username}");
 
-            // TODO: Matchmaking logic
+            var availableRoom = RoomUsers.FirstOrDefault(kvp =>
+                kvp.Key.StartsWith($"{gameType}") &&
+                kvp.Value.Count < 2
+            );
+
+            string roomCode;
+
+            if (!string.IsNullOrEmpty(availableRoom.Key))
+            {
+                //Room with user count < 2 exists, joining
+                var parts = availableRoom.Key.Split(':');
+                roomCode = parts[1];
+                await JoinRoom(gameType, roomCode, user.Username);
+                await Clients.Caller.SendAsync("MatchFound", roomCode);
+            }
+            else
+            {
+                //Rooms are not available, creating new one with random code
+                roomCode = GenerateRoomCode();
+                await CreateRoom(gameType, roomCode);
+                await JoinRoom(gameType, roomCode, user.Username);
+                await Clients.Caller.SendAsync("WaitingForOpponent", roomCode);
+
+            }
+            return roomCode;
         }
 
         public async Task JoinAsSpectator(string gameType)
