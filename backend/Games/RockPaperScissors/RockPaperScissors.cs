@@ -166,5 +166,11 @@ namespace games
                 lastDraw = LastRoundWasDraw
             };
         }
+
+        // Exposed for spectators and external callers
+        public object GetGameStatePublic()
+        {
+            return GetGameState();
+        }
     }
 }

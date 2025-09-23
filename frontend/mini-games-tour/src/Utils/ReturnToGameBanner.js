@@ -41,10 +41,8 @@ export default function ReturnToGameBanner() {
         console.error("Room check failed:", err);
       }
     };
-    console.log(gameInfo)
-
     checkRoom();
-  }, [location]);
+  }, [location, gameInfo]);
 
   if (!showBanner || !gameInfo) return null;
 

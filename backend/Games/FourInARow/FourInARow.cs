@@ -6,10 +6,11 @@ namespace games
     {
         private Dictionary<string, string> playerColors = new();
         public string[,] Board { get; private set; } = new string[6, 7];
-        public string CurrentPlayerColor { get; private set; } = "R";
-        public string WinnerColor { get; private set; } = null;
-
-        public string RoomCode { get; set; }
+    public string CurrentPlayerColor { get; private set; } = "R";
+    // WinnerColor is null when there is no winner yet
+    public string? WinnerColor { get; private set; } = null;
+    // RoomCode will be set by the hub when the game is created
+    public string RoomCode { get; set; } = string.Empty;
 
         public void AssignPlayerColors(string player1Id, string player2Id)
         {
@@ -17,9 +18,9 @@ namespace games
             playerColors[player2Id] = "Y";
         }
 
-        public string GetPlayerColor(string playerId)
+        public string? GetPlayerColor(string playerId)
         {
-            return playerColors.ContainsKey(playerId) ? playerColors[playerId] : null;
+            return playerColors.TryGetValue(playerId, out var color) ? color : null;
         }
 
         public bool IsValidMove(int col)
@@ -111,6 +112,25 @@ namespace games
                 WinnerColor = null;
                 await clients.Group(RoomCode).SendAsync("GameReset");
             }
+        }
+
+        // Provide current game state for spectators
+        public object GetGameState()
+        {
+            var boardToSend = new string[6][];
+            for (int r = 0; r < 6; r++)
+            {
+                boardToSend[r] = new string[7];
+                for (int c = 0; c < 7; c++)
+                    boardToSend[r][c] = Board[r, c];
+            }
+
+            return new
+            {
+                board = boardToSend,
+                currentPlayer = CurrentPlayerColor,
+                winner = WinnerColor
+            };
         }
     }
 }

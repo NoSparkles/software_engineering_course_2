@@ -1,5 +1,5 @@
   import { useState, useEffect } from 'react';
-  export function useGameEngine({ playerColor, connection, roomCode, playerId }) {
+  export function useGameEngine({ playerColor, connection, roomCode, playerId, spectator = false, connectionState = "Disconnected" }) {
     const [cards, setCards] = useState([]);
     const [flipped, setFlipped] = useState([]);
     const [currentPlayer, setCurrentPlayer] = useState('Red');
@@ -12,18 +12,25 @@
     const gameType = 'pair-matching'
 
     useEffect(() => {
-      if (!connection) {
-        console.log("not connected")
-        return
+      if (!connection || connectionState !== "Connected") {
+        // wait until the connection is fully started
+        return;
       }
-        console.log("receiving board")
-        connection.on("receiveBoard", receiveBoard)
 
-        connection.on("ResetGame", onResetGame)
+      console.log("receiving board")
+      connection.on("ReceiveBoard", receiveBoard)
 
-        console.log("getting board")
-        connection.invoke("makeMove", gameType, roomCode, playerId, 'getBoard')
-    }, [connection]);
+      connection.on("ResetGame", onResetGame)
+
+      console.log("getting board")
+      connection.invoke("MakeMove", gameType, roomCode, playerId, 'getBoard')
+        .catch(() => {});
+
+      return () => {
+        connection.off("ReceiveBoard", receiveBoard)
+        connection.off("ResetGame", onResetGame)
+      }
+    }, [connection, connectionState]);
 
     useEffect(() => {
       if (!connection) return
@@ -67,7 +74,7 @@
     }, [flipped]);
 
     useEffect(() => {
-      if (resetVote && connection) {
+      if (resetVote && connection && !spectator) {
         connection.invoke("makeMove", gameType, roomCode, playerId, 'reset')
       }
     }, [connection, resetVote])
@@ -92,6 +99,7 @@
       let row = Math.floor(index / 6)
       console.log(row, col, index)
       if (
+        !spectator &&
         currentPlayer === (playerColor === "R" ? "Red" : "Yellow") &&
         flipped.length < 2 &&
         cards[index].state === "FaceDown"

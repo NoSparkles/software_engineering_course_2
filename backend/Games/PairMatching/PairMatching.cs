@@ -9,10 +9,12 @@ namespace games
         private Card[,] Board { get; set; } = new Card[3, 6];
         public string CurrentPlayerColor { get; private set; } = "R";
         public List<List<int>> FlippedCards { get; set; }
-        public string WinnerColor { get; set; }
+    // WinnerColor may be empty when there is no winner yet
+    public string WinnerColor { get; set; } = "";
         private Dictionary<string, bool> resetVotes = new();
 
-        public string RoomCode { get; set; }
+    // RoomCode will be assigned by the hub when a room is started
+    public string RoomCode { get; set; } = "";
 
         public PairMatching()
         {
@@ -24,9 +26,9 @@ namespace games
             resetVotes["Y"] = false;
         }
 
-        public string GetPlayerColor(string playerId)
+        public string? GetPlayerColor(string playerId)
         {
-            return playerColors.ContainsKey(playerId) ? playerColors[playerId] : null;
+            return playerColors.TryGetValue(playerId, out var color) ? color : null;
         }
 
         public void AssignPlayerColors(string player1Id, string player2Id)
@@ -52,11 +54,15 @@ namespace games
             }
             else if (command.StartsWith("flip"))
             {
+                // Prevent spectators / unknown ids from performing flips
+                var color = GetPlayerColor(playerId);
+                if (color == null) return Task.CompletedTask;
+
                 string[] parts = command.Split(' ');
                 var col = int.Parse(parts[1]);
                 var row = int.Parse(parts[2]);
                 Card card = Board[row, col];
-                Console.WriteLine("card: {0} {1} {2}", int.Parse(parts[1]), int.Parse(parts[2]), playerColors[playerId]);
+                Console.WriteLine("card: {0} {1} {2}", int.Parse(parts[1]), int.Parse(parts[2]), color);
                 if (card.state == CardState.FaceDown)
                 {
                     card.state = CardState.FaceUp;
@@ -94,7 +100,10 @@ namespace games
             }
             else if (command.StartsWith("reset"))
             {
-                resetVotes[playerColors[playerId]] = true;
+                var color = GetPlayerColor(playerId);
+                if (color == null) return Task.CompletedTask;
+
+                resetVotes[color] = true;
                 if (resetVotes["R"] && resetVotes["Y"])
                 {
                     ResetGame();
