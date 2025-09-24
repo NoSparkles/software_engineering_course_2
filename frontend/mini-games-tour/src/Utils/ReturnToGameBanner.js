@@ -14,14 +14,20 @@ export default function ReturnToGameBanner() {
     if (!session) return;
 
     const { gameType, code } = JSON.parse(session);
-    const currentPath = location.pathname;
-    const targetPath = `/${gameType}/session/${code}`;
+    const pathSegments = location.pathname.toLowerCase().split('/');
 
-    if (currentPath === targetPath) {
-      // If already in the game, hide the banner
+    // Check if path matches: /<gameType>/session/<code>
+    const isSessionPath =
+      pathSegments.length === 4 &&
+      pathSegments[2] === 'session' &&
+      pathSegments[1] !== '' &&
+      pathSegments[3] !== '';
+
+    if (isSessionPath) {
       setShowBanner(false);
       return;
     }
+
 
     const checkRoom = async () => {
       try {
