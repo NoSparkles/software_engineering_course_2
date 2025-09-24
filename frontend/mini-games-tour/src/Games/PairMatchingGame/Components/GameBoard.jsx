@@ -4,7 +4,7 @@ import Card from './Card';
 import ScoreBoard from './ScoreBoard';
 import './styles.css';
 
-export default function GameBoard({ playerColor, connection, roomCode, playerId }) {
+export default function GameBoard({ playerColor, connection, roomCode, playerId, connectionState }) {
   const {
     cards,
     flipped,
@@ -14,7 +14,7 @@ export default function GameBoard({ playerColor, connection, roomCode, playerId 
     resetVote,
     flipCard,
     resetGame
-  } = useGameEngine({playerColor, connection, roomCode, playerId});
+  } = useGameEngine({playerColor, connection, roomCode, playerId, connectionState});
 
   return (
     <div className="game-container">

@@ -4,9 +4,9 @@ import RpsHistory from './RpsHistory';
 import { useRpsEngine } from '../Logic/useRpsEngine';
 import '../../FourInRowGame/Components/styles.css';
 
-export default function RpsBoard({ playerColor, connection, roomCode, playerId }) {
+export default function RpsBoard({ playerColor, connection, roomCode, playerId, spectator = false, connectionState = "Disconnected" }) {
   const { state, isMyTurn, choose, reset, resetVote } =
-    useRpsEngine({ playerColor, connection, roomCode, playerId });
+    useRpsEngine({ playerColor, connection, roomCode, playerId, spectator, connectionState });
 
   const you = playerColor;
   const [selectedChoice, setSelectedChoice] = useState(null);
@@ -28,10 +28,11 @@ export default function RpsBoard({ playerColor, connection, roomCode, playerId }
   }, [state, you, lastHistLen]);
 
   const handleChoose = useCallback((c) => {
+    if (spectator) return;
     if (selectedChoice || !isMyTurn) return;
     setSelectedChoice(c);
     choose(c);
-  }, [selectedChoice, isMyTurn, choose]);
+  }, [selectedChoice, isMyTurn, choose, spectator]);
 
   const roundLabel = useMemo(() => {
     if (!state) return 'Round — / —';
@@ -81,9 +82,12 @@ export default function RpsBoard({ playerColor, connection, roomCode, playerId }
           {state.lastDraw && <div style={{ marginBottom: 10, fontWeight: 600 }}>Draw! Pick again.</div>}
 
           <div style={{ display:'flex', gap:12, justifyContent:'center', marginTop:10 }}>
-            <button style={btn('rock')}     disabled={isLocked} onClick={() => handleChoose('rock')}>🪨 Rock</button>
-            <button style={btn('paper')}    disabled={isLocked} onClick={() => handleChoose('paper')}>📄 Paper</button>
-            <button style={btn('scissors')} disabled={isLocked} onClick={() => handleChoose('scissors')}>✂️ Scissors</button>
+            <button style={btn('rock')}     disabled={isLocked || spectator} onClick={() => handleChoose('rock')}>
+              🪨 Rock</button>
+            <button style={btn('paper')}    disabled={isLocked || spectator} onClick={() => handleChoose('paper')}>
+              📄 Paper</button>
+            <button style={btn('scissors')} disabled={isLocked || spectator} onClick={() => handleChoose('scissors')}>
+              ✂️ Scissors</button>
           </div>
 
           {(selectedChoice || yourServerChoice) && (

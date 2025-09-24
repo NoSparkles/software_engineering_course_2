@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-export function useRpsEngine({ playerColor, connection, roomCode, playerId }) {
+export function useRpsEngine({ playerColor, connection, roomCode, playerId, connectionState = "Disconnected" }) {
   const [state, setState] = useState(null);
   const [resetVote, setResetVote] = useState(false);
   const colorRef = useRef(playerColor);
 
   useEffect(() => {
-    if (!connection) return;
+    if (!connection || connectionState !== "Connected") return;
 
     const onState = (payload) => setState(payload);
     const onReset = (payload) => { setResetVote(false); setState(payload); };
@@ -21,7 +21,7 @@ export function useRpsEngine({ playerColor, connection, roomCode, playerId }) {
       connection.off('ReceiveRpsState', onState);
       connection.off('RpsReset', onReset);
     };
-  }, [connection, roomCode, playerId]);
+  }, [connection, roomCode, playerId, connectionState]);
 
   const choose = useCallback((what) => {
     if (!connection) return;

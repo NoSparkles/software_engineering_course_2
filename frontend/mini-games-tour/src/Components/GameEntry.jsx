@@ -13,7 +13,7 @@ export default function GameEntry() {
   const playerId = usePlayerId();
   const { token } = useAuth();
 
-  const gameType = location.pathname.split('/')[1]; // e.g. 'rps', '4inarow', 'matching'
+  const gameType = location.pathname.split('/')[1]; // rps, 4inarow, matching
 
   const handleJoinByCode = async () => {
     const trimmedCode = code.trim().toUpperCase();
@@ -47,6 +47,43 @@ export default function GameEntry() {
       navigate(`/${gameType}/waiting/${trimmedCode}`);
     } catch (err) {
       console.error("Error checking room:", err);
+      setError("Could not verify room. Try again.");
+    }
+  };
+
+  const handleJoinAsSpectator = async () => {
+    const trimmedCode = code.trim().toUpperCase();
+
+    if (!trimmedCode) {
+      setError('Please enter a code.');
+      return;
+    }
+
+    const isValid = /^[A-Z0-9]{6}$/.test(trimmedCode);
+    if (!isValid) {
+      setError('Code must be 6 characters: A-Z, 0-9.');
+      return;
+    }
+
+    try {
+      const connection = new HubConnectionBuilder()
+        .withUrl("http://localhost:5236/gamehub")
+        .build();
+
+      await connection.start();
+      const exists = await connection.invoke("RoomExists", gameType, trimmedCode);
+      await connection.stop();
+
+      if (!exists) {
+        setError("Room does not exist or has expired.");
+        return;
+      }
+
+      setError('');
+      // navigate directly to the session as a spectator
+      navigate(`/${gameType}/session/${trimmedCode}?spectator=true`);
+    } catch (err) {
+      console.error("Error checking room for spectator:", err);
       setError("Could not verify room. Try again.");
     }
   };
@@ -121,7 +158,10 @@ export default function GameEntry() {
           placeholder="Enter game code"
           maxLength={6}
         />
-        <button onClick={handleJoinByCode}>Join</button>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center', marginTop: 12 }}>
+          <button onClick={handleJoinByCode}>Join</button>
+          <button onClick={handleJoinAsSpectator}>Join as Spectator</button>
+        </div>
         {error && <p className="error">{error}</p>}
       </div>
 
