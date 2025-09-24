@@ -86,16 +86,25 @@ namespace Hubs
 
             await Groups.AddToGroupAsync(Context.ConnectionId, roomKey);
 
+            GameInstance? game = null;
+
+            if (ActiveGames.ContainsKey(roomKey))
+            {
+                game = ActiveGames[roomKey];
+            }
+            else
+            {
+                game = gameType switch
+            {
+                "rock-paper-scissors" => new RockPaperScissors(), // new RockPaperScissors()
+                "four-in-a-row" => new FourInARowGame(),
+                "pair-matching" => new PairMatching(),
+                _ => throw new Exception("Unknown game type")
+            };
+            }
+
             if (shouldNotifyStart)
             {
-                // need to change this:
-                GameInstance game = gameType switch
-                {
-                    "rock-paper-scissors" => new RockPaperScissors(), // new RockPaperScissors()
-                    "four-in-a-row" => new FourInARowGame(),
-                    "pair-matching" => new PairMatching(),
-                    _ => throw new Exception("Unknown game type")
-                };
 
                 if (gameType == "four-in-a-row")
                 {
@@ -162,6 +171,33 @@ namespace Hubs
                 ActiveGames[roomKey] = game;
 
                 await Clients.Group(roomKey).SendAsync("StartGame", roomCode);
+            }
+            else if (ActiveGames.ContainsKey(roomKey))
+            {
+                Console.WriteLine("second if");
+                RoomUsers.TryAdd(roomKey, RoomUsers.GetValueOrDefault(roomKey, new Dictionary<string, string>()));
+
+                // Send current state depending on game type
+                if (game is FourInARowGame fourGame)
+                {
+                    var state = fourGame.GetGameState();
+                    await Clients.Caller.SendAsync("ReceiveMove", state);
+                    return;
+                }
+
+                if (game is PairMatching pairGame)
+                {
+                    var state = pairGame.GetGameState();
+                    await Clients.Caller.SendAsync("ReceiveBoard", state);
+                    return;
+                }
+
+                if (game is RockPaperScissors rpsGame)
+                {
+                    var state = rpsGame.GetGameStatePublic();
+                    await Clients.Caller.SendAsync("ReceiveRpsState", state);
+                    return;
+                }
             }
         }
 
