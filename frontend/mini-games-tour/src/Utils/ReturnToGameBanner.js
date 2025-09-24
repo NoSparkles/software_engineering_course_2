@@ -11,15 +11,17 @@ export default function ReturnToGameBanner() {
 
   useEffect(() => {
     const session = localStorage.getItem("activeGame");
-    console.log(session); 
     if (!session) return;
 
     const { gameType, code } = JSON.parse(session);
-    console.log(gameType, code);
     const currentPath = location.pathname;
     const targetPath = `/${gameType}/session/${code}`;
 
-    if (currentPath === targetPath) return;
+    if (currentPath === targetPath) {
+      // If already in the game, hide the banner
+      setShowBanner(false);
+      return;
+    }
 
     const checkRoom = async () => {
       try {
@@ -30,19 +32,22 @@ export default function ReturnToGameBanner() {
         await connection.start();
         const exists = await connection.invoke("RoomExists", gameType, code);
         await connection.stop();
-        console.log("checking if exists: " + exists)
+        console.log("checking if exists: " + exists);
+
         if (exists) {
           setGameInfo({ gameType, code });
           setShowBanner(true);
         } else {
           localStorage.removeItem("activeGame");
+          setShowBanner(false);
         }
       } catch (err) {
         console.error("Room check failed:", err);
       }
     };
+
     checkRoom();
-  }, [location, gameInfo]);
+  }, [location]);
 
   if (!showBanner || !gameInfo) return null;
 
