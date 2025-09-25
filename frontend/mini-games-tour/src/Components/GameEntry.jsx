@@ -31,7 +31,7 @@ export default function GameEntry() {
 
     try {
       const connection = new HubConnectionBuilder()
-        .withUrl("http://localhost:5236/joiByCodeHub")
+        .withUrl("http://localhost:5236/joinByCodeHub")
         .build();
 
       await connection.start();
@@ -118,24 +118,22 @@ export default function GameEntry() {
   };
 
   const handleCreateRoom = async () => {
-    const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-
     try {
       const connection = new HubConnectionBuilder()
         .withUrl("http://localhost:5236/joinByCodeHub")
         .build();
 
       await connection.start();
-      const created = await connection.invoke("CreateRoom", gameType, newCode);
+      const roomCode = await connection.invoke("CreateRoom",  gameType, false);
       await connection.stop();
 
-      if (!created) {
+      if (!roomCode) {
         setError("Failed to create room. Try again.");
         return;
       }
 
       setError('');
-      navigate(`/${gameType}/waiting/${newCode}`);
+      navigate(`/${gameType}/waiting/${roomCode}`);
     } catch (err) {
       console.error("Error creating room:", err);
       setError("Could not create room. Try again.");
