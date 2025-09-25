@@ -16,7 +16,7 @@ export default function SessionRoom() {
   const [playerColor, setPlayerColor] = useState(null); // only for four-in-a-row
   const playerId = usePlayerId();
   const { connection, connectionState, reconnected } = useSignalRService({
-    hubUrl: "http://localhost:5236/gamehub",
+    hubUrl: "http://localhost:5236/joinByCodeHub",
     gameType,
     roomCode: code,
     playerId,

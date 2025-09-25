@@ -9,7 +9,7 @@ export default function WaitingRoom() {
   const playerId = usePlayerId();
   const [playerColor, setPlayerColor] = useState(null); // only for four-in-a-row
   const { connection, connectionState, reconnected } = useSignalRService({
-    hubUrl: "http://localhost:5236/gamehub",
+    hubUrl: "http://localhost:5236/joinByCodeHub",
     gameType,
     roomCode: code,
     playerId,

@@ -32,7 +32,7 @@ export default function ReturnToGameBanner() {
     const checkRoom = async () => {
       try {
         const connection = new HubConnectionBuilder()
-          .withUrl("http://localhost:5236/gamehub")
+          .withUrl("http://localhost:5236/joinByCodeHub")
           .build();
 
         await connection.start();

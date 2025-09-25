@@ -31,7 +31,7 @@ export default function GameEntry() {
 
     try {
       const connection = new HubConnectionBuilder()
-        .withUrl("http://localhost:5236/gamehub")
+        .withUrl("http://localhost:5236/joiByCodeHub")
         .build();
 
       await connection.start();
@@ -67,7 +67,7 @@ export default function GameEntry() {
 
     try {
       const connection = new HubConnectionBuilder()
-        .withUrl("http://localhost:5236/gamehub")
+        .withUrl("http://localhost:5236/joinByCodeHub")
         .build();
 
       await connection.start();
@@ -91,7 +91,7 @@ export default function GameEntry() {
   const handleJoinMatchmaking = async () => {
     try {
       const connection = new HubConnectionBuilder()
-        .withUrl("http://localhost:5236/gamehub", {
+        .withUrl("http://localhost:5236/joinByCodeHub", {
           accessTokenFactory: () => token 
         })
         .withAutomaticReconnect()
@@ -122,7 +122,7 @@ export default function GameEntry() {
 
     try {
       const connection = new HubConnectionBuilder()
-        .withUrl("http://localhost:5236/gamehub")
+        .withUrl("http://localhost:5236/joinByCodeHub")
         .build();
 
       await connection.start();
