@@ -119,9 +119,56 @@ namespace Services
             return roomPlayers.Find(rp => (rp.User is not null && rp.User == user) || rp.PlayerId == playerId);
         }
 
-        public async Task JoinAsPlayerMatchMaking(string gameType, string roomCode, string playerId, User? user, string connectionId)
+        public async Task JoinAsPlayerMatchMaking(string gameType, string roomCode, string playerId, User? user, string connectionId, IHubCallerClients clients)
         {
-            // TODO
+            var roomKey = CreateRoomKey(gameType, roomCode);
+            var room = GetRoomByKey(roomKey);
+            var game = room.Game;
+            var roomPlayers = room.RoomPlayers;
+            var roomUser = roomPlayers.Find(rp => (rp.User is not null && rp.User == user) || rp.PlayerId == playerId);
+
+            if (roomUser is null)
+            {
+                roomPlayers.Add(new RoomUser(playerId, true, user, connectionId));
+            }
+            else
+            {
+                roomUser.ConnectionId = connectionId;
+            }
+
+
+            bool shouldNotifyStart;
+            lock (roomPlayers)
+            {
+                shouldNotifyStart = roomPlayers.Count == 2;
+            }
+
+            if (shouldNotifyStart)
+            {
+                game.RoomCode = roomKey;
+                game.AssignPlayerColors(roomPlayers[0], roomPlayers[1]);
+                foreach (var rp in roomPlayers)
+                    await clients.Client(rp.ConnectionId).SendAsync("SetPlayerColor", game.GetPlayerColor(rp) ?? "");
+
+                await clients.Group(roomKey).SendAsync("StartGame", roomCode);
+            }
+            else
+            {
+                switch (game)
+                {
+                    case FourInARowGame fourGame:
+                        await clients.Caller.SendAsync("ReceiveMove", fourGame.GetGameState());
+                        break;
+
+                    case PairMatching pairGame:
+                        await clients.Caller.SendAsync("ReceiveBoard", pairGame.GetGameState());
+                        break;
+
+                    case RockPaperScissors rpsGame:
+                        await clients.Caller.SendAsync("ReceiveRpsState", rpsGame.GetGameStatePublic());
+                        break;
+                }
+            }
         }
 
         public void JoinAsSpectator(string gameType, string roomCode, string playerId, User? user, string connectionId)

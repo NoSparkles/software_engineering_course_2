@@ -7,7 +7,7 @@ export default function WaitingRoom() {
   const { gameType, code } = useParams();
   const navigate = useNavigate();
   const playerId = usePlayerId();
-  const [playerColor, setPlayerColor] = useState(null); // only for four-in-a-row
+  const [playerColor, setPlayerColor] = useState(null); 
   const { connection, connectionState, reconnected } = useSignalRService({
     hubUrl: "http://localhost:5236/joinByCodeHub",
     gameType,
@@ -47,7 +47,7 @@ export default function WaitingRoom() {
       });
 
       connection.on("SetPlayerColor", (color) => {
-        setPlayerColor(color); // only for four-in-a-row
+        setPlayerColor(color); 
         console.log(`Assigned color: ${color}`);
       });
     }

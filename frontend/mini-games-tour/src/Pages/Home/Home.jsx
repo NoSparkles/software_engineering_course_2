@@ -11,7 +11,7 @@ const Home = () => {
 
       <Link className="game-card" to="/four-in-a-row">Four In A Row</Link>
 
-      <Link className="game-card disabled" >Tournament (Coming Soon)</Link>
+      {/*<Link className="game-card disabled" >Tournament (Coming Soon)</Link>*/}
     </div>
   )
 }
