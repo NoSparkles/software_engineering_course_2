@@ -1,13 +1,11 @@
 using Microsoft.AspNetCore.SignalR;
+using Models.InMemoryModels;
 using System.Text.Json.Serialization;
 
 namespace games
 {
     public class RockPaperScissors : GameInstance
     {
-        private readonly Dictionary<string, string> playerColors = new();
-        public string RoomCode { get; set; } = "";
-
         private const int MaxRounds = 5;
         private const int WinsToFinish = 3;
 
@@ -28,18 +26,7 @@ namespace games
             [JsonPropertyName("winner")] public string Winner { get; set; } = "";
         }
 
-        public void AssignPlayerColors(string player1Id, string player2Id)
-        {
-            playerColors[player1Id] = "R";
-            playerColors[player2Id] = "Y";
-        }
-
-        public string? GetPlayerColor(string playerId)
-        {
-            return playerColors.TryGetValue(playerId, out var color) ? color : null;
-        }
-
-        public override async Task HandleCommand(string playerId, string command, IHubCallerClients clients)
+        public override async Task HandleCommand(string playerId, string command, IHubCallerClients clients, RoomUser? user)
         {
             if (string.IsNullOrWhiteSpace(command)) return;
 
@@ -51,7 +38,7 @@ namespace games
 
             if (command.StartsWith("CHOOSE:", StringComparison.OrdinalIgnoreCase))
             {
-                var color = GetPlayerColor(playerId);
+                var color = GetPlayerColor(user);
                 if (color == null || IsMatchOver()) return;
 
                 var choice = command.Substring("CHOOSE:".Length).Trim().ToLowerInvariant();
@@ -71,7 +58,7 @@ namespace games
 
             if (command.StartsWith("RESET", StringComparison.OrdinalIgnoreCase))
             {
-                var color = GetPlayerColor(playerId);
+                var color = GetPlayerColor(user);
                 if (color == null) return;
 
                 resetVotes[color] = true;

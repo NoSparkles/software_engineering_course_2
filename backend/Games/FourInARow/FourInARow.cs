@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
+using Models;
+using Models.InMemoryModels;
 
 namespace games
 {
@@ -77,7 +79,7 @@ namespace games
             return count;
         }
 
-        public override async Task HandleCommand(string playerId, string command, IHubCallerClients clients)
+        public override async Task HandleCommand(string playerId, string command, IHubCallerClients clients, RoomUser? user)
         {
             if (command.StartsWith("MOVE:"))
             {

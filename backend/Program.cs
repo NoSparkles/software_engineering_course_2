@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using Hubs;
 using Data;
 using Services;
@@ -15,6 +14,7 @@ builder.Services.AddDbContext<GameDbContext>(options =>
 
 // Add scoped services
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<RoomService>();
 
 builder.Services.AddControllers();
 
@@ -83,7 +83,8 @@ app.UseAuthorization();
 // SignalR endpoint
 app.UseEndpoints(endpoints =>
 {
-    _ = endpoints.MapHub<GameHub>("/gamehub");
+    // _ = endpoints.MapHub<GameHub>("/gamehub");
+    _ = endpoints.MapHub<JoinByCodeHub>("/JoinByCodeHub");
     _ = endpoints.MapControllers();
 });
 

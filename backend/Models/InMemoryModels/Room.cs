@@ -6,14 +6,18 @@ namespace Models.InMemoryModels
 {
     public class Room
     {
-        private GameInstance Game { get; set; }
-        private List<RoomUser> RoomUsers { get; set; }
-        private string Code { get; set; }
+        public GameInstance Game { get; set; }
+        public bool IsMatchMaking { get; set; }
+        public List<RoomUser> RoomPlayers { get; set; }
+        public List<RoomUser> RoomSpectators { get; set; }
+        public string Code { get; set; }
 
-        public Room(GameInstance game, string roomCode)
+        public Room(GameInstance game, bool isMatchMaking, string roomCode)
         {
             Game = game;
-            RoomUsers = new List<RoomUser>();
+            IsMatchMaking = isMatchMaking;
+            RoomPlayers = new List<RoomUser>();
+            RoomSpectators = new List<RoomUser>();
             Code = roomCode;
         }
 

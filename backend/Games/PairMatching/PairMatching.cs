@@ -1,20 +1,19 @@
 using Microsoft.AspNetCore.SignalR;
+using Models;
+using Models.InMemoryModels;
 
 namespace games
 {
     public class PairMatching : GameInstance
     {
-        public Dictionary<string, string> playerColors = new();
         private Dictionary<string, int> Scores = new();
         private Card[,] Board { get; set; } = new Card[3, 6];
         public string CurrentPlayerColor { get; private set; } = "R";
         public List<List<int>> FlippedCards { get; set; }
     // WinnerColor may be empty when there is no winner yet
-    public string WinnerColor { get; set; } = "";
+        public string WinnerColor { get; set; } = "";
         private Dictionary<string, bool> resetVotes = new();
 
-    // RoomCode will be assigned by the hub when a room is started
-    public string RoomCode { get; set; } = "";
 
         public PairMatching()
         {
@@ -26,17 +25,7 @@ namespace games
             resetVotes["Y"] = false;
         }
 
-        public string? GetPlayerColor(string playerId)
-        {
-            return playerColors.TryGetValue(playerId, out var color) ? color : null;
-        }
-
-        public void AssignPlayerColors(string player1Id, string player2Id)
-        {
-            playerColors[player1Id] = "R";
-            playerColors[player2Id] = "Y";
-        }
-        public override Task HandleCommand(string playerId, string command, IHubCallerClients clients)
+        public override Task HandleCommand(string playerId, string command, IHubCallerClients clients, RoomUser? user)
         {
             if (FlippedCards.Count() == 2)
             {
@@ -55,7 +44,7 @@ namespace games
             else if (command.StartsWith("flip"))
             {
                 // Prevent spectators / unknown ids from performing flips
-                var color = GetPlayerColor(playerId);
+                var color = GetPlayerColor(user);
                 if (color == null) return Task.CompletedTask;
 
                 string[] parts = command.Split(' ');
@@ -100,7 +89,7 @@ namespace games
             }
             else if (command.StartsWith("reset"))
             {
-                var color = GetPlayerColor(playerId);
+                var color = GetPlayerColor(user);
                 if (color == null) return Task.CompletedTask;
 
                 resetVotes[color] = true;

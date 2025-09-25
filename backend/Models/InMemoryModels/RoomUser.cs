@@ -1,9 +1,20 @@
+using System.Runtime.CompilerServices;
+
 namespace Models.InMemoryModels
 {
-    public class RoomUser
+    public record class RoomUser
     {
-        private User? User { get; set; }
-        private string? PlayerId { get; set; }
-        private bool IsPlayer { get; set; }
+        public string PlayerId { get; set; }
+        public bool IsPlayer { get; set; }
+        public User? User { get; set; }
+        public string ConnectionId { get; set; }
+
+        public RoomUser(string playerId, bool isPlayer, User? user, string connectionId)
+        {
+            PlayerId = playerId;
+            IsPlayer = isPlayer;
+            User = user;
+            ConnectionId = connectionId;
+        }
     }
 }
