@@ -6,7 +6,6 @@ namespace Hubs
 {
     public class MatchMakingHub : Hub, IgameHub
     {
-
         private readonly UserService UserService;
         private readonly RoomService RoomService;
 
@@ -28,7 +27,7 @@ namespace Hubs
         public async Task Join(string gameType, string roomCode, string playerId, User? user)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, RoomService.CreateRoomKey(gameType, roomCode));
-            await RoomService.JoinAsPlayerNotMatchMaking(gameType, roomCode, playerId, user, Context.ConnectionId, Clients);
+            await RoomService.JoinAsPlayerMatchMaking(gameType, roomCode, playerId, user, Context.ConnectionId, Clients);
         }
 
         public async Task<string?> JoinMatchmaking(string jwtToken, string gameType)
@@ -58,6 +57,5 @@ namespace Hubs
             }
             return null;
         }
-        
     }
 }
