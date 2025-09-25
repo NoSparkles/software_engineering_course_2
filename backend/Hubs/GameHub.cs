@@ -73,11 +73,11 @@ namespace Hubs
             var roomKey = $"{gameType}:{roomCode.ToUpper()}";
             Console.WriteLine($"Player {playerId} joining room {roomCode} for game {gameType}");
 
+            // Ensure the room entry exists
             RoomUsers.TryAdd(roomKey, new Dictionary<string, string>());
             var users = RoomUsers[roomKey];
 
             bool shouldNotifyStart;
-
             lock (users)
             {
                 users[playerId] = Context.ConnectionId;
@@ -86,84 +86,93 @@ namespace Hubs
 
             await Groups.AddToGroupAsync(Context.ConnectionId, roomKey);
 
-            if (shouldNotifyStart)
+            // Get or create game instance
+            if (!ActiveGames.TryGetValue(roomKey, out var game))
             {
-                // need to change this:
-                GameInstance game = gameType switch
+                game = gameType switch
                 {
-                    "rock-paper-scissors" => new RockPaperScissors(), // new RockPaperScissors()
+                    "rock-paper-scissors" => new RockPaperScissors(),
                     "four-in-a-row" => new FourInARowGame(),
                     "pair-matching" => new PairMatching(),
                     _ => throw new Exception("Unknown game type")
                 };
 
-                if (gameType == "four-in-a-row")
-                {
-                    var playerIds = users.Keys.ToList();
-                    if (playerIds.Count == 2 && game is FourInARowGame fourGame)
-                    {
-                        fourGame.RoomCode = roomKey;
-                        fourGame.AssignPlayerColors(playerIds[0], playerIds[1]);
-                    }
-                    // Safely obtain colors (GetPlayerColor may return null for unexpected ids)
-                    var color0 = ((FourInARowGame)game).GetPlayerColor(playerIds[0]) ?? "";
-                    var color1 = ((FourInARowGame)game).GetPlayerColor(playerIds[1]) ?? "";
-                    Console.WriteLine($"Assigned colors: {color0} to {playerIds[0]}, {color1} to {playerIds[1]}");
-                    foreach (var pid in playerIds)
-                    {
-                        var color = ((FourInARowGame)game).GetPlayerColor(pid) ?? "";
-                        if (users.TryGetValue(pid, out var connId))
-                        {
-                            await Clients.Client(connId).SendAsync("SetPlayerColor", color);
-                        }
-                    }
-                }
-                else if (gameType == "pair-matching")
-                {
-                    var playerIds = users.Keys.ToList();
-                    if (playerIds.Count == 2 && game is PairMatching pairGame)
-                    {
-                        pairGame.RoomCode = roomKey;
-                        pairGame.AssignPlayerColors(playerIds[0], playerIds[1]);
-                    }
-                    var pcolor0 = ((PairMatching)game).GetPlayerColor(playerIds[0]) ?? "";
-                    var pcolor1 = ((PairMatching)game).GetPlayerColor(playerIds[1]) ?? "";
-                    Console.WriteLine($"Assigned colors: {pcolor0} to {playerIds[0]}, {pcolor1} to {playerIds[1]}");
-                    foreach (var pid in playerIds)
-                    {
-                        var color = ((PairMatching)game).GetPlayerColor(pid) ?? "";
-                        if (users.TryGetValue(pid, out var connId))
-                        {
-                            await Clients.Client(connId).SendAsync("SetPlayerColor", color);
-                        }
-                    }
-                }
-                else if (gameType == "rock-paper-scissors")
-                {
-                    var playerIds = users.Keys.ToList();
-                    if (playerIds.Count == 2 && game is RockPaperScissors rpsGame)
-                    {
-                        rpsGame.RoomCode = roomKey;
-                        rpsGame.AssignPlayerColors(playerIds[0], playerIds[1]);
-                    }
-                    var rcolor0 = ((RockPaperScissors)game).GetPlayerColor(playerIds[0]) ?? "";
-                    var rcolor1 = ((RockPaperScissors)game).GetPlayerColor(playerIds[1]) ?? "";
-                    Console.WriteLine($"Assigned colors: {rcolor0} to {playerIds[0]}, {rcolor1} to {playerIds[1]}");
-                    foreach (var pid in playerIds)
-                    {
-                        var color = ((RockPaperScissors)game).GetPlayerColor(pid) ?? "";
-                        if (users.TryGetValue(pid, out var connId))
-                        {
-                            await Clients.Client(connId).SendAsync("SetPlayerColor", color);
-                        }
-                    }
-                }
-
                 ActiveGames[roomKey] = game;
+            }
 
-                await Clients.Group(roomKey).SendAsync("StartGame", roomCode);
+            if (shouldNotifyStart)
+            {
+                var playerIds = users.Keys.ToList();
+
+                // Assign colors if needed
+                switch (gameType)
+                {
+                    case "four-in-a-row":
+                        if (game is FourInARowGame fourGame)
+                        {
+                            fourGame.RoomCode = roomKey;
+                            fourGame.AssignPlayerColors(playerIds[0], playerIds[1]);
+
+                            foreach (var pid in playerIds)
+                                if (users.TryGetValue(pid, out var connId))
+                                    await Clients.Client(connId)
+                                        .SendAsync("SetPlayerColor", fourGame.GetPlayerColor(pid) ?? "");
+                            
+                            await Clients.Group(roomKey).SendAsync("StartGame", roomCode);
+                        }
+                        break;
+
+                    case "pair-matching":
+                        if (game is PairMatching pairGame)
+                        {
+                            pairGame.RoomCode = roomKey;
+                            pairGame.AssignPlayerColors(playerIds[0], playerIds[1]);
+
+                            foreach (var pid in playerIds)
+                                if (users.TryGetValue(pid, out var connId))
+                                    await Clients.Client(connId)
+                                        .SendAsync("SetPlayerColor", pairGame.GetPlayerColor(pid) ?? "");
+                            
+                            await Clients.Group(roomKey).SendAsync("StartGame", roomCode);
+                        }
+                        break;
+
+                    case "rock-paper-scissors":
+                        if (game is RockPaperScissors rpsGame)
+                        {
+                            rpsGame.RoomCode = roomKey;
+                            rpsGame.AssignPlayerColors(playerIds[0], playerIds[1]);
+
+                            foreach (var pid in playerIds)
+                                if (users.TryGetValue(pid, out var connId))
+                                    await Clients.Client(connId)
+                                        .SendAsync("SetPlayerColor", rpsGame.GetPlayerColor(pid) ?? "");
+                            
+                            await Clients.Group(roomKey).SendAsync("StartGame", roomCode);
+                        }
+                        break;
+                }
+            }
+            else
+            {
+                // Player joined AFTER game already started → send current state to this player only
+                switch (game)
+                {
+                    case FourInARowGame fourGame:
+                        await Clients.Caller.SendAsync("ReceiveMove", fourGame.GetGameState());
+                        break;
+
+                    case PairMatching pairGame:
+                        await Clients.Caller.SendAsync("ReceiveBoard", pairGame.GetGameState());
+                        break;
+
+                    case RockPaperScissors rpsGame:
+                        await Clients.Caller.SendAsync("ReceiveRpsState", rpsGame.GetGameStatePublic());
+                        break;
+                }
             }
         }
+
 
         public async Task<string?> JoinMatchmaking(string jwtToken, string gameType)
         {
