@@ -67,7 +67,7 @@ export default function GameEntry() {
 
     try {
       const connection = new HubConnectionBuilder()
-        .withUrl("http://localhost:5236/joinByCodeHub")
+        .withUrl("http://localhost:5236/JoinByCodeHub")
         .build();
 
       await connection.start();
@@ -91,30 +91,29 @@ export default function GameEntry() {
   const handleJoinMatchmaking = async () => {
     try {
       const connection = new HubConnectionBuilder()
-        .withUrl("http://localhost:5236/joinByCodeHub", {
+        .withUrl("http://localhost:5236/MatchMakingHub", {
           accessTokenFactory: () => token 
         })
         .withAutomaticReconnect()
         .build();
-
+      
       await connection.start();
-
-      const roomCode = await connection.invoke("JoinMatchmaking", token, gameType);
+      
+      // JoinMatchmaking returns roomCode (string) or null
+      const roomCode = await connection.invoke  ("JoinMatchmaking", token, gameType);
       await connection.stop();
       
-      if (!roomCode) {
-        setError("Failed to find room. Try again.");
-        await connection.stop();
+      if (!roomCode || typeof roomCode !== "string") {
+        setError("Failed to find or create room. Try again.");
         return;
       }
-
+    
       setError(''); 
       navigate(`/${gameType}/waiting/${roomCode}`);
     } catch (err) {
       console.error("Error with matchmaking:", err);
       setError("Could not start matchmaking. Try again.");
     }
-    return;
   };
 
   const handleCreateRoom = async () => {
