@@ -22,6 +22,10 @@ namespace Hubs
             var game = RoomService.GetRoomByKey(roomKey).Game;
             var user = await UserService.GetUserFromTokenAsync(jwtToken);
             var me = RoomService.GetRoomUser(roomKey, playerId, user);
+            if (me is null)
+            {
+                return;
+            }
             await game.HandleCommand(playerId, command, Clients, me);
         }
 
