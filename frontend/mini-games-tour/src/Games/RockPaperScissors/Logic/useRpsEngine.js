@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-export function useRpsEngine({ playerColor, connection, roomCode, playerId, connectionState = "Disconnected" }) {
+export function useRpsEngine({ playerColor, connection, roomCode, playerId, connectionState = "Disconnected", token }) {
   const [state, setState] = useState(null);
   const [resetVote, setResetVote] = useState(false);
   const colorRef = useRef(playerColor);
@@ -14,7 +14,7 @@ export function useRpsEngine({ playerColor, connection, roomCode, playerId, conn
     connection.on('ReceiveRpsState', onState);
     connection.on('RpsReset', onReset);
 
-    connection.invoke('MakeMove', 'rock-paper-scissors', roomCode, playerId, 'getState')
+    connection.invoke('HandleCommand', 'rock-paper-scissors', roomCode, playerId, 'getState', token)
       .catch(() => {});
 
     return () => {
@@ -25,13 +25,13 @@ export function useRpsEngine({ playerColor, connection, roomCode, playerId, conn
 
   const choose = useCallback((what) => {
     if (!connection) return;
-    connection.invoke('MakeMove', 'rock-paper-scissors', roomCode, playerId, `CHOOSE:${what}`).catch(() => {});
+    connection.invoke('HandleCommand', 'rock-paper-scissors', roomCode, playerId, `CHOOSE:${what}`, token).catch(() => {});
   }, [connection, roomCode, playerId]);
 
   const reset = useCallback(() => {
     if (!connection) return;
     setResetVote(true);
-    connection.invoke('MakeMove', 'rock-paper-scissors', roomCode, playerId, 'RESET').catch(() => {});
+    connection.invoke('HandleCommand', 'rock-paper-scissors', roomCode, playerId, 'RESET', token).catch(() => {});
   }, [connection, roomCode, playerId]);
 
   const isMyTurn = useMemo(() => {

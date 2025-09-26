@@ -3,7 +3,7 @@ import { Slot } from './Slot';
 import { createEmptyBoard, checkWin, ROWS, COLS } from '../Logic/connectFourLogic';
 import './styles.css'
 
-export const Board = ({ playerColor, connection, roomCode, playerId, spectator = false }) => {
+export const Board = ({ playerColor, connection, roomCode, playerId, spectator = false, token }) => {
     const [board, setBoard] = useState(createEmptyBoard());
     const [currentPlayer, setCurrentPlayer] = useState('R');
     const [winner, setWinner] = useState(null); 
@@ -24,14 +24,14 @@ export const Board = ({ playerColor, connection, roomCode, playerId, spectator =
     if (spectator) return;
     if (winner || currentPlayer !== playerColor) return;
         if (connection) {
-            connection.invoke("MakeMove", "four-in-a-row", roomCode, playerId, `MOVE:${col}`);
+            connection.invoke("HandleCommand", "four-in-a-row", roomCode, playerId, `MOVE:${col}`, token);
         }
     };
 
     const handleReset = () => {
         if (spectator) return;
         if (connection) {
-            connection.invoke("MakeMove", "four-in-a-row", roomCode, playerId, "RESET");
+            connection.invoke("HandleCommand", "four-in-a-row", roomCode, playerId, "RESET", token);
         }
     };
 

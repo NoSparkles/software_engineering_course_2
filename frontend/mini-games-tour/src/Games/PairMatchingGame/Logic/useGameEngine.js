@@ -1,5 +1,5 @@
   import { useState, useEffect } from 'react';
-  export function useGameEngine({ playerColor, connection, roomCode, playerId, spectator = false, connectionState = "Disconnected" }) {
+  export function useGameEngine({ playerColor, connection, roomCode, playerId, spectator = false, connectionState = "Disconnected", token }) {
     const [cards, setCards] = useState([]);
     const [flipped, setFlipped] = useState([]);
     const [currentPlayer, setCurrentPlayer] = useState('Red');
@@ -17,13 +17,11 @@
         return;
       }
 
-      console.log("receiving board")
       connection.on("ReceiveBoard", receiveBoard)
 
       connection.on("ResetGame", onResetGame)
 
-      console.log("getting board")
-      connection.invoke("MakeMove", gameType, roomCode, playerId, 'getBoard')
+      connection.invoke("HandleCommand", gameType, roomCode, playerId, 'getBoard', token)
         .catch(() => {});
 
       return () => {
@@ -37,7 +35,6 @@
     }, [connection])
 
     useEffect(() => {
-      console.log("Flipped: ", flipped)
       if (flipped.length === 2) {
         const [first, second] = flipped;
         if (cards[first].value === cards[second].value) {
@@ -75,12 +72,12 @@
 
     useEffect(() => {
       if (resetVote && connection && !spectator) {
-        connection.invoke("makeMove", gameType, roomCode, playerId, 'reset')
+        connection.invoke("HandleCommand", gameType, roomCode, playerId, 'reset', token)
       }
     }, [connection, resetVote])
 
     const receiveBoard = gameState => {
-      console.log(gameState)
+
       setCards(gameState.board)
       setFlipped(gameState.flipped)
       setCurrentPlayer(gameState.currentPlayer === "R" ? "Red" : "Yellow")
@@ -94,10 +91,8 @@
 
     const flipCard = index => {
       if (winner) return
-      console.log(currentPlayer, playerColor)
       let col = Math.floor(index % 6)
       let row = Math.floor(index / 6)
-      console.log(row, col, index)
       if (
         !spectator &&
         currentPlayer === (playerColor === "R" ? "Red" : "Yellow") &&
@@ -117,7 +112,7 @@
           });
         });
         if (!connection) return
-        connection.invoke("makeMove", gameType, roomCode, playerId, `flip ${col} ${row}`)
+        connection.invoke("HandleCommand", gameType, roomCode, playerId, `flip ${col} ${row}`, token)
       }
     };
 

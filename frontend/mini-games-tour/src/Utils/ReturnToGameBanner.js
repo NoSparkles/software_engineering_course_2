@@ -19,7 +19,7 @@ export default function ReturnToGameBanner() {
     // Check if path matches: /<gameType>/session/<code>
     const isSessionPath =
       pathSegments.length === 4 &&
-      pathSegments[2] === 'session' &&
+      (pathSegments[2] === 'session' || pathSegments[2] === "waiting")&&
       pathSegments[1] !== '' &&
       pathSegments[3] !== '';
 
@@ -32,13 +32,12 @@ export default function ReturnToGameBanner() {
     const checkRoom = async () => {
       try {
         const connection = new HubConnectionBuilder()
-          .withUrl("http://localhost:5236/gamehub")
+          .withUrl("http://localhost:5236/joinByCodeHub")
           .build();
 
         await connection.start();
         const exists = await connection.invoke("RoomExists", gameType, code);
         await connection.stop();
-        console.log("checking if exists: " + exists);
 
         if (exists) {
           setGameInfo({ gameType, code });

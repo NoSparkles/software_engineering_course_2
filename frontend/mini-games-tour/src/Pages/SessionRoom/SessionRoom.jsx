@@ -5,10 +5,12 @@ import { usePlayerId } from '../../Utils/usePlayerId';
 import PMBoard from '../../Games/PairMatchingGame/Components/GameBoard';
 import RpsBoard from '../../Games/RockPaperScissors/Components/RpsBoard';
 import {Board as FourInARowGameBoard} from '../../Games/FourInRowGame/Components/Board';
+import { useAuth } from '../../Utils/AuthProvider';
 
 export default function SessionRoom() {
   const { gameType, code } = useParams();
   const navigate = useNavigate();
+  const { user, token } = useAuth()
   const query = new URLSearchParams(window.location.search);
   const isSpectator = query.get('spectator') === 'true';
   const [status, setStatus] = useState("Game in progress...");
@@ -16,7 +18,7 @@ export default function SessionRoom() {
   const [playerColor, setPlayerColor] = useState(null); // only for four-in-a-row
   const playerId = usePlayerId();
   const { connection, connectionState, reconnected } = useSignalRService({
-    hubUrl: "http://localhost:5236/gamehub",
+    hubUrl: "http://localhost:5236/joinByCodeHub",
     gameType,
     roomCode: code,
     playerId,
@@ -31,20 +33,20 @@ export default function SessionRoom() {
   }, [code, gameType, playerId]);
 
   useEffect(() => {
-  switch (gameType) {
-    case 'rock-paper-scissors':
-      setBoard(<RpsBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator} />);
-      break;
-    case 'four-in-a-row':
-      setBoard(<FourInARowGameBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator}/>);
-      break;
-    case 'pair-matching':
-      setBoard(<PMBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator}/>);
-      break;
-        default:
-            setBoard(null);
-    }
-  }, [gameType, playerColor, connection, connectionState]);
+    switch (gameType) {
+        case 'rock-paper-scissors':
+          setBoard(<RpsBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator} token={token}/>);
+          break;
+        case 'four-in-a-row':
+          setBoard(<FourInARowGameBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator} token={token}/>);
+          break;
+        case 'pair-matching':
+          setBoard(<PMBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator} token={token}/>);
+          break;
+            default:
+                setBoard(null);
+      }
+  }, [code, connection, connectionState, gameType, isSpectator, playerColor, playerId])
 
   useEffect(() => {
     if (connection && connectionState === "Connected") {
@@ -56,10 +58,10 @@ export default function SessionRoom() {
             setStatus("Failed to join as spectator.");
           });
       } else {
-        connection.invoke("JoinRoom", gameType, code, playerId)
+        connection.invoke("Join", gameType, code, playerId, token)
           .then(() => setStatus("Joined room. Waiting for opponent..."))
           .catch(err => {
-            console.error("JoinRoom failed:", err);
+            console.error("Join failed:", err);
             setStatus("Failed to join room.");
           });
       }
@@ -84,7 +86,7 @@ export default function SessionRoom() {
       });
 
       connection.on("SetPlayerColor", (color) => {
-        setPlayerColor(color);
+        setPlayerColor(color[playerId]);
       });
 
       connection.on("SpectatorJoined", (roomCode) => {

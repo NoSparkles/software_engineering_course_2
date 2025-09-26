@@ -1,20 +1,19 @@
 using Microsoft.AspNetCore.SignalR;
+using Models;
+using Models.InMemoryModels;
 
 namespace games
 {
     public class PairMatching : GameInstance
     {
-        public Dictionary<string, string> playerColors = new();
         private Dictionary<string, int> Scores = new();
         private Card[,] Board { get; set; } = new Card[3, 6];
         public string CurrentPlayerColor { get; private set; } = "R";
         public List<List<int>> FlippedCards { get; set; }
     // WinnerColor may be empty when there is no winner yet
-    public string WinnerColor { get; set; } = "";
+        public string WinnerColor { get; set; } = "";
         private Dictionary<string, bool> resetVotes = new();
 
-    // RoomCode will be assigned by the hub when a room is started
-    public string RoomCode { get; set; } = "";
 
         public PairMatching()
         {
@@ -26,17 +25,7 @@ namespace games
             resetVotes["Y"] = false;
         }
 
-        public string? GetPlayerColor(string playerId)
-        {
-            return playerColors.TryGetValue(playerId, out var color) ? color : null;
-        }
-
-        public void AssignPlayerColors(string player1Id, string player2Id)
-        {
-            playerColors[player1Id] = "R";
-            playerColors[player2Id] = "Y";
-        }
-        public override Task HandleCommand(string playerId, string command, IHubCallerClients clients)
+        public override Task HandleCommand(string playerId, string command, IHubCallerClients clients, RoomUser user)
         {
             if (FlippedCards.Count() == 2)
             {
@@ -50,32 +39,22 @@ namespace games
             }
             if (command.StartsWith("getBoard"))
             {
-                return clients.Caller.SendAsync("ReceiveBoard", GetGameState());
+                clients.Caller.SendAsync("ReceiveBoard", GetGameState());
             }
             else if (command.StartsWith("flip"))
             {
                 // Prevent spectators / unknown ids from performing flips
-                var color = GetPlayerColor(playerId);
+                var color = GetPlayerColor(user);
                 if (color == null) return Task.CompletedTask;
 
                 string[] parts = command.Split(' ');
                 var col = int.Parse(parts[1]);
                 var row = int.Parse(parts[2]);
                 Card card = Board[row, col];
-                Console.WriteLine("card: {0} {1} {2}", int.Parse(parts[1]), int.Parse(parts[2]), color);
                 if (card.state == CardState.FaceDown)
                 {
                     card.state = CardState.FaceUp;
                     FlippedCards.Add(new List<int> { row, col });
-                }
-
-                for (int i = 0; i < 3; i++)
-                {
-                    for (int j = 0; j < 6; j++)
-                    {
-                        Console.Write("{0} ", Board[i, j].state == CardState.FaceDown ? -1 : Board[i, j].Value);
-                    }
-                    Console.WriteLine();
                 }
 
                 if (FlippedCards.Count() == 2)
@@ -96,18 +75,19 @@ namespace games
                     }
                     CurrentPlayerColor = CurrentPlayerColor == "R" ? "Y" : "R";
                 }
-                return clients.Group(RoomCode).SendAsync("ReceiveBoard", GetGameState());
+
+                clients.Group(RoomCode).SendAsync("ReceiveBoard", GetGameState());
             }
             else if (command.StartsWith("reset"))
             {
-                var color = GetPlayerColor(playerId);
+                var color = GetPlayerColor(user);
                 if (color == null) return Task.CompletedTask;
 
                 resetVotes[color] = true;
                 if (resetVotes["R"] && resetVotes["Y"])
                 {
                     ResetGame();
-                    return clients.Group(RoomCode).SendAsync("ResetGame", GetGameState());
+                    clients.Group(RoomCode).SendAsync("ResetGame", GetGameState());
                 }
             }
 
@@ -133,7 +113,6 @@ namespace games
                 }
             }
         }
-
         private void ResetGame()
         {
             GenerateBoard();
@@ -167,6 +146,8 @@ namespace games
             var flippedIndices = FlippedCards
                 .Select(coords => coords[0] * 6 + coords[1])
                 .ToList();
+                
+            
 
             return new
             {
@@ -174,7 +155,8 @@ namespace games
                 currentPlayer = CurrentPlayerColor,
                 flipped = flippedIndices,
                 scores = Scores,
-                winner = WinnerColor ?? ""
+                winner = WinnerColor ?? "",
+
             };
         }
     }
