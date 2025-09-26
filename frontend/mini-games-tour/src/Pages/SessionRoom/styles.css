@@ -1,0 +1,32 @@
+.session-room {
+  text-align: center;
+  padding: 40px;
+}
+
+.session-room p {
+  font-size: 1.2rem;
+  margin: 10px 0;
+}
+
+.game-board {
+  margin-top: 20px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.matchmaking-info {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #e8f4fd;
+  border-radius: 8px;
+  border-left: 4px solid #3498db;
+}
+
+.matchmaking-info p {
+  margin: 0;
+  color: #2c3e50;
+  font-style: italic;
+  font-size: 1rem;
+}
