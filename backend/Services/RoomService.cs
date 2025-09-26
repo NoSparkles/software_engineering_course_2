@@ -129,57 +129,59 @@ namespace Services
 
          public async Task JoinAsPlayerMatchMaking(string gameType, string roomCode, string playerId, User? user, string connectionId, IHubCallerClients clients)
          {
-        //     var roomKey = CreateRoomKey(gameType, roomCode);
-        //     var room = GetRoomByKey(roomKey);
-        //     var game = room.Game;
-        //     var roomPlayers = room.RoomPlayers;
-        //     var roomUser = roomPlayers.Find(rp => (rp.User is not null && rp.User == user) || rp.PlayerId == playerId);
+            var roomKey = CreateRoomKey(gameType, roomCode);
+            var room = GetRoomByKey(roomKey);
+            var game = room.Game;
+            var roomPlayers = room.RoomPlayers;
+            var roomUser = roomPlayers.Find(rp => (rp.User is not null && rp.User == user) || rp.PlayerId == playerId);
+            if (roomUser is null)
+            {
+                roomPlayers.Add(new RoomUser(playerId, true, user));
+            }
+            
+            bool shouldNotifyStart;
+            lock (roomPlayers)
+            {
+                shouldNotifyStart = roomPlayers.Count == 2;
+            }
+            if (shouldNotifyStart && !room.GameStarted)
+            {
+                room.GameStarted = true;
+                room.Code = roomKey;
+                game.RoomCode = roomKey;
+                game.AssignPlayerColors(roomPlayers[0], roomPlayers[1]);
 
-        //     if (roomUser is null)
-        //     {
-        //         roomPlayers.Add(new RoomUser(playerId, true, user, connectionId));
-        //     }
-        //     else
-        //     {
-        //         roomUser.ConnectionId = connectionId;
-        //     }
+                var playerIdToColor = new Dictionary<string, string>();
+                foreach (var rp in room.RoomPlayers)
+                {
+                    playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                }
 
-        //     bool shouldNotifyStart;
-        //     lock (roomPlayers)
-        //     {
-        //         shouldNotifyStart = roomPlayers.Count == 2;
-        //     }
+                await clients.Group(roomKey).SendAsync("StartGame", roomCode);
+            }
+            else if (room.GameStarted)
+            {
+                var playerIdToColor = new Dictionary<string, string>();
+                foreach (var rp in room.RoomPlayers)
+                {
+                    playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                }
+                await clients.Group(roomKey).SendAsync("SetPlayerColor", playerIdToColor);
+                switch (game)
+                {
+                    case FourInARowGame fourGame:
+                        await clients.Caller.SendAsync("ReceiveMove", fourGame.GetGameState());
+                        break;
 
-        //     if (shouldNotifyStart && !room.GameStarted)
-        //     {
-        //         room.GameStarted = true;
-        //         game.AssignPlayerColors(roomPlayers[0], roomPlayers[1]);
+                    case PairMatching pairGame:
+                        await clients.Caller.SendAsync("ReceiveBoard", pairGame.GetGameState());
+                        break;
 
-        //         Console.WriteLine("colors:");
-        //         Console.WriteLine(game.GetPlayerColor(room.RoomPlayers[0]));
-        //         Console.WriteLine(game.GetPlayerColor(room.RoomPlayers[0]));
-        //         foreach (var rp in room.RoomPlayers)
-        //             await clients.Client(rp.ConnectionId).SendAsync("SetPlayerColor", game.GetPlayerColor(rp) ?? "");
-        //         await clients.Group(roomKey).SendAsync("StartGame", roomCode);
-        //     }
-        //     else if (room.GameStarted)
-        //     {
-        //         Console.WriteLine("game started");
-        //         switch (game)
-        //         {
-        //             case FourInARowGame fourGame:
-        //                 await clients.Caller.SendAsync("ReceiveMove", fourGame.GetGameState());
-        //                 break;
-
-        //             case PairMatching pairGame:
-        //                 await clients.Caller.SendAsync("ReceiveBoard", pairGame.GetGameState());
-        //                 break;
-
-        //             case RockPaperScissors rpsGame:
-        //                 await clients.Caller.SendAsync("ReceiveRpsState", rpsGame.GetGameStatePublic());
-        //                 break;
-        //         }
-        //     }
+                    case RockPaperScissors rpsGame:
+                        await clients.Caller.SendAsync("ReceiveRpsState", rpsGame.GetGameStatePublic());
+                        break;
+                }
+            }
         }
 
         public void JoinAsSpectator(string gameType, string roomCode, string playerId, User? user, string connectionId)

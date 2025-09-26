@@ -49,14 +49,16 @@ namespace Hubs
                 roomCode = parts[1];
                 await Join(gameType, roomCode, user.Username, jwtToken);
                 await Clients.Caller.SendAsync("MatchFound");
+                return roomCode;
             }
             else
             {
                 roomCode = RoomService.CreateRoom(gameType, true);
                 await Join(gameType, roomCode, user.Username, jwtToken);
                 await Clients.Caller.SendAsync("WaitingForOpponent");
+                return roomCode;
             }
-            return null;
+            
         }
     }
 }

@@ -99,8 +99,7 @@ export default function GameEntry() {
       
       await connection.start();
       
-      // JoinMatchmaking returns roomCode (string) or null
-      const roomCode = await connection.invoke  ("JoinMatchmaking", token, gameType);
+      const roomCode = await connection.invoke("JoinMatchmaking", token, gameType);
       await connection.stop();
       
       if (!roomCode || typeof roomCode !== "string") {
@@ -108,13 +107,13 @@ export default function GameEntry() {
         return;
       }
     
-      setError(''); 
+      setError('');
       navigate(`/${gameType}/waiting/${roomCode}`);
     } catch (err) {
       console.error("Error with matchmaking:", err);
       setError("Could not start matchmaking. Try again.");
     }
-  };
+};
 
   const handleCreateRoom = async () => {
     try {
