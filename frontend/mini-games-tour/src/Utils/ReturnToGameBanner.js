@@ -19,7 +19,7 @@ export default function ReturnToGameBanner() {
     // Check if path matches: /<gameType>/session/<code>
     const isSessionPath =
       pathSegments.length === 4 &&
-      pathSegments[2] === 'session' &&
+      (pathSegments[2] === 'session' || pathSegments[2] === "waiting")&&
       pathSegments[1] !== '' &&
       pathSegments[3] !== '';
 
