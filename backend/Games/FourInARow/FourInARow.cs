@@ -8,23 +8,10 @@ namespace games
     {
         private Dictionary<string, string> playerColors = new();
         public string[,] Board { get; private set; } = new string[6, 7];
-    public string CurrentPlayerColor { get; private set; } = "R";
-    // WinnerColor is null when there is no winner yet
-    public string? WinnerColor { get; private set; } = null;
-    // RoomCode will be set by the hub when the game is created
-    public string RoomCode { get; set; } = string.Empty;
-
-        public void AssignPlayerColors(string player1Id, string player2Id)
-        {
-            playerColors[player1Id] = "R";
-            playerColors[player2Id] = "Y";
-        }
-
-        public string? GetPlayerColor(string playerId)
-        {
-            return playerColors.TryGetValue(playerId, out var color) ? color : null;
-        }
-
+       public string CurrentPlayerColor { get; private set; } = "R";
+        // WinnerColor is null when there is no winner yet
+        public string? WinnerColor { get; private set; } = null;
+        // RoomCode will be set by the hub when the game is created
         public bool IsValidMove(int col)
         {
             return col >= 0 && col < 7 && Board[0, col] == null;
@@ -79,14 +66,13 @@ namespace games
             return count;
         }
 
-        public override async Task HandleCommand(string playerId, string command, IHubCallerClients clients, RoomUser? user)
+        public override async Task HandleCommand(string playerId, string command, IHubCallerClients clients, RoomUser user)
         {
             if (command.StartsWith("MOVE:"))
-            {
-                var color = GetPlayerColor(playerId);
+            { 
+                var color = GetPlayerColor(user);
                 if (color == null) return;
                 if (!int.TryParse(command.Substring(5), out int col)) return;
-
                 if (ApplyMove(col, color))
                 {
                     // Convert Board to jagged array for JS
@@ -97,7 +83,6 @@ namespace games
                         for (int c = 0; c < 7; c++)
                             boardToSend[r][c] = Board[r, c];
                     }
-
                     await clients.Group(RoomCode).SendAsync("ReceiveMove", new
                     {
                         board = boardToSend,

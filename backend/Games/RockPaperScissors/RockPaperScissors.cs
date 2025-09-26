@@ -26,7 +26,7 @@ namespace games
             [JsonPropertyName("winner")] public string Winner { get; set; } = "";
         }
 
-        public override async Task HandleCommand(string playerId, string command, IHubCallerClients clients, RoomUser? user)
+        public override async Task HandleCommand(string playerId, string command, IHubCallerClients clients, RoomUser user)
         {
             if (string.IsNullOrWhiteSpace(command)) return;
 

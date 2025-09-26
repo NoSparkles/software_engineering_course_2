@@ -17,8 +17,6 @@ export default function WaitingRoom() {
     playerId,
   });
 
-  console.log(token)
-
   const [status, setStatus] = useState("Connecting...");
 
   useEffect(() => {

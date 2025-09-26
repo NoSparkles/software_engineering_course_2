@@ -25,9 +25,8 @@ namespace games
             resetVotes["Y"] = false;
         }
 
-        public override Task HandleCommand(string playerId, string command, IHubCallerClients clients, RoomUser? user)
+        public override Task HandleCommand(string playerId, string command, IHubCallerClients clients, RoomUser user)
         {
-            Console.WriteLine(command);
             if (FlippedCards.Count() == 2)
             {
                 Card first = Board[FlippedCards[0][0], FlippedCards[0][1]];
@@ -52,20 +51,10 @@ namespace games
                 var col = int.Parse(parts[1]);
                 var row = int.Parse(parts[2]);
                 Card card = Board[row, col];
-                Console.WriteLine("card: {0} {1} {2}", int.Parse(parts[1]), int.Parse(parts[2]), color);
                 if (card.state == CardState.FaceDown)
                 {
                     card.state = CardState.FaceUp;
                     FlippedCards.Add(new List<int> { row, col });
-                }
-
-                for (int i = 0; i < 3; i++)
-                {
-                    for (int j = 0; j < 6; j++)
-                    {
-                        Console.Write("{0} ", Board[i, j].state == CardState.FaceDown ? -1 : Board[i, j].Value);
-                    }
-                    Console.WriteLine();
                 }
 
                 if (FlippedCards.Count() == 2)

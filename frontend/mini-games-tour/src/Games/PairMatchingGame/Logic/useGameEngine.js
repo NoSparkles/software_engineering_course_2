@@ -17,12 +17,10 @@
         return;
       }
 
-      console.log("receiving board")
       connection.on("ReceiveBoard", receiveBoard)
 
       connection.on("ResetGame", onResetGame)
 
-      console.log("getting board")
       connection.invoke("HandleCommand", gameType, roomCode, playerId, 'getBoard', token)
         .catch(() => {});
 
@@ -37,7 +35,6 @@
     }, [connection])
 
     useEffect(() => {
-      console.log("Flipped: ", flipped)
       if (flipped.length === 2) {
         const [first, second] = flipped;
         if (cards[first].value === cards[second].value) {
@@ -81,7 +78,6 @@
 
     const receiveBoard = gameState => {
 
-      console.log("received: ", gameState)
       setCards(gameState.board)
       setFlipped(gameState.flipped)
       setCurrentPlayer(gameState.currentPlayer === "R" ? "Red" : "Yellow")
@@ -95,10 +91,8 @@
 
     const flipCard = index => {
       if (winner) return
-      console.log(currentPlayer, playerColor)
       let col = Math.floor(index % 6)
       let row = Math.floor(index / 6)
-      console.log(row, col, index)
       if (
         !spectator &&
         currentPlayer === (playerColor === "R" ? "Red" : "Yellow") &&

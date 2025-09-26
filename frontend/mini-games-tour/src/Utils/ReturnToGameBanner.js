@@ -38,7 +38,6 @@ export default function ReturnToGameBanner() {
         await connection.start();
         const exists = await connection.invoke("RoomExists", gameType, code);
         await connection.stop();
-        console.log("checking if exists: " + exists);
 
         if (exists) {
           setGameInfo({ gameType, code });

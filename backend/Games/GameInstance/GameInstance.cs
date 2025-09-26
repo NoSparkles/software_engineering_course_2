@@ -9,7 +9,7 @@ namespace games
         public Dictionary<RoomUser, string> PlayerColors = new();
         public string RoomCode { get; set; } = "";
 
-        public abstract Task HandleCommand(string playerId, string command, IHubCallerClients clients, RoomUser? user);
+        public abstract Task HandleCommand(string playerId, string command, IHubCallerClients clients, RoomUser user);
 
         public string GetPlayerColor(RoomUser rp)
         {
