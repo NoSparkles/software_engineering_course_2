@@ -49,7 +49,7 @@ export default function WaitingRoom() {
       });
 
       connection.on("SetPlayerColor", (color) => {
-        setPlayerColor(color[[playerId]]); 
+        setPlayerColor(color[playerId]); 
       });
     }
   }, [connection, connectionState, playerId, gameType, code, navigate]);

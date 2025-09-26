@@ -89,6 +89,16 @@ export default function GameEntry() {
   };
 
   const handleJoinMatchmaking = async () => {
+    if (!token) {
+      setError('Please log in to use matchmaking.');
+      return;
+    }
+
+    if (!playerId) {
+      setError('Player ID not ready. Please try again.');
+      return;
+    }
+
     try {
       const connection = new HubConnectionBuilder()
         .withUrl("http://localhost:5236/MatchMakingHub", {
@@ -99,19 +109,42 @@ export default function GameEntry() {
       
       await connection.start();
       
-      const roomCode = await connection.invoke("JoinMatchmaking", token, gameType);
-      await connection.stop();
+      // Set up event listeners for matchmaking responses
+      connection.on("UnauthorizedMatchmaking", () => {
+        setError("Authentication failed. Please log in again.");
+        connection.stop();
+      });
+
+      connection.on("MatchmakingError", (errorMessage) => {
+        setError(`Matchmaking error: ${errorMessage}`);
+        connection.stop();
+      });
+
+      connection.on("MatchFound", (roomCode) => {
+        setError('');
+        connection.stop();
+        navigate(`/${gameType}/matchmaking-waiting/${roomCode}`);
+      });
+
+      connection.on("WaitingForOpponent", (roomCode) => {
+        setError('');
+        connection.stop();
+        navigate(`/${gameType}/matchmaking-waiting/${roomCode}`);
+      });
+
+      connection.on("StartGame", (roomCode) => {
+        setError('');
+        connection.stop();
+        navigate(`/${gameType}/matchmaking-session/${roomCode}`);
+      });
       
-      if (!roomCode || typeof roomCode !== "string") {
-        setError("Failed to find or create room. Try again.");
-        return;
-      }
-    
-      setError('');
-      navigate(`/${gameType}/waiting/${roomCode}`);
+      // Call the matchmaking method
+      console.log("Calling JoinMatchmaking with:", { token: token ? "present" : "missing", gameType, playerId });
+      await connection.invoke("JoinMatchmaking", token, gameType, playerId);
+      
     } catch (err) {
       console.error("Error with matchmaking:", err);
-      setError("Could not start matchmaking. Try again.");
+      setError("Could not start matchmaking. Please try again.");
     }
 };
 

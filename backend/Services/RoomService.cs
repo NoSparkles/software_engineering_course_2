@@ -95,7 +95,9 @@ namespace Services
                     playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
                 }
 
+                // Send StartGame and SetPlayerColor to all players in the room
                 await clients.Group(roomKey).SendAsync("StartGame", roomCode);
+                await clients.Group(roomKey).SendAsync("SetPlayerColor", playerIdToColor);
             }
             else if (room.GameStarted)
             {
@@ -157,7 +159,9 @@ namespace Services
                     playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
                 }
 
+                // Send StartGame and SetPlayerColor to all players in the room
                 await clients.Group(roomKey).SendAsync("StartGame", roomCode);
+                await clients.Group(roomKey).SendAsync("SetPlayerColor", playerIdToColor);
             }
             else if (room.GameStarted)
             {
