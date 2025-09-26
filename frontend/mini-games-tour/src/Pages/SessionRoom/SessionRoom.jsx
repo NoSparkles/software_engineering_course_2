@@ -6,6 +6,7 @@ import PMBoard from '../../Games/PairMatchingGame/Components/GameBoard';
 import RpsBoard from '../../Games/RockPaperScissors/Components/RpsBoard';
 import {Board as FourInARowGameBoard} from '../../Games/FourInRowGame/Components/Board';
 import { useAuth } from '../../Utils/AuthProvider';
+import './styles.css';
 
 export default function SessionRoom() {
   const { gameType, code } = useParams();
@@ -17,6 +18,7 @@ export default function SessionRoom() {
   const [board, setBoard] = useState(null);
   const [playerColor, setPlayerColor] = useState(null); // only for four-in-a-row
   const playerId = usePlayerId();
+  
   const { connection, connectionState, reconnected } = useSignalRService({
     hubUrl: "http://localhost:5236/joinByCodeHub",
     gameType,
@@ -72,8 +74,7 @@ export default function SessionRoom() {
 
       connection.on("StartGame", (roomCode) => {
         if (roomCode === code) {
-          setStatus("Opponent joined. Starting game...");
-          navigate(`/${gameType}/session/${code}`);
+          setStatus("Game started! Good luck!");
         }
       });
 
@@ -97,7 +98,6 @@ export default function SessionRoom() {
         setStatus("Spectator join failed: " + msg);
       });
 
-
       return () => {
         connection.off("PlayerLeft");
         connection.off("ReceiveMove");
@@ -106,12 +106,12 @@ export default function SessionRoom() {
         connection.off("onreconnected");
       };
     }
-  }, [gameType, code, navigate, connection, connectionState, playerId]);
+  }, [gameType, code, navigate, connection, connectionState, playerId, token]);
   return (
     <div className="session-room">
       <h2>{gameType.toUpperCase()} Session</h2>
       <p>Room Code: <strong>{code}</strong></p>
-      <p>Player ID: <strong>{playerId}</strong></p>
+      <p>Player: <strong>{user?.username || playerId}</strong></p>
       <p>
         Assigned Color: <strong>{playerColor ? (playerColor === "R" ? "Red" : "Yellow") : "Not assigned yet"}</strong>
       </p>

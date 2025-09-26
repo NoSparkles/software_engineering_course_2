@@ -10,6 +10,7 @@ export default function WaitingRoom() {
   const playerId = usePlayerId();
   const { user, token } = useAuth()
   const [playerColor, setPlayerColor] = useState(null); 
+  
   const { connection, connectionState, reconnected } = useSignalRService({
     hubUrl: "http://localhost:5236/joinByCodeHub",
     gameType,

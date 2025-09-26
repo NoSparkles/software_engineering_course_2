@@ -110,15 +110,15 @@ namespace Services
                 switch (game)
                 {
                     case FourInARowGame fourGame:
-                        await clients.Caller.SendAsync("ReceiveMove", fourGame.GetGameState());
+                        await clients.Group(roomKey).SendAsync("ReceiveMove", fourGame.GetGameState());
                         break;
 
                     case PairMatching pairGame:
-                        await clients.Caller.SendAsync("ReceiveBoard", pairGame.GetGameState());
+                        await clients.Group(roomKey).SendAsync("ReceiveBoard", pairGame.GetGameState());
                         break;
 
                     case RockPaperScissors rpsGame:
-                        await clients.Caller.SendAsync("ReceiveRpsState", rpsGame.GetGameStatePublic());
+                        await clients.Group(roomKey).SendAsync("ReceiveRpsState", rpsGame.GetGameStatePublic());
                         break;
                 }
             }
@@ -174,15 +174,15 @@ namespace Services
                 switch (game)
                 {
                     case FourInARowGame fourGame:
-                        await clients.Caller.SendAsync("ReceiveMove", fourGame.GetGameState());
+                        await clients.Group(roomKey).SendAsync("ReceiveMove", fourGame.GetGameState());
                         break;
 
                     case PairMatching pairGame:
-                        await clients.Caller.SendAsync("ReceiveBoard", pairGame.GetGameState());
+                        await clients.Group(roomKey).SendAsync("ReceiveBoard", pairGame.GetGameState());
                         break;
 
                     case RockPaperScissors rpsGame:
-                        await clients.Caller.SendAsync("ReceiveRpsState", rpsGame.GetGameStatePublic());
+                        await clients.Group(roomKey).SendAsync("ReceiveRpsState", rpsGame.GetGameStatePublic());
                         break;
                 }
             }
