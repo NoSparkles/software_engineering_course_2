@@ -1,5 +1,5 @@
   import { useState, useEffect } from 'react';
-  export function useGameEngine({ playerColor, connection, roomCode, playerId, spectator = false, connectionState = "Disconnected" }) {
+  export function useGameEngine({ playerColor, connection, roomCode, playerId, spectator = false, connectionState = "Disconnected", token }) {
     const [cards, setCards] = useState([]);
     const [flipped, setFlipped] = useState([]);
     const [currentPlayer, setCurrentPlayer] = useState('Red');
@@ -23,7 +23,7 @@
       connection.on("ResetGame", onResetGame)
 
       console.log("getting board")
-      connection.invoke("MakeMove", gameType, roomCode, playerId, 'getBoard')
+      connection.invoke("HandleCommand", gameType, roomCode, playerId, 'getBoard', token)
         .catch(() => {});
 
       return () => {
@@ -75,7 +75,7 @@
 
     useEffect(() => {
       if (resetVote && connection && !spectator) {
-        connection.invoke("makeMove", gameType, roomCode, playerId, 'reset')
+        connection.invoke("HandleCommand", gameType, roomCode, playerId, 'reset', token)
       }
     }, [connection, resetVote])
 
@@ -117,7 +117,7 @@
           });
         });
         if (!connection) return
-        connection.invoke("makeMove", gameType, roomCode, playerId, `flip ${col} ${row}`)
+        connection.invoke("HandleCommand", gameType, roomCode, playerId, `flip ${col} ${row}`, token)
       }
     };
 

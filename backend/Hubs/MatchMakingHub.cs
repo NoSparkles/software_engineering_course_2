@@ -24,8 +24,9 @@ namespace Hubs
             await game.HandleCommand(playerId, command, Clients, me);
         }
 
-        public async Task Join(string gameType, string roomCode, string playerId, User? user)
+        public async Task Join(string gameType, string roomCode, string playerId, string jwtToken)
         {
+            var user = await UserService.GetUserFromTokenAsync(jwtToken);
             await Groups.AddToGroupAsync(Context.ConnectionId, RoomService.CreateRoomKey(gameType, roomCode));
             await RoomService.JoinAsPlayerMatchMaking(gameType, roomCode, playerId, user, Context.ConnectionId, Clients);
         }
@@ -46,13 +47,13 @@ namespace Hubs
             {
                 var parts = availableRoom.Key.Split(':');
                 roomCode = parts[1];
-                await Join(gameType, roomCode, user.Username, user);
+                await Join(gameType, roomCode, user.Username, jwtToken);
                 await Clients.Caller.SendAsync("MatchFound");
             }
             else
             {
                 roomCode = RoomService.CreateRoom(gameType, true);
-                await Join(gameType, roomCode, user.Username, user);
+                await Join(gameType, roomCode, user.Username, jwtToken);
                 await Clients.Caller.SendAsync("WaitingForOpponent");
             }
             return null;

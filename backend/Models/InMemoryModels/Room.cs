@@ -12,6 +12,8 @@ namespace Models.InMemoryModels
         public List<RoomUser> RoomSpectators { get; set; }
         public string Code { get; set; }
 
+        public bool GameStarted { get; set; }
+
         public Room(GameInstance game, bool isMatchMaking, string roomCode)
         {
             Game = game;
@@ -19,6 +21,7 @@ namespace Models.InMemoryModels
             RoomPlayers = new List<RoomUser>();
             RoomSpectators = new List<RoomUser>();
             Code = roomCode;
+            GameStarted = false;
         }
 
         public static GameInstance GameTypeToGame(string gameType)

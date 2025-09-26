@@ -1,5 +1,7 @@
+using System.Collections.Concurrent;
 using games;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging.Console;
 using Models;
 using Models.InMemoryModels;
 
@@ -7,15 +9,15 @@ namespace Services
 {
     public class RoomService
     {
-        public Dictionary<string, Room> Rooms { get; set; } // roomKey -> Room
-        public Dictionary<string, RoomUser> CodeRoomUsers { get; set; } // playerId -> RoomUser
-        public Dictionary<string, RoomUser> MatchMakingRoomUsers { get; set; } // 
+        public ConcurrentDictionary<string, Room> Rooms { get; set; } // roomKey -> Room
+        public ConcurrentDictionary<string, RoomUser> CodeRoomUsers { get; set; } // playerId -> RoomUser
+        public ConcurrentDictionary<string, RoomUser> MatchMakingRoomUsers { get; set; } // 
 
         public RoomService()
         {
-            Rooms = new Dictionary<string, Room>();
-            CodeRoomUsers = new Dictionary<string, RoomUser>();
-            MatchMakingRoomUsers = new Dictionary<string, RoomUser>();
+            Rooms = new ConcurrentDictionary<string, Room>();
+            CodeRoomUsers = new ConcurrentDictionary<string, RoomUser>();
+            MatchMakingRoomUsers = new ConcurrentDictionary<string, RoomUser>();
         }
 
         public string CreateRoom(string gameType, bool isMatchMaking)
@@ -72,13 +74,8 @@ namespace Services
 
             if (roomUser is null)
             {
-                roomPlayers.Add(new RoomUser(playerId, true, user, connectionId));
+                roomPlayers.Add(new RoomUser(playerId, true, user));
             }
-            else
-            {
-                roomUser.ConnectionId = connectionId;
-            }
-
 
             bool shouldNotifyStart;
             lock (roomPlayers)
@@ -86,17 +83,27 @@ namespace Services
                 shouldNotifyStart = roomPlayers.Count == 2;
             }
 
-            if (shouldNotifyStart)
+            if (shouldNotifyStart && !room.GameStarted)
             {
-                game.RoomCode = roomKey;
+                room.GameStarted = true;
                 game.AssignPlayerColors(roomPlayers[0], roomPlayers[1]);
-                foreach (var rp in roomPlayers)
-                    await clients.Client(rp.ConnectionId).SendAsync("SetPlayerColor", game.GetPlayerColor(rp) ?? "");
+
+                var playerIdToColor = new Dictionary<string, string>();
+                foreach (var rp in room.RoomPlayers)
+                {
+                    playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                }
 
                 await clients.Group(roomKey).SendAsync("StartGame", roomCode);
             }
-            else
+            else if (room.GameStarted)
             {
+                var playerIdToColor = new Dictionary<string, string>();
+                foreach (var rp in room.RoomPlayers)
+                {
+                    playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                }
+                await clients.Group(roomKey).SendAsync("SetPlayerColor", playerIdToColor);
                 switch (game)
                 {
                     case FourInARowGame fourGame:
@@ -119,62 +126,65 @@ namespace Services
             return roomPlayers.Find(rp => (rp.User is not null && rp.User == user) || rp.PlayerId == playerId);
         }
 
-        public async Task JoinAsPlayerMatchMaking(string gameType, string roomCode, string playerId, User? user, string connectionId, IHubCallerClients clients)
-        {
-            var roomKey = CreateRoomKey(gameType, roomCode);
-            var room = GetRoomByKey(roomKey);
-            var game = room.Game;
-            var roomPlayers = room.RoomPlayers;
-            var roomUser = roomPlayers.Find(rp => (rp.User is not null && rp.User == user) || rp.PlayerId == playerId);
+        // public async Task JoinAsPlayerMatchMaking(string gameType, string roomCode, string playerId, User? user, string connectionId, IHubCallerClients clients)
+        // {
+        //     var roomKey = CreateRoomKey(gameType, roomCode);
+        //     var room = GetRoomByKey(roomKey);
+        //     var game = room.Game;
+        //     var roomPlayers = room.RoomPlayers;
+        //     var roomUser = roomPlayers.Find(rp => (rp.User is not null && rp.User == user) || rp.PlayerId == playerId);
 
-            if (roomUser is null)
-            {
-                roomPlayers.Add(new RoomUser(playerId, true, user, connectionId));
-            }
-            else
-            {
-                roomUser.ConnectionId = connectionId;
-            }
+        //     if (roomUser is null)
+        //     {
+        //         roomPlayers.Add(new RoomUser(playerId, true, user, connectionId));
+        //     }
+        //     else
+        //     {
+        //         roomUser.ConnectionId = connectionId;
+        //     }
 
+        //     bool shouldNotifyStart;
+        //     lock (roomPlayers)
+        //     {
+        //         shouldNotifyStart = roomPlayers.Count == 2;
+        //     }
 
-            bool shouldNotifyStart;
-            lock (roomPlayers)
-            {
-                shouldNotifyStart = roomPlayers.Count == 2;
-            }
+        //     if (shouldNotifyStart && !room.GameStarted)
+        //     {
+        //         room.GameStarted = true;
+        //         game.AssignPlayerColors(roomPlayers[0], roomPlayers[1]);
 
-            if (shouldNotifyStart)
-            {
-                game.RoomCode = roomKey;
-                game.AssignPlayerColors(roomPlayers[0], roomPlayers[1]);
-                foreach (var rp in roomPlayers)
-                    await clients.Client(rp.ConnectionId).SendAsync("SetPlayerColor", game.GetPlayerColor(rp) ?? "");
+        //         Console.WriteLine("colors:");
+        //         Console.WriteLine(game.GetPlayerColor(room.RoomPlayers[0]));
+        //         Console.WriteLine(game.GetPlayerColor(room.RoomPlayers[0]));
+        //         foreach (var rp in room.RoomPlayers)
+        //             await clients.Client(rp.ConnectionId).SendAsync("SetPlayerColor", game.GetPlayerColor(rp) ?? "");
+        //         await clients.Group(roomKey).SendAsync("StartGame", roomCode);
+        //     }
+        //     else if (room.GameStarted)
+        //     {
+        //         Console.WriteLine("game started");
+        //         switch (game)
+        //         {
+        //             case FourInARowGame fourGame:
+        //                 await clients.Caller.SendAsync("ReceiveMove", fourGame.GetGameState());
+        //                 break;
 
-                await clients.Group(roomKey).SendAsync("StartGame", roomCode);
-            }
-            else
-            {
-                switch (game)
-                {
-                    case FourInARowGame fourGame:
-                        await clients.Caller.SendAsync("ReceiveMove", fourGame.GetGameState());
-                        break;
+        //             case PairMatching pairGame:
+        //                 await clients.Caller.SendAsync("ReceiveBoard", pairGame.GetGameState());
+        //                 break;
 
-                    case PairMatching pairGame:
-                        await clients.Caller.SendAsync("ReceiveBoard", pairGame.GetGameState());
-                        break;
-
-                    case RockPaperScissors rpsGame:
-                        await clients.Caller.SendAsync("ReceiveRpsState", rpsGame.GetGameStatePublic());
-                        break;
-                }
-            }
-        }
+        //             case RockPaperScissors rpsGame:
+        //                 await clients.Caller.SendAsync("ReceiveRpsState", rpsGame.GetGameStatePublic());
+        //                 break;
+        //         }
+        //     }
+        // }
 
         public void JoinAsSpectator(string gameType, string roomCode, string playerId, User? user, string connectionId)
         {
             var roomKey = CreateRoomKey(gameType, roomCode);
-            var RoomUser = new RoomUser(playerId, false, user, connectionId);
+            var RoomUser = new RoomUser(playerId, false, user);
             // TODO
         }
     }

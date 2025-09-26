@@ -27,6 +27,7 @@ namespace games
 
         public override Task HandleCommand(string playerId, string command, IHubCallerClients clients, RoomUser? user)
         {
+            Console.WriteLine("HandleCommand pair matching");
             if (FlippedCards.Count() == 2)
             {
                 Card first = Board[FlippedCards[0][0], FlippedCards[0][1]];
@@ -156,6 +157,8 @@ namespace games
             var flippedIndices = FlippedCards
                 .Select(coords => coords[0] * 6 + coords[1])
                 .ToList();
+                
+            
 
             return new
             {
@@ -163,7 +166,8 @@ namespace games
                 currentPlayer = CurrentPlayerColor,
                 flipped = flippedIndices,
                 scores = Scores,
-                winner = WinnerColor ?? ""
+                winner = WinnerColor ?? "",
+
             };
         }
     }

@@ -13,8 +13,8 @@ builder.Services.AddDbContext<GameDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=game.db"));
 
 // Add scoped services
+builder.Services.AddSingleton<RoomService>();
 builder.Services.AddScoped<UserService>();
-builder.Services.AddScoped<RoomService>();
 
 builder.Services.AddControllers();
 

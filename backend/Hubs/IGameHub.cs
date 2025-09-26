@@ -11,6 +11,6 @@ namespace Hubs
         Task HandleCommand(string gameType, string roomCode, string command, string playerId, string jwtToken);
 
         // async
-        Task Join(string gameType, string roomCode, string playerId, User? user);
+        Task Join(string gameType, string roomCode, string playerId, string jwtToken);
     }
 }

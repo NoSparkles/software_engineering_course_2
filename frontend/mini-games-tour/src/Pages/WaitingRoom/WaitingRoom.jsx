@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePlayerId } from '../../Utils/usePlayerId';
 import { useSignalRService } from '../../Utils/useSignalRService';
+import { useAuth } from '../../Utils/AuthProvider'
 
 export default function WaitingRoom() {
   const { gameType, code } = useParams();
   const navigate = useNavigate();
   const playerId = usePlayerId();
+  const { user, token } = useAuth()
   const [playerColor, setPlayerColor] = useState(null); 
   const { connection, connectionState, reconnected } = useSignalRService({
     hubUrl: "http://localhost:5236/joinByCodeHub",
@@ -15,11 +17,13 @@ export default function WaitingRoom() {
     playerId,
   });
 
+  console.log(token)
+
   const [status, setStatus] = useState("Connecting...");
 
   useEffect(() => {
     if (connection && connectionState === "Connected") {
-      connection.invoke("JoinRoom", gameType, code, playerId)
+      connection.invoke("Join", gameType, code, playerId, token)
         .then(() => setStatus("Joined room. Waiting for opponent..."))
         .catch(err => {
           console.error("JoinRoom failed:", err);
@@ -47,8 +51,7 @@ export default function WaitingRoom() {
       });
 
       connection.on("SetPlayerColor", (color) => {
-        setPlayerColor(color); 
-        console.log(`Assigned color: ${color}`);
+        setPlayerColor(color[[playerId]]); 
       });
     }
   }, [connection, connectionState, playerId, gameType, code, navigate]);

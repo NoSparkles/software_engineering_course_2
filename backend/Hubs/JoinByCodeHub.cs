@@ -28,8 +28,10 @@ namespace Hubs
             await game.HandleCommand(playerId, command, Clients, me);
         }
 
-        public async Task Join(string gameType, string roomCode, string playerId, User? user)
+        public async Task Join(string gameType, string roomCode, string playerId, string jwtToken)
         {
+            var user = await UserService.GetUserFromTokenAsync(jwtToken);
+            Console.WriteLine(gameType, roomCode, playerId, jwtToken);
             await Groups.AddToGroupAsync(Context.ConnectionId, RoomService.CreateRoomKey(gameType, roomCode));
             await RoomService.JoinAsPlayerNotMatchMaking(gameType, roomCode, playerId, user, Context.ConnectionId, Clients);
         }

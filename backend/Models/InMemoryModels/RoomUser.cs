@@ -7,14 +7,11 @@ namespace Models.InMemoryModels
         public string PlayerId { get; set; }
         public bool IsPlayer { get; set; }
         public User? User { get; set; }
-        public string ConnectionId { get; set; }
-
-        public RoomUser(string playerId, bool isPlayer, User? user, string connectionId)
+        public RoomUser(string playerId, bool isPlayer, User? user)
         {
             PlayerId = playerId;
             IsPlayer = isPlayer;
             User = user;
-            ConnectionId = connectionId;
         }
     }
 }
