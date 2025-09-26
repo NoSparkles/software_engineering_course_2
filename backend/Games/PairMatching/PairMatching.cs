@@ -27,6 +27,7 @@ namespace games
 
         public override Task HandleCommand(string playerId, string command, IHubCallerClients clients, RoomUser? user)
         {
+            Console.WriteLine(command);
             if (FlippedCards.Count() == 2)
             {
                 Card first = Board[FlippedCards[0][0], FlippedCards[0][1]];
@@ -39,7 +40,7 @@ namespace games
             }
             if (command.StartsWith("getBoard"))
             {
-                return clients.Caller.SendAsync("ReceiveBoard", GetGameState());
+                clients.Caller.SendAsync("ReceiveBoard", GetGameState());
             }
             else if (command.StartsWith("flip"))
             {
@@ -86,7 +87,7 @@ namespace games
                     CurrentPlayerColor = CurrentPlayerColor == "R" ? "Y" : "R";
                 }
 
-                return clients.Group(RoomCode).SendAsync("ReceiveBoard", GetGameState());
+                clients.Group(RoomCode).SendAsync("ReceiveBoard", GetGameState());
             }
             else if (command.StartsWith("reset"))
             {
@@ -97,7 +98,7 @@ namespace games
                 if (resetVotes["R"] && resetVotes["Y"])
                 {
                     ResetGame();
-                    return clients.Group(RoomCode).SendAsync("ResetGame", GetGameState());
+                    clients.Group(RoomCode).SendAsync("ResetGame", GetGameState());
                 }
             }
 

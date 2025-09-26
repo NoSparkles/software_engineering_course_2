@@ -20,7 +20,7 @@ namespace Hubs
         }
 
 
-        public async Task HandleCommand(string gameType, string roomCode, string command, string playerId, string jwtToken)
+        public async Task HandleCommand(string gameType, string roomCode, string playerId, string command, string jwtToken)
         {
             var roomKey = RoomService.CreateRoomKey(gameType, roomCode);
             var game = RoomService.GetRoomByKey(roomKey).Game;
