@@ -14,13 +14,12 @@ namespace Models.InMemoryModels
 
         public bool GameStarted { get; set; }
 
-        public Room(GameInstance game, bool isMatchMaking, string roomCode)
+        public Room(GameInstance game, bool isMatchMaking)
         {
             Game = game;
             IsMatchMaking = isMatchMaking;
             RoomPlayers = new List<RoomUser>();
             RoomSpectators = new List<RoomUser>();
-            Code = roomCode;
             GameStarted = false;
         }
 

@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using games;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Logging.Console;
 using Models;
 using Models.InMemoryModels;
 
@@ -25,7 +24,7 @@ namespace Services
             var roomCode = GenerateRoomCode();
             var roomKey = CreateRoomKey(gameType, roomCode);
             var game = Room.GameTypeToGame(gameType);
-            var newRoom = new Room(game, isMatchMaking, roomCode);
+            var newRoom = new Room(game, isMatchMaking);
             Rooms[roomKey] = newRoom;
             return roomCode;
         }
@@ -86,6 +85,8 @@ namespace Services
             if (shouldNotifyStart && !room.GameStarted)
             {
                 room.GameStarted = true;
+                room.Code = roomKey;
+                game.RoomCode = roomKey;
                 game.AssignPlayerColors(roomPlayers[0], roomPlayers[1]);
 
                 var playerIdToColor = new Dictionary<string, string>();
@@ -126,8 +127,8 @@ namespace Services
             return roomPlayers.Find(rp => (rp.User is not null && rp.User == user) || rp.PlayerId == playerId);
         }
 
-        // public async Task JoinAsPlayerMatchMaking(string gameType, string roomCode, string playerId, User? user, string connectionId, IHubCallerClients clients)
-        // {
+         public async Task JoinAsPlayerMatchMaking(string gameType, string roomCode, string playerId, User? user, string connectionId, IHubCallerClients clients)
+         {
         //     var roomKey = CreateRoomKey(gameType, roomCode);
         //     var room = GetRoomByKey(roomKey);
         //     var game = room.Game;
@@ -179,7 +180,7 @@ namespace Services
         //                 break;
         //         }
         //     }
-        // }
+        }
 
         public void JoinAsSpectator(string gameType, string roomCode, string playerId, User? user, string connectionId)
         {

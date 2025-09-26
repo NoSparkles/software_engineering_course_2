@@ -4,9 +4,9 @@ import RpsHistory from './RpsHistory';
 import { useRpsEngine } from '../Logic/useRpsEngine';
 import '../../FourInRowGame/Components/styles.css';
 
-export default function RpsBoard({ playerColor, connection, roomCode, playerId, spectator = false, connectionState = "Disconnected" }) {
+export default function RpsBoard({ playerColor, connection, roomCode, playerId, spectator = false, connectionState = "Disconnected", token }) {
   const { state, isMyTurn, choose, reset, resetVote } =
-    useRpsEngine({ playerColor, connection, roomCode, playerId, spectator, connectionState });
+    useRpsEngine({ playerColor, connection, roomCode, playerId, spectator, connectionState, token });
 
   const you = playerColor;
   const [selectedChoice, setSelectedChoice] = useState(null);

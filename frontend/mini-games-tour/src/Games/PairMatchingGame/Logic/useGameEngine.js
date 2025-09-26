@@ -80,7 +80,8 @@
     }, [connection, resetVote])
 
     const receiveBoard = gameState => {
-      console.log(gameState)
+
+      console.log("received: ", gameState)
       setCards(gameState.board)
       setFlipped(gameState.flipped)
       setCurrentPlayer(gameState.currentPlayer === "R" ? "Red" : "Yellow")

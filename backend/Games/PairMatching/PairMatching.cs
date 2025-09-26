@@ -27,7 +27,6 @@ namespace games
 
         public override Task HandleCommand(string playerId, string command, IHubCallerClients clients, RoomUser? user)
         {
-            Console.WriteLine("HandleCommand pair matching");
             if (FlippedCards.Count() == 2)
             {
                 Card first = Board[FlippedCards[0][0], FlippedCards[0][1]];
@@ -86,6 +85,7 @@ namespace games
                     }
                     CurrentPlayerColor = CurrentPlayerColor == "R" ? "Y" : "R";
                 }
+
                 return clients.Group(RoomCode).SendAsync("ReceiveBoard", GetGameState());
             }
             else if (command.StartsWith("reset"))
@@ -123,7 +123,6 @@ namespace games
                 }
             }
         }
-
         private void ResetGame()
         {
             GenerateBoard();

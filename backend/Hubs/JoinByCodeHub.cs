@@ -4,6 +4,7 @@ using games;
 using Models;
 using Services;
 using System.Security.Principal;
+using System.Text.RegularExpressions;
 
 namespace Hubs
 {
@@ -31,7 +32,6 @@ namespace Hubs
         public async Task Join(string gameType, string roomCode, string playerId, string jwtToken)
         {
             var user = await UserService.GetUserFromTokenAsync(jwtToken);
-            Console.WriteLine(gameType, roomCode, playerId, jwtToken);
             await Groups.AddToGroupAsync(Context.ConnectionId, RoomService.CreateRoomKey(gameType, roomCode));
             await RoomService.JoinAsPlayerNotMatchMaking(gameType, roomCode, playerId, user, Context.ConnectionId, Clients);
         }
