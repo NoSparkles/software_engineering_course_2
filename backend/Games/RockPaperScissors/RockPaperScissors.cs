@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.SignalR;
+using Models;
 using Models.InMemoryModels;
 using System.Text.Json.Serialization;
 

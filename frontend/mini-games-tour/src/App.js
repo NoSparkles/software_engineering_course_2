@@ -3,6 +3,8 @@ import Home from './Pages/Home/Home';
 import GameEntry from './Components/GameEntry';
 import WaitingRoom from './Pages/WaitingRoom/WaitingRoom';
 import SessionRoom from './Pages/SessionRoom/SessionRoom';
+import MatchmakingWaitingRoom from './Pages/WaitingRoom/MatchmakingWaitingRoom';
+import MatchmakingSessionRoom from './Pages/SessionRoom/MatchmakingSessionRoom';
 import ReturnToGameBanner from './Utils/ReturnToGameBanner';
 import Navbar from './Components/Navbar';
 import Login from './Pages/Login/Login';
@@ -24,6 +26,8 @@ function App() {
           <Route path="/pair-matching" element={<GameEntry />} />
           <Route path="/:gameType/waiting/:code" element={<WaitingRoom />} />
           <Route path="/:gameType/session/:code" element={<SessionRoom />} />
+          <Route path="/:gameType/matchmaking-waiting/:code" element={<MatchmakingWaitingRoom />} />
+          <Route path="/:gameType/matchmaking-session/:code" element={<MatchmakingSessionRoom />} />
         </Routes>
       </Router>
     </AuthProvider>

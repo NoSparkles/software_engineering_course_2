@@ -8,19 +8,17 @@ import {Board as FourInARowGameBoard} from '../../Games/FourInRowGame/Components
 import { useAuth } from '../../Utils/AuthProvider';
 import './styles.css';
 
-export default function SessionRoom() {
+export default function MatchmakingSessionRoom() {
   const { gameType, code } = useParams();
   const navigate = useNavigate();
   const { user, token } = useAuth()
-  const query = new URLSearchParams(window.location.search);
-  const isSpectator = query.get('spectator') === 'true';
   const [status, setStatus] = useState("Game in progress...");
   const [board, setBoard] = useState(null);
   const [playerColor, setPlayerColor] = useState(null); // only for four-in-a-row
   const playerId = usePlayerId();
   
   const { connection, connectionState, reconnected } = useSignalRService({
-    hubUrl: "http://localhost:5236/joinByCodeHub",
+    hubUrl: "http://localhost:5236/MatchMakingHub",
     gameType,
     roomCode: code,
     playerId,
@@ -37,36 +35,27 @@ export default function SessionRoom() {
   useEffect(() => {
     switch (gameType) {
         case 'rock-paper-scissors':
-          setBoard(<RpsBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator} token={token}/>);
+          setBoard(<RpsBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={false} token={token}/>);
           break;
         case 'four-in-a-row':
-          setBoard(<FourInARowGameBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator} token={token}/>);
+          setBoard(<FourInARowGameBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={false} token={token}/>);
           break;
         case 'pair-matching':
-          setBoard(<PMBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator} token={token}/>);
+          setBoard(<PMBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={false} token={token}/>);
           break;
             default:
                 setBoard(null);
       }
-  }, [code, connection, connectionState, gameType, isSpectator, playerColor, playerId])
+  }, [code, connection, connectionState, gameType, playerColor, playerId, token])
 
   useEffect(() => {
     if (connection && connectionState === "Connected") {
-      if (isSpectator) {
-        connection.invoke("JoinAsSpectator", gameType, code)
-          .then(() => setStatus("Joined as spectator"))
-          .catch(err => {
-            console.error("JoinAsSpectator failed:", err);
-            setStatus("Failed to join as spectator.");
-          });
-      } else {
-        connection.invoke("Join", gameType, code, playerId, token)
-          .then(() => setStatus("Joined room. Waiting for opponent..."))
-          .catch(err => {
-            console.error("Join failed:", err);
-            setStatus("Failed to join room.");
-          });
-      }
+      connection.invoke("Join", gameType, code, playerId, token)
+        .then(() => setStatus("Joined matchmaking game session"))
+        .catch(err => {
+          console.error("Join matchmaking session failed:", err);
+          setStatus("Failed to join matchmaking session.");
+        });
 
       connection.on("WaitingForOpponent", () => {
         setStatus("Waiting for second player...");
@@ -79,23 +68,20 @@ export default function SessionRoom() {
       });
 
       connection.on("PlayerLeft", () => {
-        setStatus("Opponent disconnected. Waiting...");
+        setStatus("Opponent disconnected. Game paused...");
       });
 
       connection.on("Reconnected", () => {
-        setStatus("Reconnected to room.");
+        setStatus("Reconnected to matchmaking session.");
       });
 
       connection.on("SetPlayerColor", (color) => {
         setPlayerColor(color[playerId]);
       });
 
-      connection.on("SpectatorJoined", (roomCode) => {
-        setStatus("Spectating room " + roomCode);
-      });
-
-      connection.on("SpectatorJoinFailed", (msg) => {
-        setStatus("Spectator join failed: " + msg);
+      connection.on("UnauthorizedMatchmaking", () => {
+        setStatus("Authentication failed. Redirecting to login...");
+        navigate('/login');
       });
 
       return () => {
@@ -107,16 +93,19 @@ export default function SessionRoom() {
       };
     }
   }, [gameType, code, navigate, connection, connectionState, playerId, token]);
+
   return (
-    <div className="session-room">
-      <h2>{gameType.toUpperCase()} Session</h2>
-      <p>Room Code: <strong>{code}</strong></p>
+    <div className="matchmaking-session-room">
+      <h2>{gameType.toUpperCase()} Matchmaking Session</h2>
       <p>Player: <strong>{user?.username || playerId}</strong></p>
       <p>
         Assigned Color: <strong>{playerColor ? (playerColor === "R" ? "Red" : "Yellow") : "Not assigned yet"}</strong>
       </p>
       <p>Status: <strong>{status}</strong></p>
       <p>Connection: <strong>{connectionState}</strong></p>
+      <div className="matchmaking-info">
+        <p><em>You are playing in matchmaking mode. This game was automatically matched.</em></p>
+      </div>
       <div className="game-board">
         {board}
       </div>
