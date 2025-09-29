@@ -1,15 +1,51 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../Utils/AuthProvider';
+import { globalConnectionManager } from '../Utils/GlobalConnectionManager';
 import './styles.css';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleHomeClick = async () => {
+    // Check if user is in a game session
+    const activeGame = localStorage.getItem("activeGame");
+    
+    // Check if there are any active connections
+    const hasActiveConnections = globalConnectionManager.hasActiveConnections();
+    
+    if (activeGame || hasActiveConnections) {
+      // Call LeaveRoom on all active connections
+      try {
+        await globalConnectionManager.leaveAllRooms();
+      } catch (err) {
+        console.warn("LeaveRoom failed:", err);
+      }
+    }
+    
+    // Navigate to home
+    navigate('/');
+  };
 
   return (
     <nav className="navbar">
       <div className="navbar-left">
-        <Link to="/">Home</Link>
+        <button 
+          onClick={handleHomeClick}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'white',
+            cursor: 'pointer',
+            textDecoration: 'none',
+            fontSize: 'inherit',
+            fontFamily: 'inherit'
+          }}
+        >
+          Home
+        </button>
       </div>
       <div className="navbar-right">
         {user?.username ? (

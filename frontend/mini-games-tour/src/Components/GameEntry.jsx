@@ -89,6 +89,22 @@ export default function GameEntry() {
   };
 
   const handleJoinMatchmaking = async () => {
+    console.log("GameEntry: handleJoinMatchmaking called");
+    console.log("GameEntry: token exists:", !!token);
+    console.log("GameEntry: playerId exists:", !!playerId);
+    console.log("GameEntry: gameType:", gameType);
+    
+    if (!token) {
+      setError('Please log in to use matchmaking.');
+      return;
+    }
+
+    if (!playerId) {
+      setError('Player ID not ready. Please try again.');
+      return;
+    }
+    
+
     try {
       const connection = new HubConnectionBuilder()
         .withUrl("http://localhost:5236/MatchMakingHub", {
@@ -99,22 +115,48 @@ export default function GameEntry() {
       
       await connection.start();
       
-      // JoinMatchmaking returns roomCode (string) or null
-      const roomCode = await connection.invoke  ("JoinMatchmaking", token, gameType);
-      await connection.stop();
+      // Set up event listeners for matchmaking responses
+      connection.on("UnauthorizedMatchmaking", () => {
+        setError("Authentication failed. Please log in again.");
+      });
+
+      connection.on("MatchmakingError", (errorMessage) => {
+        setError(`Matchmaking error: ${errorMessage}`);
+      });
+
+      connection.on("MatchFound", (roomCode) => {
+        console.log("GameEntry: MatchFound event received, navigating to:", `/${gameType}/matchmaking-waiting/${roomCode}`);
+        setError('');
+        console.log("GameEntry: About to navigate to matchmaking waiting room");
+        navigate(`/${gameType}/matchmaking-waiting/${roomCode}`);
+        console.log("GameEntry: Navigation completed");
+      });
+
+      connection.on("WaitingForOpponent", (roomCode) => {
+        console.log("GameEntry: WaitingForOpponent event received, navigating to:", `/${gameType}/matchmaking-waiting/${roomCode}`);
+        setError('');
+        console.log("GameEntry: About to navigate to matchmaking waiting room");
+        navigate(`/${gameType}/matchmaking-waiting/${roomCode}`);
+        console.log("GameEntry: Navigation completed");
+      });
+
+      connection.on("StartGame", (roomCode) => {
+        setError('');
+        navigate(`/${gameType}/matchmaking-session/${roomCode}`);
+      });
       
-      if (!roomCode || typeof roomCode !== "string") {
-        setError("Failed to find or create room. Try again.");
-        return;
-      }
-    
-      setError(''); 
-      navigate(`/${gameType}/waiting/${roomCode}`);
+      // Call the matchmaking method
+      console.log("GameEntry: Calling JoinMatchmaking with:", { gameType, playerId });
+      await connection.invoke("JoinMatchmaking", token, gameType, playerId);
+      console.log("GameEntry: JoinMatchmaking call completed");
+      
+      // Don't stop the connection here - let the event handlers handle it
+      
     } catch (err) {
       console.error("Error with matchmaking:", err);
-      setError("Could not start matchmaking. Try again.");
+      setError("Could not start matchmaking. Please try again.");
     }
-  };
+};
 
   const handleCreateRoom = async () => {
     try {
@@ -164,8 +206,19 @@ export default function GameEntry() {
 
       <div className="entry-section">
         <h3>Or</h3>
-        <button onClick={handleJoinMatchmaking}>Matchmaking</button>
+        <button onClick={() => {
+          console.log("GameEntry: Matchmaking button clicked!");
+          console.log("GameEntry: About to call handleJoinMatchmaking");
+          console.log("GameEntry: Current state:", { gameType, playerId, token: !!token });
+          try {
+            handleJoinMatchmaking();
+            console.log("GameEntry: handleJoinMatchmaking call completed");
+          } catch (error) {
+            console.error("GameEntry: Error in handleJoinMatchmaking:", error);
+          }
+        }}>Matchmaking</button>
         {error && <p className="error">{error}</p>}
+        <p style={{fontSize: '12px', color: 'gray'}}>Debug: Matchmaking button rendered</p>
       </div>
     </div>
   );

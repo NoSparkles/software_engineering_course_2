@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 
-export function useSignalRService({ hubUrl, gameType, roomCode, playerId }) {
+export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token }) {
   const connectionRef = useRef(null);
   const [connectionState, setConnectionState] = useState("Disconnected");
   const [reconnected, setReconnected] = useState(false);
@@ -26,13 +26,16 @@ export function useSignalRService({ hubUrl, gameType, roomCode, playerId }) {
         setConnectionState("Disconnected");
       });
 
-      connection.onreconnecting(() => setConnectionState("Reconnecting"));
+      connection.onreconnecting(() => {
+        setConnectionState("Reconnecting");
+      });
 
       connection.onreconnected(() => {
         setConnectionState("Connected");
         setReconnected(true);
         if (gameType && roomCode) {
-          connection.invoke("ReconnectToRoom", gameType, roomCode, playerId);
+          // Rejoin the room when reconnected
+          connection.invoke("Join", gameType, roomCode, playerId, token || "");
         }
       });
 

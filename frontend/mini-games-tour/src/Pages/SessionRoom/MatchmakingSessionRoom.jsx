@@ -10,12 +10,10 @@ import { useAuth } from '../../Utils/AuthProvider';
 import { globalConnectionManager } from '../../Utils/GlobalConnectionManager';
 import './styles.css';
 
-export default function SessionRoom() {
+export default function MatchmakingSessionRoom() {
   const { gameType, code } = useParams();
   const navigate = useNavigate();
   const { user, token } = useAuth()
-  const query = new URLSearchParams(window.location.search);
-  const isSpectator = query.get('spectator') === 'true';
   const [status, setStatus] = useState("Game in progress...");
   const [board, setBoard] = useState(null);
   const [playerColor, setPlayerColor] = useState(null); // only for four-in-a-row
@@ -23,7 +21,7 @@ export default function SessionRoom() {
   const timeLeft = useCountdownTimer();
   
   const { connection, connectionState, reconnected } = useSignalRService({
-    hubUrl: "http://localhost:5236/joinByCodeHub",
+    hubUrl: "http://localhost:5236/MatchMakingHub",
     gameType,
     roomCode: code,
     playerId,
@@ -35,37 +33,37 @@ export default function SessionRoom() {
         gameType,
         code: code,
         playerId: playerId,
-        isMatchmaking: false
+        isMatchmaking: true
       };
       localStorage.setItem("activeGame", JSON.stringify(activeGameData));
   }, [code, gameType, playerId]);
 
   // Register connection with global manager
   useEffect(() => {
-    if (connection) {
-      globalConnectionManager.registerConnection('sessionRoom', connection, {
+    if (connection && connectionState === "Connected") {
+      globalConnectionManager.registerConnection('matchmakingSessionRoom', connection, {
         gameType,
         roomCode: code,
         playerId
       });
       
       return () => {
-        globalConnectionManager.unregisterConnection('sessionRoom');
+        globalConnectionManager.unregisterConnection('matchmakingSessionRoom');
       };
     }
-  }, [connection, gameType, code, playerId]);
+  }, [connection, connectionState, gameType, code, playerId]);
 
   useEffect(() => {
     if (connection && connectionState === "Connected") {
       switch (gameType) {
           case 'rock-paper-scissors':
-            setBoard(<RpsBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator} token={token}/>);
+            setBoard(<RpsBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={false} token={token}/>);
             break;
           case 'four-in-a-row':
-            setBoard(<FourInARowGameBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator} token={token}/>);
+            setBoard(<FourInARowGameBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={false} token={token}/>);
             break;
           case 'pair-matching':
-            setBoard(<PMBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator} token={token}/>);
+            setBoard(<PMBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={false} token={token}/>);
             break;
               default:
                   setBoard(null);
@@ -73,25 +71,16 @@ export default function SessionRoom() {
     } else {
       setBoard(null);
     }
-  }, [code, connection, connectionState, gameType, isSpectator, playerColor, playerId, token])
+  }, [code, connection, connectionState, gameType, playerColor, playerId, token])
 
   useEffect(() => {
     if (connection && connectionState === "Connected") {
-      if (isSpectator) {
-        connection.invoke("JoinAsSpectator", gameType, code)
-          .then(() => setStatus("Joined as spectator"))
-          .catch(err => {
-            console.error("JoinAsSpectator failed:", err);
-            setStatus("Failed to join as spectator.");
-          });
-      } else {
-        connection.invoke("Join", gameType, code, playerId, token)
-          .then(() => setStatus("Joined room. Waiting for opponent..."))
-          .catch(err => {
-            console.error("Join failed:", err);
-            setStatus("Failed to join room.");
-          });
-      }
+      connection.invoke("Join", gameType, code, playerId, token)
+        .then(() => setStatus("Joined matchmaking game session"))
+        .catch(err => {
+          console.error("Join matchmaking session failed:", err);
+          setStatus("Failed to join matchmaking session.");
+        });
 
       connection.on("WaitingForOpponent", () => {
         setStatus("Waiting for second player...");
@@ -127,19 +116,16 @@ export default function SessionRoom() {
       });
 
       connection.on("Reconnected", () => {
-        setStatus("Reconnected to room.");
+        setStatus("Reconnected to matchmaking session.");
       });
 
       connection.on("SetPlayerColor", (color) => {
         setPlayerColor(color[playerId]);
       });
 
-      connection.on("SpectatorJoined", (roomCode) => {
-        setStatus("Spectating room " + roomCode);
-      });
-
-      connection.on("SpectatorJoinFailed", (msg) => {
-        setStatus("Spectator join failed: " + msg);
+      connection.on("UnauthorizedMatchmaking", () => {
+        setStatus("Authentication failed. Redirecting to login...");
+        navigate('/login');
       });
 
       connection.on("PlayerDisconnected", (disconnectedPlayerId, message, roomCloseTime) => {
@@ -173,9 +159,24 @@ export default function SessionRoom() {
         }, 2000);
       });
 
+      connection.on("MatchmakingSessionEnded", (message) => {
+        setStatus(message);
+        localStorage.removeItem("activeGame");
+        localStorage.removeItem("roomCloseTime");
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+      });
+
+      connection.on("PlayerDeclinedReconnection", (declinedPlayerId, message) => {
+        setStatus(message);
+        // Store room close time for countdown
+        localStorage.setItem("roomCloseTime", new Date(Date.now() + 30000).toISOString());
+      });
+
       return () => {
         // Call LeaveRoom when component unmounts (user navigates away)
-        if (!isSpectator && connection && connection.state === "Connected") {
+        if (connection && connection.state === "Connected") {
           console.log("Component unmounting - calling LeaveRoom...");
           connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
             console.warn("LeaveRoom failed on unmount:", err);
@@ -189,12 +190,13 @@ export default function SessionRoom() {
         connection.off("PlayerLeftRoom");
         connection.off("Reconnected");
         connection.off("SetPlayerColor");
-        connection.off("SpectatorJoined");
-        connection.off("SpectatorJoinFailed");
+        connection.off("UnauthorizedMatchmaking");
         connection.off("PlayerDisconnected");
         connection.off("PlayerReconnected");
         connection.off("RoomClosing");
         connection.off("RoomClosed");
+        connection.off("MatchmakingSessionEnded");
+        connection.off("PlayerDeclinedReconnection");
       };
     }
   }, [gameType, code, navigate, connection, connectionState, playerId, token]);
@@ -202,26 +204,26 @@ export default function SessionRoom() {
   // Add beforeunload event listener to handle navigation away
   useEffect(() => {
     const handleBeforeUnload = () => {
-      console.log("beforeunload event triggered");
-      if (!isSpectator && connection && connection.state === "Connected") {
-        console.log("Calling LeaveRoom on beforeunload...");
+      console.log("beforeunload event triggered in matchmaking room");
+      if (connection && connection.state === "Connected") {
+        console.log("Calling LeaveRoom on beforeunload in matchmaking room...");
         // Fire and forget - don't wait for response
         connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
           console.warn("LeaveRoom failed on beforeunload:", err);
         });
-        console.log("LeaveRoom call initiated on beforeunload");
+        console.log("LeaveRoom call initiated on beforeunload in matchmaking room");
       }
     };
 
     // Also listen for popstate events (browser back/forward)
     const handlePopState = () => {
-      console.log("popstate event triggered");
-      if (!isSpectator && connection && connection.state === "Connected") {
-        console.log("Calling LeaveRoom on popstate...");
+      console.log("popstate event triggered in matchmaking room");
+      if (connection && connection.state === "Connected") {
+        console.log("Calling LeaveRoom on popstate in matchmaking room...");
         connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
           console.warn("LeaveRoom failed on popstate:", err);
         });
-        console.log("LeaveRoom call initiated on popstate");
+        console.log("LeaveRoom call initiated on popstate in matchmaking room");
       }
     };
 
@@ -232,12 +234,11 @@ export default function SessionRoom() {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [connection, isSpectator]);
+  }, [connection]);
 
   return (
-    <div className="session-room">
-      <h2>{gameType.toUpperCase()} Session</h2>
-      <p>Room Code: <strong>{code}</strong></p>
+    <div className="matchmaking-session-room">
+      <h2>{gameType.toUpperCase()} Matchmaking Session</h2>
       <p>Player: <strong>{user?.username || playerId}</strong></p>
       <p>
         Assigned Color: <strong>{playerColor ? (playerColor === "R" ? "Red" : "Yellow") : "Not assigned yet"}</strong>
@@ -271,70 +272,45 @@ export default function SessionRoom() {
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
         <button 
         onClick={async () => {
-          // Call LeaveRoom before navigating
-          if (!isSpectator && connection && connection.state === "Connected") {
+          if (connection && connection.state === "Connected") {
             try {
-              console.log("Calling LeaveRoom before navigation...");
-              // Don't await - fire and forget to avoid timing issues
-              connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
-                console.warn("LeaveRoom failed:", err);
-              });
-              console.log("LeaveRoom call initiated");
+              console.log("Calling EndMatchmakingSession...");
+              await connection.invoke("EndMatchmakingSession", playerId);
+              console.log("EndMatchmakingSession completed successfully");
             } catch (err) {
-              console.warn("LeaveRoom failed:", err);
+              console.warn("Failed to end session:", err);
             }
           }
-          console.log("Navigating to home...");
-          navigate('/');
         }}
           style={{ 
-            backgroundColor: '#dc3545', 
-            color: 'white', 
-            border: 'none', 
-            padding: '12px 24px', 
-            borderRadius: '6px', 
-            cursor: 'pointer',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+            backgroundColor: "#dc3545", 
+            color: "white", 
+            border: "none", 
+            padding: "12px 24px", 
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontSize: "16px",
+            fontWeight: "bold",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
           }}
         >
-          🚪 Leave Room
+          🚪 End Session
         </button>
       </div>
-      {timeLeft !== null ? (
-        <div style={{ 
-          textAlign: "center",
-          margin: "10px 0",
-          padding: "10px",
-          backgroundColor: timeLeft <= 10 ? "#ffebee" : timeLeft <= 20 ? "#fff3e0" : "#f5f5f5",
-          borderRadius: "4px"
-        }}>
+      <div className="matchmaking-info">
+        <p><em>You are playing in matchmaking mode. This game was automatically matched.</em></p>
+        {timeLeft !== null ? (
           <p style={{ 
             color: timeLeft <= 10 ? "red" : timeLeft <= 20 ? "orange" : "black",
             fontWeight: "bold",
-            margin: 0
+            marginTop: "10px"
           }}>
             {timeLeft > 0 ? `Room will close in ${timeLeft} seconds` : "Room is closing now!"}
           </p>
-        </div>
-      ) : (
-        <div style={{ 
-          textAlign: "center",
-          margin: "10px 0",
-          padding: "10px",
-          backgroundColor: "#e8f5e8",
-          borderRadius: "4px"
-        }}>
-          <p style={{ 
-            color: "green",
-            fontWeight: "bold",
-            margin: 0
-          }}>
-            The room will remain open until all players have left.
-          </p>
-        </div>
-      )}
+        ) : (
+          <p>The room will remain open until all players have left.</p>
+        )}
+      </div>
       <div className="game-board">
         {board}
       </div>
