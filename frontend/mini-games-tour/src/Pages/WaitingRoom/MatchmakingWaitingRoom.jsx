@@ -23,11 +23,12 @@ export default function MatchmakingWaitingRoom() {
 
   useEffect(() => {
     if (connection && connectionState === "Connected") {
+      // Rejoin the room to ensure we're properly connected to the SignalR group
       connection.invoke("Join", gameType, code, playerId, token)
-        .then(() => setStatus("Joined matchmaking room. Waiting for opponent..."))
+        .then(() => setStatus("Connected to matchmaking room. Waiting for opponent..."))
         .catch(err => {
-          console.error("JoinMatchmakingRoom failed:", err);
-          setStatus("Failed to join matchmaking room.");
+          console.error("Rejoin matchmaking room failed:", err);
+          setStatus("Failed to rejoin matchmaking room.");
         });
 
       connection.on("WaitingForOpponent", (roomCode) => {
@@ -62,6 +63,16 @@ export default function MatchmakingWaitingRoom() {
         setStatus("Authentication failed. Redirecting to login...");
         navigate('/login');
       });
+
+      return () => {
+        connection.off("WaitingForOpponent");
+        connection.off("MatchFound");
+        connection.off("StartGame");
+        connection.off("PlayerLeft");
+        connection.off("Reconnected");
+        connection.off("SetPlayerColor");
+        connection.off("UnauthorizedMatchmaking");
+      };
     }
   }, [connection, connectionState, playerId, gameType, code, navigate, token]);
 

@@ -10,15 +10,19 @@ export const Board = ({ playerColor, connection, roomCode, playerId, spectator =
 
     useEffect(() => {
         if (!connection) return;
-        connection.on("ReceiveMove", ({ board: newBoard, currentPlayer: nextPlayer, winner: win }) => {
+        
+        const handleReceiveMove = ({ board: newBoard, currentPlayer: nextPlayer, winner: win }) => {
             setBoard(newBoard);
             setCurrentPlayer(nextPlayer);
             setWinner(win);
-        });
-        return () => {
-            connection.off("ReceiveMove");
         };
-    }, [connection]);
+        
+        connection.on("ReceiveMove", handleReceiveMove);
+        
+        return () => {
+            connection.off("ReceiveMove", handleReceiveMove);
+        };
+    }, [connection, playerId]);
 
     const handleColumnClick = (col) => {
     if (spectator) return;
@@ -36,16 +40,20 @@ export const Board = ({ playerColor, connection, roomCode, playerId, spectator =
     };
 
     useEffect(() => {
-    if (!connection) return;
-    connection.on("GameReset", () => {
-        setBoard(createEmptyBoard());
-        setCurrentPlayer('R');
-        setWinner(null);
-    });
-    return () => {
-        connection.off("GameReset");
-    };
-}, [connection]);
+        if (!connection) return;
+        
+        const handleGameReset = () => {
+            setBoard(createEmptyBoard());
+            setCurrentPlayer('R');
+            setWinner(null);
+        };
+        
+        connection.on("GameReset", handleGameReset);
+        
+        return () => {
+            connection.off("GameReset", handleGameReset);
+        };
+    }, [connection, playerId]);
 
     return (
         <div className='four-in-a-row-game'>

@@ -30,25 +30,28 @@ export default function SessionRoom() {
       localStorage.setItem("activeGame", JSON.stringify({
         gameType,
         code: code,
-        playerId: playerId
+        playerId: playerId,
+        isMatchmaking: false
       }));
   }, [code, gameType, playerId]);
 
   useEffect(() => {
-    switch (gameType) {
-        case 'rock-paper-scissors':
-          setBoard(<RpsBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator} token={token}/>);
-          break;
-        case 'four-in-a-row':
-          setBoard(<FourInARowGameBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator} token={token}/>);
-          break;
-        case 'pair-matching':
-          setBoard(<PMBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator} token={token}/>);
-          break;
-            default:
-                setBoard(null);
-      }
-  }, [code, connection, connectionState, gameType, isSpectator, playerColor, playerId])
+    if (connection && connectionState === "Connected") {
+      switch (gameType) {
+          case 'rock-paper-scissors':
+            setBoard(<RpsBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator} token={token}/>);
+            break;
+          case 'four-in-a-row':
+            setBoard(<FourInARowGameBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator} token={token}/>);
+            break;
+          case 'pair-matching':
+            setBoard(<PMBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator} token={token}/>);
+            break;
+              default:
+                  setBoard(null);
+        }
+    }
+  }, [code, connection, connectionState, gameType, isSpectator, playerColor, playerId, token])
 
   useEffect(() => {
     if (connection && connectionState === "Connected") {
@@ -98,12 +101,15 @@ export default function SessionRoom() {
         setStatus("Spectator join failed: " + msg);
       });
 
+
       return () => {
+        connection.off("WaitingForOpponent");
+        connection.off("StartGame");
         connection.off("PlayerLeft");
-        connection.off("ReceiveMove");
-        connection.off("onclose");
-        connection.off("onreconnecting");
-        connection.off("onreconnected");
+        connection.off("Reconnected");
+        connection.off("SetPlayerColor");
+        connection.off("SpectatorJoined");
+        connection.off("SpectatorJoinFailed");
       };
     }
   }, [gameType, code, navigate, connection, connectionState, playerId, token]);

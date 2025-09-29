@@ -86,9 +86,11 @@ namespace Hubs
                     // Join existing room with 1 player
                     var parts = availableRoom.Key.Split(':');
                     roomCode = parts[1];
+                    var roomKey = RoomService.CreateRoomKey(gameType, roomCode);
                     Console.WriteLine($"Joining existing room {roomCode} for {user.Username} (playerId: {playerId})");
                     await Join(gameType, roomCode, playerId, jwtToken);
-                    await Clients.Caller.SendAsync("MatchFound", roomCode);
+                    // Send MatchFound to all players in the room (both the first and second player)
+                    await Clients.Group(roomKey).SendAsync("MatchFound", roomCode);
                     return roomCode;
                 }
                 else
@@ -108,6 +110,12 @@ namespace Hubs
                 await Clients.Caller.SendAsync("MatchmakingError", ex.Message);
                 return null;
             }
+        }
+
+        public async Task<object> RoomExistsWithMatchmaking(string gameType, string roomCode)
+        {
+            var result = RoomService.RoomExistsWithMatchmaking(gameType, roomCode);
+            return await Task.FromResult(new { exists = result.exists, isMatchmaking = result.isMatchmaking });
         }
     }
 }

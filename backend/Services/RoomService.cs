@@ -58,6 +58,16 @@ namespace Services
             return Rooms.ContainsKey(roomKey);
         }
 
+        public (bool exists, bool isMatchmaking) RoomExistsWithMatchmaking(string gameType, string roomCode)
+        {
+            var roomKey = CreateRoomKey(gameType, roomCode);
+            if (Rooms.TryGetValue(roomKey, out Room? room))
+            {
+                return (true, room.IsMatchMaking);
+            }
+            return (false, false);
+        }
+
         public string CreateRoomKey(string gameType, string roomCode)
         {
             return $"{gameType}:{roomCode.ToUpper()}";
@@ -139,6 +149,11 @@ namespace Services
             if (roomUser is null)
             {
                 roomPlayers.Add(new RoomUser(playerId, true, user));
+                Console.WriteLine($"Added player {playerId} to room {roomCode}. Total players: {roomPlayers.Count}");
+            }
+            else
+            {
+                Console.WriteLine($"Player {playerId} already exists in room {roomCode}. Total players: {roomPlayers.Count}");
             }
             
             bool shouldNotifyStart;
@@ -146,8 +161,11 @@ namespace Services
             {
                 shouldNotifyStart = roomPlayers.Count == 2;
             }
+            Console.WriteLine($"Room {roomCode}: {roomPlayers.Count} players, GameStarted: {room.GameStarted}, shouldNotifyStart: {shouldNotifyStart}");
+            
             if (shouldNotifyStart && !room.GameStarted)
             {
+                Console.WriteLine($"Starting game for room {roomCode} with {roomPlayers.Count} players");
                 room.GameStarted = true;
                 room.Code = roomKey;
                 game.RoomCode = roomKey;
@@ -162,6 +180,7 @@ namespace Services
                 // Send StartGame and SetPlayerColor to all players in the room
                 await clients.Group(roomKey).SendAsync("StartGame", roomCode);
                 await clients.Group(roomKey).SendAsync("SetPlayerColor", playerIdToColor);
+                Console.WriteLine($"Sent StartGame and SetPlayerColor to group {roomKey}");
             }
             else if (room.GameStarted)
             {

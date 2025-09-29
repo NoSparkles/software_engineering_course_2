@@ -49,5 +49,11 @@ namespace Hubs
         {
             return await Task.FromResult(RoomService.RoomExists(gameType, roomCode));
         }
+
+        public async Task<object> RoomExistsWithMatchmaking(string gameType, string roomCode)
+        {
+            var result = RoomService.RoomExistsWithMatchmaking(gameType, roomCode);
+            return await Task.FromResult(new { exists = result.exists, isMatchmaking = result.isMatchmaking });
+        }
     }
 }

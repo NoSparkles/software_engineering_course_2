@@ -139,8 +139,9 @@ export default function GameEntry() {
       });
       
       // Call the matchmaking method
-      console.log("Calling JoinMatchmaking with:", { token: token ? "present" : "missing", gameType, playerId });
       await connection.invoke("JoinMatchmaking", token, gameType, playerId);
+      
+      // Don't stop the connection here - let the event handlers handle it
       
     } catch (err) {
       console.error("Error with matchmaking:", err);
