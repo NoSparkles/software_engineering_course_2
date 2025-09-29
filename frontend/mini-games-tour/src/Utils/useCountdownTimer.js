@@ -6,6 +6,7 @@ export function useCountdownTimer() {
   useEffect(() => {
     const updateCountdown = () => {
       const roomCloseTime = localStorage.getItem("roomCloseTime");
+      
       if (!roomCloseTime) {
         setTimeLeft(null);
         return;

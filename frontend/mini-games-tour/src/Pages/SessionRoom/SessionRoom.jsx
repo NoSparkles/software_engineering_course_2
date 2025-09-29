@@ -7,6 +7,7 @@ import PMBoard from '../../Games/PairMatchingGame/Components/GameBoard';
 import RpsBoard from '../../Games/RockPaperScissors/Components/RpsBoard';
 import {Board as FourInARowGameBoard} from '../../Games/FourInRowGame/Components/Board';
 import { useAuth } from '../../Utils/AuthProvider';
+import { globalConnectionManager } from '../../Utils/GlobalConnectionManager';
 import './styles.css';
 
 export default function SessionRoom() {
@@ -30,13 +31,29 @@ export default function SessionRoom() {
   });
 
   useEffect(() => {
-      localStorage.setItem("activeGame", JSON.stringify({
+      const activeGameData = {
         gameType,
         code: code,
         playerId: playerId,
         isMatchmaking: false
-      }));
+      };
+      localStorage.setItem("activeGame", JSON.stringify(activeGameData));
   }, [code, gameType, playerId]);
+
+  // Register connection with global manager
+  useEffect(() => {
+    if (connection) {
+      globalConnectionManager.registerConnection('sessionRoom', connection, {
+        gameType,
+        roomCode: code,
+        playerId
+      });
+      
+      return () => {
+        globalConnectionManager.unregisterConnection('sessionRoom');
+      };
+    }
+  }, [connection, gameType, code, playerId]);
 
   useEffect(() => {
     if (connection && connectionState === "Connected") {
@@ -86,8 +103,27 @@ export default function SessionRoom() {
         }
       });
 
-      connection.on("PlayerLeft", () => {
-        setStatus("Opponent disconnected. Waiting...");
+      connection.on("PlayerLeft", (leftPlayerId, message, roomCloseTime) => {
+        setStatus(message);
+        // Set room close time for countdown if provided
+        if (roomCloseTime) {
+          localStorage.setItem("roomCloseTime", roomCloseTime);
+        } else {
+          // Fallback: set 30 seconds from now
+          const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
+          localStorage.setItem("roomCloseTime", fallbackCloseTime);
+        }
+      });
+
+      connection.on("PlayerLeftRoom", (message, roomCloseTime) => {
+        // This is for the player who left - set room close time for Return to Game banner
+        if (roomCloseTime) {
+          localStorage.setItem("roomCloseTime", roomCloseTime);
+        } else {
+          // Fallback: set 30 seconds from now
+          const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
+          localStorage.setItem("roomCloseTime", fallbackCloseTime);
+        }
       });
 
       connection.on("Reconnected", () => {
@@ -128,10 +164,29 @@ export default function SessionRoom() {
         }, 2000);
       });
 
+      connection.on("RoomClosed", (message) => {
+        setStatus(message);
+        localStorage.removeItem("roomCloseTime");
+        localStorage.removeItem("activeGame");
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+      });
+
       return () => {
+        // Call LeaveRoom when component unmounts (user navigates away)
+        if (!isSpectator && connection && connection.state === "Connected") {
+          console.log("Component unmounting - calling LeaveRoom...");
+          connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
+            console.warn("LeaveRoom failed on unmount:", err);
+          });
+          console.log("LeaveRoom call initiated on unmount");
+        }
+        
         connection.off("WaitingForOpponent");
         connection.off("StartGame");
         connection.off("PlayerLeft");
+        connection.off("PlayerLeftRoom");
         connection.off("Reconnected");
         connection.off("SetPlayerColor");
         connection.off("SpectatorJoined");
@@ -139,9 +194,46 @@ export default function SessionRoom() {
         connection.off("PlayerDisconnected");
         connection.off("PlayerReconnected");
         connection.off("RoomClosing");
+        connection.off("RoomClosed");
       };
     }
   }, [gameType, code, navigate, connection, connectionState, playerId, token]);
+
+  // Add beforeunload event listener to handle navigation away
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      console.log("beforeunload event triggered");
+      if (!isSpectator && connection && connection.state === "Connected") {
+        console.log("Calling LeaveRoom on beforeunload...");
+        // Fire and forget - don't wait for response
+        connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
+          console.warn("LeaveRoom failed on beforeunload:", err);
+        });
+        console.log("LeaveRoom call initiated on beforeunload");
+      }
+    };
+
+    // Also listen for popstate events (browser back/forward)
+    const handlePopState = () => {
+      console.log("popstate event triggered");
+      if (!isSpectator && connection && connection.state === "Connected") {
+        console.log("Calling LeaveRoom on popstate...");
+        connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
+          console.warn("LeaveRoom failed on popstate:", err);
+        });
+        console.log("LeaveRoom call initiated on popstate");
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [connection, isSpectator]);
+
   return (
     <div className="session-room">
       <h2>{gameType.toUpperCase()} Session</h2>
@@ -176,7 +268,41 @@ export default function SessionRoom() {
           Reconnect
         </button>
       )}
-      {timeLeft !== null && (
+      <div style={{ marginTop: '20px', textAlign: 'center' }}>
+        <button 
+        onClick={async () => {
+          // Call LeaveRoom before navigating
+          if (!isSpectator && connection && connection.state === "Connected") {
+            try {
+              console.log("Calling LeaveRoom before navigation...");
+              // Don't await - fire and forget to avoid timing issues
+              connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
+                console.warn("LeaveRoom failed:", err);
+              });
+              console.log("LeaveRoom call initiated");
+            } catch (err) {
+              console.warn("LeaveRoom failed:", err);
+            }
+          }
+          console.log("Navigating to home...");
+          navigate('/');
+        }}
+          style={{ 
+            backgroundColor: '#dc3545', 
+            color: 'white', 
+            border: 'none', 
+            padding: '12px 24px', 
+            borderRadius: '6px', 
+            cursor: 'pointer',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+          }}
+        >
+          🚪 Leave Room
+        </button>
+      </div>
+      {timeLeft !== null ? (
         <div style={{ 
           textAlign: "center",
           margin: "10px 0",
@@ -190,6 +316,22 @@ export default function SessionRoom() {
             margin: 0
           }}>
             {timeLeft > 0 ? `Room will close in ${timeLeft} seconds` : "Room is closing now!"}
+          </p>
+        </div>
+      ) : (
+        <div style={{ 
+          textAlign: "center",
+          margin: "10px 0",
+          padding: "10px",
+          backgroundColor: "#e8f5e8",
+          borderRadius: "4px"
+        }}>
+          <p style={{ 
+            color: "green",
+            fontWeight: "bold",
+            margin: 0
+          }}>
+            The room will remain open until all players have left.
           </p>
         </div>
       )}

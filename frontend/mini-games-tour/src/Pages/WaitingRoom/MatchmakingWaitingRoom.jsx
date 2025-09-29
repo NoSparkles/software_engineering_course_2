@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePlayerId } from '../../Utils/usePlayerId';
 import { useSignalRService } from '../../Utils/useSignalRService';
 import { useAuth } from '../../Utils/AuthProvider';
+import { globalConnectionManager } from '../../Utils/GlobalConnectionManager';
 import './styles.css';
 
 export default function MatchmakingWaitingRoom() {
@@ -20,6 +21,25 @@ export default function MatchmakingWaitingRoom() {
   });
 
   const [status, setStatus] = useState("Connecting...");
+  const connectionRegisteredRef = useRef(false);
+
+  // Register connection immediately when available
+  if (connection && connectionState === "Connected" && !connectionRegisteredRef.current) {
+    globalConnectionManager.registerConnection('matchmakingWaitingRoom', connection, {
+      gameType,
+      roomCode: code,
+      playerId
+    });
+    connectionRegisteredRef.current = true;
+  }
+
+  // Cleanup on unmount only
+  useEffect(() => {
+    return () => {
+      globalConnectionManager.unregisterConnection('matchmakingWaitingRoom');
+      connectionRegisteredRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (connection && connectionState === "Connected") {
@@ -75,6 +95,44 @@ export default function MatchmakingWaitingRoom() {
       };
     }
   }, [connection, connectionState, playerId, gameType, code, navigate, token]);
+
+  // Cleanup when component unmounts
+  useEffect(() => {
+    return () => {
+      if (connection && connection.state === "Connected") {
+        connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
+          console.warn("MatchmakingWaitingRoom: LeaveRoom failed on unmount:", err);
+        });
+      }
+    };
+  }, [connection, gameType, code, playerId]);
+
+  // Handle navigation away from the page
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (connection && connection.state === "Connected") {
+        connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
+          console.warn("MatchmakingWaitingRoom: LeaveRoom failed on beforeunload:", err);
+        });
+      }
+    };
+
+    const handlePopState = () => {
+      if (connection && connection.state === "Connected") {
+        connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
+          console.warn("MatchmakingWaitingRoom: LeaveRoom failed on popstate:", err);
+        });
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [connection]);
 
   return (
     <div className="matchmaking-waiting-room">

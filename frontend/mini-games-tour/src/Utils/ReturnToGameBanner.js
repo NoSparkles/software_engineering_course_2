@@ -8,6 +8,11 @@ export default function ReturnToGameBanner() {
   const [showBanner, setShowBanner] = useState(false);
   const [gameInfo, setGameInfo] = useState(null);
   const timeLeft = useCountdownTimer();
+  
+  // Debug logging
+  useEffect(() => {
+    console.log("ReturnToGameBanner: timeLeft changed to:", timeLeft);
+  }, [timeLeft]);
   const navigate = useNavigate();
   const location = useLocation();
 

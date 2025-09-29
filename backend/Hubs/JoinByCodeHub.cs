@@ -70,5 +70,22 @@ namespace Hubs
 
             await base.OnDisconnectedAsync(exception);
         }
+
+       
+        public async Task LeaveRoom(string gameType, string roomCode, string playerId)
+        {
+            Console.WriteLine($"JoinByCodeHub.LeaveRoom called - PlayerId: {playerId}, GameType: {gameType}, RoomCode: {roomCode}");
+
+            if (!string.IsNullOrEmpty(playerId) && !string.IsNullOrEmpty(gameType) && !string.IsNullOrEmpty(roomCode))
+            {
+                Console.WriteLine($"JoinByCodeHub: Calling HandlePlayerLeave for {playerId} in {gameType}:{roomCode}");
+                await RoomService.HandlePlayerLeave(gameType, roomCode, playerId, Clients);
+                Console.WriteLine($"JoinByCodeHub: HandlePlayerLeave completed for {playerId}");
+            }
+            else
+            {
+                Console.WriteLine("JoinByCodeHub: LeaveRoom called with missing parameters");
+            }
+        }
     }
 }

@@ -73,6 +73,9 @@ namespace Hubs
                     return null;
                 }
 
+                // Clean up any inactive matchmaking sessions first
+                RoomService.CleanupInactiveMatchmakingSessions();
+                
                 // Check if player already has an active matchmaking session
                 if (RoomService.HasActiveMatchmakingSession(playerId))
                 {
@@ -127,34 +130,23 @@ namespace Hubs
 
         public async Task EndMatchmakingSession(string playerId)
         {
+            Console.WriteLine($"EndMatchmakingSession called for player {playerId}");
+            Console.WriteLine($"ActiveMatchmakingSessions count: {RoomService.ActiveMatchmakingSessions.Count}");
+            Console.WriteLine($"ActiveMatchmakingSessions keys: {string.Join(", ", RoomService.ActiveMatchmakingSessions.Keys)}");
+            
             // Find the room this player is in
             var playerRoom = RoomService.ActiveMatchmakingSessions.FirstOrDefault(kvp => kvp.Key == playerId);
             if (playerRoom.Value != null)
             {
                 var roomKey = playerRoom.Value;
-                if (RoomService.Rooms.TryGetValue(roomKey, out Room? room))
-                {
-                    // Clear active sessions for all players in the room
-                    foreach (var roomPlayer in room.RoomPlayers)
-                    {
-                        RoomService.ClearActiveMatchmakingSession(roomPlayer.PlayerId);
-                    }
-                    
-                    // Notify all players in the room that the session was ended
-                    await Clients.Group(roomKey).SendAsync("MatchmakingSessionEnded", "Matchmaking session ended by a player.");
-                    
-                    // Remove the room
-                    RoomService.Rooms.TryRemove(roomKey, out _);
-                    
-                    // Clean up user mappings
-                    foreach (var player in room.RoomPlayers)
-                    {
-                        RoomService.MatchMakingRoomUsers.TryRemove(player.PlayerId, out _);
-                    }
-                }
+                Console.WriteLine($"EndMatchmakingSession: Found room {roomKey} for player {playerId}");
+                
+                // Close the room and kick all players immediately
+                await RoomService.CloseRoomAndKickAllPlayers(roomKey, Clients, "Matchmaking session ended by a player");
             }
             else
             {
+                Console.WriteLine($"EndMatchmakingSession: No active session found for player {playerId}");
                 // Player doesn't have an active session, just clear it
                 RoomService.ClearActiveMatchmakingSession(playerId);
                 await Clients.Caller.SendAsync("MatchmakingSessionEnded", "No active matchmaking session found.");
@@ -212,6 +204,25 @@ namespace Hubs
             }
 
             await base.OnDisconnectedAsync(exception);
+        }
+
+        /// <summary>
+        /// Handle when a player leaves the room (e.g., navigates to home)
+        /// </summary>
+        public async Task LeaveRoom(string gameType, string roomCode, string playerId)
+        {
+            Console.WriteLine($"MatchMakingHub.LeaveRoom called - PlayerId: {playerId}, GameType: {gameType}, RoomCode: {roomCode}");
+
+            if (!string.IsNullOrEmpty(playerId) && !string.IsNullOrEmpty(gameType) && !string.IsNullOrEmpty(roomCode))
+            {
+                Console.WriteLine($"MatchMakingHub: Calling HandlePlayerLeave for {playerId} in {gameType}:{roomCode}");
+                await RoomService.HandlePlayerLeave(gameType, roomCode, playerId, Clients);
+                Console.WriteLine($"MatchMakingHub: HandlePlayerLeave completed for {playerId}");
+            }
+            else
+            {
+                Console.WriteLine("MatchMakingHub: LeaveRoom called with missing parameters");
+            }
         }
     }
 }

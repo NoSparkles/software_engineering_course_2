@@ -7,6 +7,7 @@ import PMBoard from '../../Games/PairMatchingGame/Components/GameBoard';
 import RpsBoard from '../../Games/RockPaperScissors/Components/RpsBoard';
 import {Board as FourInARowGameBoard} from '../../Games/FourInRowGame/Components/Board';
 import { useAuth } from '../../Utils/AuthProvider';
+import { globalConnectionManager } from '../../Utils/GlobalConnectionManager';
 import './styles.css';
 
 export default function MatchmakingSessionRoom() {
@@ -28,13 +29,29 @@ export default function MatchmakingSessionRoom() {
   });
 
   useEffect(() => {
-      localStorage.setItem("activeGame", JSON.stringify({
+      const activeGameData = {
         gameType,
         code: code,
         playerId: playerId,
         isMatchmaking: true
-      }));
+      };
+      localStorage.setItem("activeGame", JSON.stringify(activeGameData));
   }, [code, gameType, playerId]);
+
+  // Register connection with global manager
+  useEffect(() => {
+    if (connection && connectionState === "Connected") {
+      globalConnectionManager.registerConnection('matchmakingSessionRoom', connection, {
+        gameType,
+        roomCode: code,
+        playerId
+      });
+      
+      return () => {
+        globalConnectionManager.unregisterConnection('matchmakingSessionRoom');
+      };
+    }
+  }, [connection, connectionState, gameType, code, playerId]);
 
   useEffect(() => {
     if (connection && connectionState === "Connected") {
@@ -75,8 +92,27 @@ export default function MatchmakingSessionRoom() {
         }
       });
 
-      connection.on("PlayerLeft", () => {
-        setStatus("Opponent disconnected. Game paused...");
+      connection.on("PlayerLeft", (leftPlayerId, message, roomCloseTime) => {
+        setStatus(message);
+        // Set room close time for countdown if provided
+        if (roomCloseTime) {
+          localStorage.setItem("roomCloseTime", roomCloseTime);
+        } else {
+          // Fallback: set 30 seconds from now
+          const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
+          localStorage.setItem("roomCloseTime", fallbackCloseTime);
+        }
+      });
+
+      connection.on("PlayerLeftRoom", (message, roomCloseTime) => {
+        // This is for the player who left - set room close time for Return to Game banner
+        if (roomCloseTime) {
+          localStorage.setItem("roomCloseTime", roomCloseTime);
+        } else {
+          // Fallback: set 30 seconds from now
+          const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
+          localStorage.setItem("roomCloseTime", fallbackCloseTime);
+        }
       });
 
       connection.on("Reconnected", () => {
@@ -114,6 +150,15 @@ export default function MatchmakingSessionRoom() {
         }, 2000);
       });
 
+      connection.on("RoomClosed", (message) => {
+        setStatus(message);
+        localStorage.removeItem("roomCloseTime");
+        localStorage.removeItem("activeGame");
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+      });
+
       connection.on("MatchmakingSessionEnded", (message) => {
         setStatus(message);
         localStorage.removeItem("activeGame");
@@ -130,20 +175,66 @@ export default function MatchmakingSessionRoom() {
       });
 
       return () => {
+        // Call LeaveRoom when component unmounts (user navigates away)
+        if (connection && connection.state === "Connected") {
+          console.log("Component unmounting - calling LeaveRoom...");
+          connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
+            console.warn("LeaveRoom failed on unmount:", err);
+          });
+          console.log("LeaveRoom call initiated on unmount");
+        }
+        
         connection.off("WaitingForOpponent");
         connection.off("StartGame");
         connection.off("PlayerLeft");
+        connection.off("PlayerLeftRoom");
         connection.off("Reconnected");
         connection.off("SetPlayerColor");
         connection.off("UnauthorizedMatchmaking");
         connection.off("PlayerDisconnected");
         connection.off("PlayerReconnected");
         connection.off("RoomClosing");
+        connection.off("RoomClosed");
         connection.off("MatchmakingSessionEnded");
         connection.off("PlayerDeclinedReconnection");
       };
     }
   }, [gameType, code, navigate, connection, connectionState, playerId, token]);
+
+  // Add beforeunload event listener to handle navigation away
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      console.log("beforeunload event triggered in matchmaking room");
+      if (connection && connection.state === "Connected") {
+        console.log("Calling LeaveRoom on beforeunload in matchmaking room...");
+        // Fire and forget - don't wait for response
+        connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
+          console.warn("LeaveRoom failed on beforeunload:", err);
+        });
+        console.log("LeaveRoom call initiated on beforeunload in matchmaking room");
+      }
+    };
+
+    // Also listen for popstate events (browser back/forward)
+    const handlePopState = () => {
+      console.log("popstate event triggered in matchmaking room");
+      if (connection && connection.state === "Connected") {
+        console.log("Calling LeaveRoom on popstate in matchmaking room...");
+        connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
+          console.warn("LeaveRoom failed on popstate:", err);
+        });
+        console.log("LeaveRoom call initiated on popstate in matchmaking room");
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [connection]);
 
   return (
     <div className="matchmaking-session-room">
@@ -178,28 +269,37 @@ export default function MatchmakingSessionRoom() {
           Reconnect
         </button>
       )}
-      <button 
-        onClick={() => {
-          if (connection) {
-            connection.invoke("EndMatchmakingSession", playerId);
+      <div style={{ marginTop: '20px', textAlign: 'center' }}>
+        <button 
+        onClick={async () => {
+          if (connection && connection.state === "Connected") {
+            try {
+              console.log("Calling EndMatchmakingSession...");
+              await connection.invoke("EndMatchmakingSession", playerId);
+              console.log("EndMatchmakingSession completed successfully");
+            } catch (err) {
+              console.warn("Failed to end session:", err);
+            }
           }
         }}
-        style={{ 
-          backgroundColor: "#dc3545", 
-          color: "white", 
-          border: "none", 
-          padding: "8px 16px", 
-          borderRadius: "4px",
-          cursor: "pointer",
-          marginTop: "10px",
-          marginLeft: "10px"
-        }}
-      >
-        End Session
-      </button>
+          style={{ 
+            backgroundColor: "#dc3545", 
+            color: "white", 
+            border: "none", 
+            padding: "12px 24px", 
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontSize: "16px",
+            fontWeight: "bold",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
+          }}
+        >
+          🚪 End Session
+        </button>
+      </div>
       <div className="matchmaking-info">
         <p><em>You are playing in matchmaking mode. This game was automatically matched.</em></p>
-        {timeLeft !== null && (
+        {timeLeft !== null ? (
           <p style={{ 
             color: timeLeft <= 10 ? "red" : timeLeft <= 20 ? "orange" : "black",
             fontWeight: "bold",
@@ -207,6 +307,8 @@ export default function MatchmakingSessionRoom() {
           }}>
             {timeLeft > 0 ? `Room will close in ${timeLeft} seconds` : "Room is closing now!"}
           </p>
+        ) : (
+          <p>The room will remain open until all players have left.</p>
         )}
       </div>
       <div className="game-board">
