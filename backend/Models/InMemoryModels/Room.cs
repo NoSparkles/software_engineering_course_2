@@ -10,9 +10,13 @@ namespace Models.InMemoryModels
         public bool IsMatchMaking { get; set; }
         public List<RoomUser> RoomPlayers { get; set; }
         public List<RoomUser> RoomSpectators { get; set; }
-        public string Code { get; set; }
+        public string Code { get; set; } = string.Empty;
 
         public bool GameStarted { get; set; }
+        
+        // Track disconnected players and their disconnect time
+        public Dictionary<string, DateTime> DisconnectedPlayers { get; set; }
+        public DateTime? RoomCloseTime { get; set; }
 
         public Room(GameInstance game, bool isMatchMaking)
         {
@@ -21,6 +25,8 @@ namespace Models.InMemoryModels
             RoomPlayers = new List<RoomUser>();
             RoomSpectators = new List<RoomUser>();
             GameStarted = false;
+            DisconnectedPlayers = new Dictionary<string, DateTime>();
+            RoomCloseTime = null;
         }
 
         public static GameInstance GameTypeToGame(string gameType)

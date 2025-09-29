@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { HubConnectionBuilder } from '@microsoft/signalr';
+import { useCountdownTimer } from './useCountdownTimer';
 import './styles.css';
 
 export default function ReturnToGameBanner() {
   const [showBanner, setShowBanner] = useState(false);
   const [gameInfo, setGameInfo] = useState(null);
+  const timeLeft = useCountdownTimer();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -71,12 +73,76 @@ export default function ReturnToGameBanner() {
     navigate(path);
   };
 
+  const handleDeclineReconnection = async () => {
+    try {
+      // Get player ID from active game
+      const session = localStorage.getItem("activeGame");
+      if (session) {
+        const { gameType, code, isMatchmaking } = JSON.parse(session);
+        const playerId = localStorage.getItem("playerId");
+        
+        if (playerId && isMatchmaking) {
+          // Use the correct hub based on whether it's a matchmaking room
+          const hubUrl = isMatchmaking 
+            ? "http://localhost:5236/MatchMakingHub"
+            : "http://localhost:5236/joinByCodeHub";
+          
+          const connection = new HubConnectionBuilder()
+            .withUrl(hubUrl)
+            .build();
+
+          await connection.start();
+          await connection.invoke("DeclineReconnection", playerId);
+          await connection.stop();
+        }
+      }
+    } catch (err) {
+      console.error("Error declining reconnection:", err);
+    } finally {
+      localStorage.removeItem("activeGame");
+      localStorage.removeItem("roomCloseTime");
+      setShowBanner(false);
+    }
+  };
+
+  const formatTime = (seconds) => {
+    if (seconds === null) return "";
+    if (seconds <= 0) return "Room closing now!";
+    return `${seconds} seconds`;
+  };
+
   return (
     <div className="return-banner">
       <p>You have an active game session.</p>
-      <button onClick={handleReturnToGame}>
-        Return to Game
-      </button>
+      <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+        <button onClick={handleReturnToGame}>
+          Return to Game
+        </button>
+        {timeLeft !== null && (
+          <button 
+            onClick={handleDeclineReconnection}
+            style={{
+              backgroundColor: "#dc3545",
+              color: "white",
+              border: "none",
+              padding: "8px 16px",
+              borderRadius: "4px",
+              cursor: "pointer"
+            }}
+          >
+            Decline Reconnection
+          </button>
+        )}
+      </div>
+      {timeLeft !== null && (
+        <p style={{ 
+          color: timeLeft <= 10 ? "red" : timeLeft <= 20 ? "orange" : "black",
+          fontWeight: "bold",
+          marginTop: "10px"
+        }}>
+          {timeLeft > 0 ? `Room will close in ${formatTime(timeLeft)}` : "Room is closing now!"}
+        </p>
+      )}
     </div>
   );
 }

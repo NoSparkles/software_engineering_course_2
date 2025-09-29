@@ -42,8 +42,8 @@ export default function MatchmakingWaitingRoom() {
 
       connection.on("StartGame", (roomCode) => {
         if (roomCode === code) {
-          setStatus("Opponent joined. Starting game...");
-          navigate(`/${gameType}/matchmaking-session/${code}`);
+          setStatus("Game starting...");
+          // Don't navigate here - let MatchFound handle navigation
         }
       });
 
@@ -91,6 +91,7 @@ export default function MatchmakingWaitingRoom() {
       <div className="matchmaking-info">
         <p><em>You are in matchmaking mode. The system will automatically pair you with another player.</em></p>
       </div>
+     
     </div>
   );
 }

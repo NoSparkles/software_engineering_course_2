@@ -98,6 +98,7 @@ export default function GameEntry() {
       setError('Player ID not ready. Please try again.');
       return;
     }
+    
 
     try {
       const connection = new HubConnectionBuilder()
@@ -122,19 +123,16 @@ export default function GameEntry() {
 
       connection.on("MatchFound", (roomCode) => {
         setError('');
-        connection.stop();
         navigate(`/${gameType}/matchmaking-waiting/${roomCode}`);
       });
 
       connection.on("WaitingForOpponent", (roomCode) => {
         setError('');
-        connection.stop();
         navigate(`/${gameType}/matchmaking-waiting/${roomCode}`);
       });
 
       connection.on("StartGame", (roomCode) => {
         setError('');
-        connection.stop();
         navigate(`/${gameType}/matchmaking-session/${roomCode}`);
       });
       

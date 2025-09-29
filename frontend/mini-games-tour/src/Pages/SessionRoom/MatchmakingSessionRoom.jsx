@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSignalRService } from '../../Utils/useSignalRService';
 import { usePlayerId } from '../../Utils/usePlayerId';
+import { useCountdownTimer } from '../../Utils/useCountdownTimer';
 import PMBoard from '../../Games/PairMatchingGame/Components/GameBoard';
 import RpsBoard from '../../Games/RockPaperScissors/Components/RpsBoard';
 import {Board as FourInARowGameBoard} from '../../Games/FourInRowGame/Components/Board';
@@ -16,12 +17,14 @@ export default function MatchmakingSessionRoom() {
   const [board, setBoard] = useState(null);
   const [playerColor, setPlayerColor] = useState(null); // only for four-in-a-row
   const playerId = usePlayerId();
+  const timeLeft = useCountdownTimer();
   
   const { connection, connectionState, reconnected } = useSignalRService({
     hubUrl: "http://localhost:5236/MatchMakingHub",
     gameType,
     roomCode: code,
     playerId,
+    token,
   });
 
   useEffect(() => {
@@ -48,6 +51,8 @@ export default function MatchmakingSessionRoom() {
               default:
                   setBoard(null);
         }
+    } else {
+      setBoard(null);
     }
   }, [code, connection, connectionState, gameType, playerColor, playerId, token])
 
@@ -87,6 +92,42 @@ export default function MatchmakingSessionRoom() {
         navigate('/login');
       });
 
+      connection.on("PlayerDisconnected", (disconnectedPlayerId, message, roomCloseTime) => {
+        setStatus(message);
+        // Store room close time for countdown
+        if (roomCloseTime) {
+          localStorage.setItem("roomCloseTime", roomCloseTime);
+        }
+      });
+
+      connection.on("PlayerReconnected", (reconnectedPlayerId, message) => {
+        setStatus(message);
+        // Clear room close time when player reconnects
+        localStorage.removeItem("roomCloseTime");
+      });
+
+      connection.on("RoomClosing", (message) => {
+        setStatus(message);
+        localStorage.removeItem("roomCloseTime");
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+      });
+
+      connection.on("MatchmakingSessionEnded", (message) => {
+        setStatus(message);
+        localStorage.removeItem("activeGame");
+        localStorage.removeItem("roomCloseTime");
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+      });
+
+      connection.on("PlayerDeclinedReconnection", (declinedPlayerId, message) => {
+        setStatus(message);
+        // Store room close time for countdown
+        localStorage.setItem("roomCloseTime", new Date(Date.now() + 30000).toISOString());
+      });
 
       return () => {
         connection.off("WaitingForOpponent");
@@ -95,6 +136,11 @@ export default function MatchmakingSessionRoom() {
         connection.off("Reconnected");
         connection.off("SetPlayerColor");
         connection.off("UnauthorizedMatchmaking");
+        connection.off("PlayerDisconnected");
+        connection.off("PlayerReconnected");
+        connection.off("RoomClosing");
+        connection.off("MatchmakingSessionEnded");
+        connection.off("PlayerDeclinedReconnection");
       };
     }
   }, [gameType, code, navigate, connection, connectionState, playerId, token]);
@@ -107,9 +153,61 @@ export default function MatchmakingSessionRoom() {
         Assigned Color: <strong>{playerColor ? (playerColor === "R" ? "Red" : "Yellow") : "Not assigned yet"}</strong>
       </p>
       <p>Status: <strong>{status}</strong></p>
-      <p>Connection: <strong>{connectionState}</strong></p>
+      <p>Connection: <strong style={{
+        color: connectionState === "Connected" ? "green" : 
+               connectionState === "Reconnecting" ? "orange" : 
+               connectionState === "Disconnected" ? "red" : "gray"
+      }}>{connectionState}</strong></p>
+      {connectionState === "Disconnected" && (
+        <button 
+          onClick={() => {
+            if (connection) {
+              connection.start().catch(err => console.error("Reconnection failed:", err));
+            }
+          }}
+          style={{ 
+            backgroundColor: "#007bff", 
+            color: "white", 
+            border: "none", 
+            padding: "8px 16px", 
+            borderRadius: "4px",
+            cursor: "pointer",
+            marginTop: "10px"
+          }}
+        >
+          Reconnect
+        </button>
+      )}
+      <button 
+        onClick={() => {
+          if (connection) {
+            connection.invoke("EndMatchmakingSession", playerId);
+          }
+        }}
+        style={{ 
+          backgroundColor: "#dc3545", 
+          color: "white", 
+          border: "none", 
+          padding: "8px 16px", 
+          borderRadius: "4px",
+          cursor: "pointer",
+          marginTop: "10px",
+          marginLeft: "10px"
+        }}
+      >
+        End Session
+      </button>
       <div className="matchmaking-info">
         <p><em>You are playing in matchmaking mode. This game was automatically matched.</em></p>
+        {timeLeft !== null && (
+          <p style={{ 
+            color: timeLeft <= 10 ? "red" : timeLeft <= 20 ? "orange" : "black",
+            fontWeight: "bold",
+            marginTop: "10px"
+          }}>
+            {timeLeft > 0 ? `Room will close in ${timeLeft} seconds` : "Room is closing now!"}
+          </p>
+        )}
       </div>
       <div className="game-board">
         {board}

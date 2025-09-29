@@ -55,5 +55,20 @@ namespace Hubs
             var result = RoomService.RoomExistsWithMatchmaking(gameType, roomCode);
             return await Task.FromResult(new { exists = result.exists, isMatchmaking = result.isMatchmaking });
         }
+
+        public override async Task OnDisconnectedAsync(Exception? exception)
+        {
+            // Get the player ID from the connection context
+            var playerId = Context.GetHttpContext()?.Request.Query["playerId"].FirstOrDefault();
+            var gameType = Context.GetHttpContext()?.Request.Query["gameType"].FirstOrDefault();
+            var roomCode = Context.GetHttpContext()?.Request.Query["roomCode"].FirstOrDefault();
+
+            if (!string.IsNullOrEmpty(playerId) && !string.IsNullOrEmpty(gameType) && !string.IsNullOrEmpty(roomCode))
+            {
+                await RoomService.HandlePlayerDisconnect(gameType, roomCode, playerId, Clients);
+            }
+
+            await base.OnDisconnectedAsync(exception);
+        }
     }
 }
