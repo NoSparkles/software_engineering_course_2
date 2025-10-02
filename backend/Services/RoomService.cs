@@ -115,11 +115,24 @@ namespace Services
             if (room.DisconnectedPlayers.ContainsKey(playerId))
             {
                 room.DisconnectedPlayers.Remove(playerId);
-                if (room.DisconnectedPlayers.Count == 0)
+
+                bool allConnected = room.RoomPlayers.All(rp => !room.DisconnectedPlayers.ContainsKey(rp.PlayerId));
+                if (allConnected)
                 {
+                    if (room.RoomCloseTime != null || room.RoomTimerCancellation != null)
+                    {
+                        Console.WriteLine($"[RoomService] All players reconnected in {roomKey}. Cancelling timer and clearing RoomCloseTime.");
+                    }
                     room.RoomCloseTime = null;
+                    room.RoomTimerCancellation?.Cancel();
+                    room.RoomTimerCancellation = null;
+                    // --- FIX: Instantly notify all clients to clear timer/banner as soon as both are connected ---
+                    await clients.Group(roomKey).SendAsync("PlayerReconnected", playerId, "Player reconnected successfully!");
                 }
-                await clients.Group(roomKey).SendAsync("PlayerReconnected", playerId, "Player reconnected successfully!");
+                else
+                {
+                    await clients.Client(connectionId).SendAsync("PlayerReconnected", playerId, "Player reconnected successfully!");
+                }
 
                 // Send current game state and color to reconnecting player
                 var playerIdToColor = new Dictionary<string, string>();
@@ -213,11 +226,24 @@ namespace Services
             if (room.DisconnectedPlayers.ContainsKey(playerId))
             {
                 room.DisconnectedPlayers.Remove(playerId);
-                if (room.DisconnectedPlayers.Count == 0)
+
+                bool allConnected = room.RoomPlayers.All(rp => !room.DisconnectedPlayers.ContainsKey(rp.PlayerId));
+                if (allConnected)
                 {
+                    if (room.RoomCloseTime != null || room.RoomTimerCancellation != null)
+                    {
+                        Console.WriteLine($"[RoomService] All players reconnected in {roomKey}. Cancelling timer and clearing RoomCloseTime.");
+                    }
                     room.RoomCloseTime = null;
+                    room.RoomTimerCancellation?.Cancel();
+                    room.RoomTimerCancellation = null;
+                    // --- FIX: Instantly notify all clients to clear timer/banner as soon as both are connected ---
+                    await clients.Group(roomKey).SendAsync("PlayerReconnected", playerId, "Player reconnected successfully!");
                 }
-                await clients.Group(roomKey).SendAsync("PlayerReconnected", playerId, "Player reconnected successfully!");
+                else
+                {
+                    await clients.Client(connectionId).SendAsync("PlayerReconnected", playerId, "Player reconnected successfully!");
+                }
 
                 // Send current game state and color to reconnecting player
                 var playerIdToColor = new Dictionary<string, string>();
@@ -374,7 +400,7 @@ namespace Services
                 return;
             }
 
-            // Check if room should be closed (has disconnected players and time has passed)
+            // Only close the room if there are still disconnected players
             if (room.DisconnectedPlayers.Count > 0 && room.RoomCloseTime.HasValue && DateTime.UtcNow >= room.RoomCloseTime.Value)
             {
                 // Notify all remaining players that the room is closing
@@ -510,6 +536,17 @@ namespace Services
                     {
                         Console.WriteLine($"RoomService: Starting 30-second timer for room {roomKey}");
                         await Task.Delay(30000, room.RoomTimerCancellation.Token); // Wait 30 seconds
+
+                        if (room.DisconnectedPlayers.Count == 0)
+                        {
+                            Console.WriteLine($"RoomService: Timer expired but all players are connected in {roomKey}, NOT closing room. Sending PlayerReconnected event and clearing RoomCloseTime.");
+                            room.RoomCloseTime = null;
+                            room.RoomTimerCancellation?.Cancel();
+                            room.RoomTimerCancellation = null;
+                            await clients.Group(roomKey).SendAsync("PlayerReconnected", null, "All players reconnected, timer cancelled.");
+                            return;
+                        }
+
                         Console.WriteLine($"RoomService: 30-second timer expired for room {roomKey}, closing room");
                         await CloseRoomAndKickAllPlayers(roomKey, clients, "Room closed - player left and timer expired");
                     }
@@ -519,6 +556,15 @@ namespace Services
                     }
                 }, room.RoomTimerCancellation.Token);
             }
+            else
+            {
+                // If room is now empty, close it immediately
+                Console.WriteLine($"Room {roomKey} is now empty, closing immediately");
+                Rooms.TryRemove(roomKey, out _);
+                await clients.Group(roomKey).SendAsync("RoomClosed", "Room closed - all players left");
+                Console.WriteLine($"Room {roomKey} closed and removed from Rooms dictionary");
+                return;
+            }
 
             // Notify other players that this player left
             await clients.Group(roomKey).SendAsync("PlayerLeft", playerId, "Player left the game", room.RoomCloseTime);
@@ -526,19 +572,8 @@ namespace Services
             // Also notify the leaving player about the room close time so they can see the timer in Return to Game banner
             await clients.Caller.SendAsync("PlayerLeftRoom", "You left the game", room.RoomCloseTime);
 
-            // If room is now empty, close it immediately
-            if (room.RoomPlayers.Count == 0)
-            {
-                Console.WriteLine($"Room {roomKey} is now empty, closing immediately");
-                Rooms.TryRemove(roomKey, out _);
-                await clients.Group(roomKey).SendAsync("RoomClosed", "Room closed - all players left");
-                Console.WriteLine($"Room {roomKey} closed and removed from Rooms dictionary");
-            }
-            else
-            {
-                // Check if room should be closed (has disconnected players and time has passed)
-                await CheckAndCloseRoomIfNeeded(roomKey, clients);
-            }
+            // Check if room should be closed (has disconnected players and time has passed)
+            await CheckAndCloseRoomIfNeeded(roomKey, clients);
 
             // Clean up user mappings AFTER room operations
             if (room.IsMatchMaking)

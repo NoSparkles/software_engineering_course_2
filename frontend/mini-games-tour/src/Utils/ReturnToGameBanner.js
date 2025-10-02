@@ -18,19 +18,90 @@ export default function ReturnToGameBanner() {
           navigate('/');
         }
       }
+      // NEW: Listen for PlayerReconnected event and clear timer/banner for both players
+      if (e.key === "PlayerReconnected") {
+        localStorage.removeItem("roomCloseTime");
+        setShowBanner(false);
+      }
     }
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
   }, [navigate]);
   const [showBanner, setShowBanner] = useState(false);
   const [gameInfo, setGameInfo] = useState(null);
-  const timeLeft = useCountdownTimer();
+  const [forceTimerReset, setForceTimerReset] = useState(0);
+  const location = useLocation();
+  const timeLeft = useCountdownTimer(forceTimerReset);
   
   // Debug logging
   useEffect(() => {
     console.log("ReturnToGameBanner: timeLeft changed to:", timeLeft);
   }, [timeLeft]);
-  const location = useLocation();
+
+  // Hide timer/banner immediately when both players are connected (roomCloseTime is null)
+  useEffect(() => {
+    // If roomCloseTime is null, hide banner and reset timer immediately
+    if (showBanner && localStorage.getItem("roomCloseTime") === null) {
+      setShowBanner(false);
+      setForceTimerReset(x => x + 1);
+    }
+  }, [showBanner, timeLeft]);
+
+  // Listen for PlayerReconnected, RoomClosed, and RoomClosing on both hubs (single effect)
+  useEffect(() => {
+    let connections = [];
+    const session = localStorage.getItem("activeGame");
+    if (!session) return;
+
+    const hubUrls = [
+      "http://localhost:5236/MatchMakingHub",
+      "http://localhost:5236/joinByCodeHub"
+    ];
+
+    hubUrls.forEach(hubUrl => {
+      const connection = new HubConnectionBuilder()
+        .withUrl(hubUrl)
+        .withAutomaticReconnect()
+        .build();
+
+      // When PlayerReconnected is received, always clear timer/banner immediately
+      connection.on("PlayerReconnected", () => {
+        localStorage.removeItem("roomCloseTime");
+        setShowBanner(false);
+        setForceTimerReset(x => x + 1);
+        setGameInfo(null);
+        window.dispatchEvent(new StorageEvent("storage", { key: "roomCloseTime", oldValue: "something", newValue: null }));
+      });
+      connection.on("RoomClosed", () => {
+        localStorage.removeItem("roomCloseTime");
+        localStorage.removeItem("activeGame");
+        setShowBanner(false);
+        setGameInfo(null);
+        setForceTimerReset(x => x + 1);
+        window.dispatchEvent(new StorageEvent("storage", { key: "roomCloseTime", oldValue: "something", newValue: null }));
+        window.dispatchEvent(new StorageEvent("storage", { key: "activeGame", oldValue: "something", newValue: null }));
+      });
+      connection.on("RoomClosing", () => {
+        localStorage.removeItem("roomCloseTime");
+        setShowBanner(false);
+        setGameInfo(null);
+        setForceTimerReset(x => x + 1);
+        window.dispatchEvent(new StorageEvent("storage", { key: "roomCloseTime", oldValue: "something", newValue: null }));
+      });
+
+      connection.start().catch(() => {});
+      connections.push(connection);
+    });
+
+    return () => {
+      connections.forEach(connection => {
+        connection.off("PlayerReconnected");
+        connection.off("RoomClosed");
+        connection.off("RoomClosing");
+        connection.stop();
+      });
+    };
+  }, []);
 
   useEffect(() => {
     const session = localStorage.getItem("activeGame");
@@ -85,12 +156,26 @@ export default function ReturnToGameBanner() {
     checkRoom();
   }, [location]);
 
+  // Listen for local roomCloseTime removal in this tab (not just via storage event)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (showBanner && localStorage.getItem("roomCloseTime") === null) {
+        setShowBanner(false);
+        setForceTimerReset(x => x + 1); // force timer reset
+      }
+    }, 200); // faster polling for more immediate UI update
+    return () => clearInterval(interval);
+  }, [showBanner]);
+
   if (!showBanner || !gameInfo) return null;
 
   const handleReturnToGame = () => {
     const path = gameInfo.isMatchmaking 
       ? `/${gameInfo.gameType}/matchmaking-session/${gameInfo.code}`
       : `/${gameInfo.gameType}/session/${gameInfo.code}`;
+    // NEW: Remove timer when returning to game (so both tabs clear)
+    localStorage.removeItem("roomCloseTime");
+    setShowBanner(false);
     navigate(path);
   };
 
@@ -175,3 +260,5 @@ export default function ReturnToGameBanner() {
     </div>
   );
 }
+
+
