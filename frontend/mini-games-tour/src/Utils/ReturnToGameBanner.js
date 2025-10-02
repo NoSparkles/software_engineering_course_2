@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { HubConnectionBuilder } from '@microsoft/signalr';
+import { HubConnectionBuilder, HttpTransportType } from '@microsoft/signalr';
 import { useCountdownTimer } from './useCountdownTimer';
 import './styles.css';
 
@@ -85,19 +85,27 @@ export default function ReturnToGameBanner() {
       if (session) {
         const { gameType, code, isMatchmaking } = JSON.parse(session);
         const playerId = localStorage.getItem("playerId");
-        
-        if (playerId && isMatchmaking) {
+        const token = localStorage.getItem("token"); // Get the JWT token
+      
+        if (playerId && isMatchmaking && token) {
           // Use the correct hub based on whether it's a matchmaking room
           const hubUrl = isMatchmaking 
             ? "http://localhost:5236/MatchMakingHub"
             : "http://localhost:5236/joinByCodeHub";
-          
+        
+          // Build connection URL with token as query parameter
+          const connectionUrl = `${hubUrl}?access_token=${encodeURIComponent(token)}`;
+        
           const connection = new HubConnectionBuilder()
-            .withUrl(hubUrl)
+            .withUrl(connectionUrl, {
+              withCredentials: true,
+              skipNegotiation: false,
+              transport: HttpTransportType.WebSockets | HttpTransportType.LongPolling,
+            })
             .build();
-
+          
           await connection.start();
-          await connection.invoke("DeclineReconnection", playerId);
+          await connection.invoke("DeclineReconnection", playerId, gameType, code); // <-- This line changed
           await connection.stop();
         }
       }

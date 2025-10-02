@@ -43,10 +43,10 @@ namespace Hubs
                     throw new Exception("User authentication failed");
                 }
                 
+                
                 var roomKey = RoomService.CreateRoomKey(gameType, roomCode);
                 Console.WriteLine($"Adding to group: {roomKey}");
                 await Groups.AddToGroupAsync(Context.ConnectionId, roomKey);
-                
                 Console.WriteLine($"Calling JoinAsPlayerMatchMaking");
                 await RoomService.JoinAsPlayerMatchMaking(gameType, roomCode, playerId, user, Context.ConnectionId, Clients);
                 Console.WriteLine($"JoinAsPlayerMatchMaking completed successfully");
@@ -75,6 +75,15 @@ namespace Hubs
 
                 // Clean up any inactive matchmaking sessions first
                 RoomService.CleanupInactiveMatchmakingSessions();
+                var playerRoom = RoomService.ActiveMatchmakingSessions.FirstOrDefault(kvp => kvp.Key == playerId);
+                if (playerRoom.Value != null)
+                {
+                    var roomKey = playerRoom.Value;
+                    Console.WriteLine($"EndMatchmakingSession: Found room {roomKey} for player {playerId}");
+
+                    // Close the room and kick all players immediately
+                    await RoomService.CloseRoomAndKickAllPlayers(roomKey, Clients, "Matchmaking session ended by a player");
+                }
                 
                 // Check if player already has an active matchmaking session
                 if (RoomService.HasActiveMatchmakingSession(playerId))
@@ -153,41 +162,50 @@ namespace Hubs
             }
         }
 
-        public async Task DeclineReconnection(string playerId)
+        public async Task DeclineReconnection(string playerId, string gameType, string roomCode)
         {
-            // Find the room this player is in
-            var playerRoom = RoomService.ActiveMatchmakingSessions.FirstOrDefault(kvp => kvp.Key == playerId);
-            if (playerRoom.Value != null)
+            Console.WriteLine($"DeclineReconnection called for player {playerId}, gameType: {gameType}, roomCode: {roomCode}");
+
+            var roomKey = RoomService.CreateRoomKey(gameType, roomCode);
+
+            if (RoomService.Rooms.TryGetValue(roomKey, out Room? room))
             {
-                var roomKey = playerRoom.Value;
-                if (RoomService.Rooms.TryGetValue(roomKey, out Room? room))
+                Console.WriteLine($"DeclineReconnection: Found room {roomKey} for player {playerId}");
+
+                // Cancel any existing timers
+                room.RoomTimerCancellation?.Cancel();
+                room.RoomTimerCancellation = null;
+
+                // Clear all timer-related state
+                room.RoomCloseTime = null;
+                room.DisconnectedPlayers.Clear();
+
+                // Notify all players immediately that the room is closing due to declined reconnection
+                await Clients.Group(roomKey).SendAsync("RoomClosed", "A player declined to reconnect. Room closed immediately.");
+                Console.WriteLine($"Sent immediate RoomClosed event to group {roomKey}");
+
+                // Clean up user mappings for all players
+                foreach (var roomPlayer in room.RoomPlayers)
                 {
-                    // Remove this player from the room
-                    room.RoomPlayers.RemoveAll(p => p.PlayerId == playerId);
-                    RoomService.ClearActiveMatchmakingSession(playerId);
-                    RoomService.MatchMakingRoomUsers.TryRemove(playerId, out _);
-                    
-                    // If no players left, remove the room
-                    if (room.RoomPlayers.Count == 0)
+                    Console.WriteLine($"Cleaning up mappings for player {roomPlayer.PlayerId}");
+                    if (room.IsMatchMaking)
                     {
-                        RoomService.Rooms.TryRemove(roomKey, out _);
+                        RoomService.MatchMakingRoomUsers.TryRemove(roomPlayer.PlayerId, out _);
+                        RoomService.ActiveMatchmakingSessions.TryRemove(roomPlayer.PlayerId, out _);
                     }
                     else
                     {
-                        // Notify remaining players that a player declined reconnection
-                        await Clients.Group(roomKey).SendAsync("PlayerDeclinedReconnection", playerId, "A player declined to reconnect. Room will close in 30 seconds.");
-                        
-                        // Set room close time for remaining players
-                        room.RoomCloseTime = DateTime.UtcNow.AddSeconds(30);
-                        
-                        // Start timer to close room
-                        _ = Task.Run(async () =>
-                        {
-                            await Task.Delay(30000);
-                            await RoomService.CheckAndCloseRoomIfNeeded(roomKey, Clients);
-                        });
+                        RoomService.CodeRoomUsers.TryRemove(roomPlayer.PlayerId, out _);
                     }
                 }
+
+                // Remove the room from the dictionary
+                RoomService.Rooms.TryRemove(roomKey, out _);
+                Console.WriteLine($"Room {roomKey} closed and all players kicked immediately");
+            }
+            else
+            {
+                Console.WriteLine($"DeclineReconnection: Room {roomKey} not found");
             }
         }
 
@@ -206,9 +224,6 @@ namespace Hubs
             await base.OnDisconnectedAsync(exception);
         }
 
-        /// <summary>
-        /// Handle when a player leaves the room (e.g., navigates to home)
-        /// </summary>
         public async Task LeaveRoom(string gameType, string roomCode, string playerId)
         {
             Console.WriteLine($"MatchMakingHub.LeaveRoom called - PlayerId: {playerId}, GameType: {gameType}, RoomCode: {roomCode}");

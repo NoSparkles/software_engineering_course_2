@@ -39,7 +39,7 @@ class GlobalConnectionManager {
         
         const promise = connection.invoke("LeaveRoom", gameType, roomCode, playerId).then(() => {
           // Add a small delay to ensure the backend has time to process the request
-          return new Promise(resolve => setTimeout(resolve, 100));
+          return new Promise(resolve => setTimeout(resolve, 1));
         }).catch(err => {
           console.warn(`LeaveRoom failed on ${type} connection:`, err);
         });

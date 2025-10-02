@@ -292,13 +292,24 @@ namespace Services
             if (room.RoomCloseTime == null)
             {
                 room.RoomCloseTime = DateTime.UtcNow.AddSeconds(30);
-                
+
+                // Cancel any existing timer
+                room.RoomTimerCancellation?.Cancel();
+                room.RoomTimerCancellation = new CancellationTokenSource();
+
                 // Start a timer to close the room if player doesn't reconnect
                 _ = Task.Run(async () =>
                 {
-                    await Task.Delay(30000); // Wait 30 seconds
-                    await CheckAndCloseRoomIfNeeded(roomKey, clients);
-                });
+                    try
+                    {
+                        await Task.Delay(30000, room.RoomTimerCancellation.Token);
+                        await CheckAndCloseRoomIfNeeded(roomKey, clients);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        Console.WriteLine($"Timer for room {roomKey} was cancelled");
+                    }
+                }, room.RoomTimerCancellation.Token);
             }
             
             // Notify all players in the room about the disconnection
@@ -373,9 +384,7 @@ namespace Services
             ActiveMatchmakingSessions.TryRemove(playerId, out _);
         }
 
-        /// <summary>
-        /// Close a room and kick all remaining players
-        /// </summary>
+       
         public async Task CloseRoomAndKickAllPlayers(string roomKey, IHubCallerClients clients, string reason)
         {
             Console.WriteLine($"CloseRoomAndKickAllPlayers called for room {roomKey}, reason: {reason}");
@@ -413,9 +422,6 @@ namespace Services
             Console.WriteLine($"Room {roomKey} closed and all players kicked");
         }
 
-        /// <summary>
-        /// Handle when a player leaves a room (e.g., navigates to home)
-        /// </summary>
         public async Task HandlePlayerLeave(string gameType, string roomCode, string playerId, IHubCallerClients clients)
         {
             Console.WriteLine($"RoomService.HandlePlayerLeave called - PlayerId: {playerId}, GameType: {gameType}, RoomCode: {roomCode}");
@@ -451,14 +457,25 @@ namespace Services
                 room.RoomCloseTime = DateTime.UtcNow.AddSeconds(30);
                 Console.WriteLine($"RoomService: Set room close time to {room.RoomCloseTime} for room {roomKey}");
                 
+                // Cancel any existing timer
+                room.RoomTimerCancellation?.Cancel();
+                room.RoomTimerCancellation = new CancellationTokenSource();
+                
                 // Start a timer to close the room and kick all remaining players
                 _ = Task.Run(async () =>
                 {
-                    Console.WriteLine($"RoomService: Starting 30-second timer for room {roomKey}");
-                    await Task.Delay(30000); // Wait 30 seconds
-                    Console.WriteLine($"RoomService: 30-second timer expired for room {roomKey}, closing room");
-                    await CloseRoomAndKickAllPlayers(roomKey, clients, "Room closed - player left and timer expired");
-                });
+                    try
+                    {
+                        Console.WriteLine($"RoomService: Starting 30-second timer for room {roomKey}");
+                        await Task.Delay(30000, room.RoomTimerCancellation.Token); // Wait 30 seconds
+                        Console.WriteLine($"RoomService: 30-second timer expired for room {roomKey}, closing room");
+                        await CloseRoomAndKickAllPlayers(roomKey, clients, "Room closed - player left and timer expired");
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        Console.WriteLine($"Timer for room {roomKey} was cancelled");
+                    }
+                }, room.RoomTimerCancellation.Token);
             }
 
             // Notify other players that this player left
@@ -496,9 +513,6 @@ namespace Services
             Console.WriteLine($"RoomService: Removed player {playerId} from ActiveMatchmakingSessions: {removed}");
         }
 
-        /// <summary>
-        /// Clean up all inactive matchmaking sessions
-        /// </summary>
         public void CleanupInactiveMatchmakingSessions()
         {
             var inactiveSessions = new List<string>();

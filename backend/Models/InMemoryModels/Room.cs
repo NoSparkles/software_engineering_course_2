@@ -17,7 +17,7 @@ namespace Models.InMemoryModels
         // Track disconnected players and their disconnect time
         public Dictionary<string, DateTime> DisconnectedPlayers { get; set; }
         public DateTime? RoomCloseTime { get; set; }
-
+        public CancellationTokenSource? RoomTimerCancellation { get; set; }
         public Room(GameInstance game, bool isMatchMaking)
         {
             Game = game;
@@ -27,6 +27,7 @@ namespace Models.InMemoryModels
             GameStarted = false;
             DisconnectedPlayers = new Dictionary<string, DateTime>();
             RoomCloseTime = null;
+            RoomTimerCancellation = null;
         }
 
         public static GameInstance GameTypeToGame(string gameType)

@@ -218,7 +218,7 @@ export default function GameEntry() {
           }
         }}>Matchmaking</button>
         {error && <p className="error">{error}</p>}
-        <p style={{fontSize: '12px', color: 'gray'}}>Debug: Matchmaking button rendered</p>
+        
       </div>
     </div>
   );
