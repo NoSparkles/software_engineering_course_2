@@ -109,6 +109,14 @@ namespace Services
             var room = GetRoomByKey(roomKey);
             var game = room.Game;
             var roomPlayers = room.RoomPlayers;
+
+            if (room.RoomTimerCancellation != null || room.RoomCloseTime != null)
+            {
+                Console.WriteLine($"[RoomService] Player joined {roomKey}. Cancelling room timer.");
+                CancelRoomTimer(room);
+                await clients.Group(roomKey).SendAsync("PlayerReconnected", null, "Timer cancelled: a player joined.");
+            }
+
             var roomUser = roomPlayers.Find(rp => (rp.User is not null && rp.User == user) || rp.PlayerId == playerId);
 
             // Check if this is a reconnection
@@ -126,8 +134,7 @@ namespace Services
                     room.RoomCloseTime = null;
                     room.RoomTimerCancellation?.Cancel();
                     room.RoomTimerCancellation = null;
-                    // --- FIX: Instantly notify all clients to clear timer/banner as soon as both are connected ---
-                    await clients.Group(roomKey).SendAsync("PlayerReconnected", playerId, "Player reconnected successfully!");
+                    await clients.Group(roomKey).SendAsync("PlayerReconnected", null, "Player reconnected successfully!");
                 }
                 else
                 {
@@ -180,8 +187,12 @@ namespace Services
                 }
 
                 // Send StartGame and SetPlayerColor to all players in the room
+                room.RoomCloseTime = null;
+                room.RoomTimerCancellation?.Cancel();
+                room.RoomTimerCancellation = null;
                 await clients.Group(roomKey).SendAsync("StartGame", roomCode);
                 await clients.Group(roomKey).SendAsync("SetPlayerColor", playerIdToColor);
+                
             }
             else if (room.GameStarted)
             {
@@ -220,6 +231,14 @@ namespace Services
             var room = GetRoomByKey(roomKey);
             var game = room.Game;
             var roomPlayers = room.RoomPlayers;
+
+            if (room.RoomTimerCancellation != null || room.RoomCloseTime != null)
+            {
+                Console.WriteLine($"[RoomService] Player joined {roomKey}. Cancelling room timer.");
+                CancelRoomTimer(room);
+                await clients.Group(roomKey).SendAsync("PlayerReconnected", null, "Timer cancelled: a player joined.");
+            }
+
             var roomUser = roomPlayers.Find(rp => (rp.User is not null && rp.User == user) || rp.PlayerId == playerId);
 
             // Check if this is a reconnection
@@ -238,7 +257,7 @@ namespace Services
                     room.RoomTimerCancellation?.Cancel();
                     room.RoomTimerCancellation = null;
                     // --- FIX: Instantly notify all clients to clear timer/banner as soon as both are connected ---
-                    await clients.Group(roomKey).SendAsync("PlayerReconnected", playerId, "Player reconnected successfully!");
+                    await clients.Group(roomKey).SendAsync("PlayerReconnected", null, "Player reconnected successfully!");
                 }
                 else
                 {
@@ -293,25 +312,40 @@ namespace Services
                 room.Code = roomKey;
                 game.RoomCode = roomKey;
                 game.AssignPlayerColors(roomPlayers[0], roomPlayers[1]);
+                room.RoomCloseTime = null;
+                room.RoomTimerCancellation?.Cancel();
+                room.RoomTimerCancellation = null;
 
                 var playerIdToColor = new Dictionary<string, string>();
                 foreach (var rp in room.RoomPlayers)
                 {
                     playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                    room.RoomCloseTime = null;
+                    room.RoomTimerCancellation?.Cancel();
+                    room.RoomTimerCancellation = null;
                 }
 
                 // Send MatchFound, StartGame and SetPlayerColor to all players in the room
                 if (room.IsMatchMaking)
                 {
                     await clients.Group(roomKey).SendAsync("MatchFound", roomCode);
+                    room.RoomCloseTime = null;
+                    room.RoomTimerCancellation?.Cancel();
+                    room.RoomTimerCancellation = null;
                 }
                 await clients.Group(roomKey).SendAsync("StartGame", roomCode);
                 await clients.Group(roomKey).SendAsync("SetPlayerColor", playerIdToColor);
                 Console.WriteLine($"Sent MatchFound, StartGame and SetPlayerColor to group {roomKey}");
+                room.RoomCloseTime = null;
+                room.RoomTimerCancellation?.Cancel();
+                room.RoomTimerCancellation = null;
             }
             else if (room.GameStarted)
             {
                 var playerIdToColor = new Dictionary<string, string>();
+                room.RoomCloseTime = null;
+                room.RoomTimerCancellation?.Cancel();
+                room.RoomTimerCancellation = null;
                 foreach (var rp in room.RoomPlayers)
                 {
                     playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
@@ -334,7 +368,7 @@ namespace Services
             }
         }
 
-        public void JoinAsSpectator(string gameType, string roomCode, string playerId, User? user, string connectionId)
+        public async Task JoinAsSpectator(string gameType, string roomCode, string playerId, User? user, string connectionId)
         {
             var roomKey = CreateRoomKey(gameType, roomCode);
             var RoomUser = new RoomUser(playerId, false, user);
@@ -490,6 +524,17 @@ namespace Services
             Console.WriteLine($"Room {roomKey} closed and all players kicked");
         }
 
+        private static void CancelRoomTimer(Room room)
+        {
+            if (room.RoomCloseTime != null || room.RoomTimerCancellation != null)
+            {
+                room.RoomCloseTime = null;
+                room.RoomTimerCancellation?.Cancel();
+                room.RoomTimerCancellation = null;
+            }
+        }
+
+
         public async Task HandlePlayerLeave(string gameType, string roomCode, string playerId, IHubCallerClients clients)
         {
             Console.WriteLine($"RoomService.HandlePlayerLeave called - PlayerId: {playerId}, GameType: {gameType}, RoomCode: {roomCode}");
@@ -534,6 +579,7 @@ namespace Services
                 {
                     try
                     {
+
                         Console.WriteLine($"RoomService: Starting 30-second timer for room {roomKey}");
                         await Task.Delay(30000, room.RoomTimerCancellation.Token); // Wait 30 seconds
 
@@ -544,6 +590,7 @@ namespace Services
                             room.RoomTimerCancellation?.Cancel();
                             room.RoomTimerCancellation = null;
                             await clients.Group(roomKey).SendAsync("PlayerReconnected", null, "All players reconnected, timer cancelled.");
+
                             return;
                         }
 
