@@ -175,19 +175,20 @@ namespace Services
             }
         }
 
-        public RoomUser? GetRoomUser(string roomKey, string playerId, User? user) {
+        public RoomUser? GetRoomUser(string roomKey, string playerId, User? user)
+        {
             var roomPlayers = GetRoomByKey(roomKey).RoomPlayers;
             return roomPlayers.Find(rp => (rp.User is not null && rp.User == user) || rp.PlayerId == playerId);
         }
 
-         public async Task JoinAsPlayerMatchMaking(string gameType, string roomCode, string playerId, User? user, string connectionId, IHubCallerClients clients)
-         {
+        public async Task JoinAsPlayerMatchMaking(string gameType, string roomCode, string playerId, User? user, string connectionId, IHubCallerClients clients)
+        {
             var roomKey = CreateRoomKey(gameType, roomCode);
             var room = GetRoomByKey(roomKey);
             var game = room.Game;
             var roomPlayers = room.RoomPlayers;
             var roomUser = roomPlayers.Find(rp => (rp.User is not null && rp.User == user) || rp.PlayerId == playerId);
-            
+
             // Check if this is a reconnection
             if (room.DisconnectedPlayers.ContainsKey(playerId))
             {
@@ -198,7 +199,7 @@ namespace Services
                 }
                 await clients.Group(roomKey).SendAsync("PlayerReconnected", playerId, "Player reconnected successfully!");
             }
-            
+
             if (roomUser is null)
             {
                 roomPlayers.Add(new RoomUser(playerId, true, user));
@@ -211,14 +212,14 @@ namespace Services
 
             // Track active matchmaking session
             ActiveMatchmakingSessions[playerId] = roomKey;
-            
+
             bool shouldNotifyStart;
             lock (roomPlayers)
             {
                 shouldNotifyStart = roomPlayers.Count == 2;
             }
             Console.WriteLine($"Room {roomCode}: {roomPlayers.Count} players, GameStarted: {room.GameStarted}, shouldNotifyStart: {shouldNotifyStart}");
-            
+
             if (shouldNotifyStart && !room.GameStarted)
             {
                 Console.WriteLine($"Starting game for room {roomCode} with {roomPlayers.Count} players");
@@ -279,15 +280,15 @@ namespace Services
             var roomKey = CreateRoomKey(gameType, roomCode);
             if (!Rooms.TryGetValue(roomKey, out Room? room))
                 return;
-        
+
             // Check if player is in the room
             var roomUser = room.RoomPlayers.Find(rp => rp.PlayerId == playerId);
             if (roomUser == null)
                 return;
-        
+
             // Mark player as disconnected
             room.DisconnectedPlayers[playerId] = DateTime.UtcNow;
-            
+
             // Set room close time if not already set
             if (room.RoomCloseTime == null)
             {
@@ -311,7 +312,7 @@ namespace Services
                     }
                 }, room.RoomTimerCancellation.Token);
             }
-            
+
             // Notify all players in the room about the disconnection
             await clients.Group(roomKey).SendAsync("PlayerDisconnected", playerId, "Player disconnected. Room will close in 30 seconds if they don't        reconnect.", room.RoomCloseTime);
         }
@@ -327,7 +328,7 @@ namespace Services
             {
                 // Notify all remaining players that the room is closing
                 await clients.Group(roomKey).SendAsync("RoomClosing", "Room is closing - no players remaining.");
-                
+
                 // Remove the room
                 Rooms.TryRemove(roomKey, out _);
                 return;
@@ -338,10 +339,10 @@ namespace Services
             {
                 // Notify all remaining players that the room is closing
                 await clients.Group(roomKey).SendAsync("RoomClosing", "Room is closing due to disconnected player(s).");
-                
+
                 // Remove the room
                 Rooms.TryRemove(roomKey, out _);
-                
+
                 // Clean up user mappings
                 foreach (var player in room.RoomPlayers)
                 {
@@ -361,12 +362,12 @@ namespace Services
         public async Task CleanupExpiredRooms(IHubCallerClients clients)
         {
             var expiredRooms = new List<string>();
-            
+
             foreach (var kvp in Rooms)
             {
                 var room = kvp.Value;
-                if (room.DisconnectedPlayers.Count > 0 && 
-                    room.RoomCloseTime.HasValue && 
+                if (room.DisconnectedPlayers.Count > 0 &&
+                    room.RoomCloseTime.HasValue &&
                     DateTime.UtcNow >= room.RoomCloseTime.Value)
                 {
                     expiredRooms.Add(kvp.Key);
@@ -384,11 +385,11 @@ namespace Services
             ActiveMatchmakingSessions.TryRemove(playerId, out _);
         }
 
-       
+
         public async Task CloseRoomAndKickAllPlayers(string roomKey, IHubCallerClients clients, string reason)
         {
             Console.WriteLine($"CloseRoomAndKickAllPlayers called for room {roomKey}, reason: {reason}");
-            
+
             if (!Rooms.TryGetValue(roomKey, out Room? room))
             {
                 Console.WriteLine($"Room {roomKey} not found in Rooms dictionary");
@@ -399,9 +400,10 @@ namespace Services
             Console.WriteLine($"Closing room {roomKey} and kicking all players. Reason: {reason}");
 
             // Notify all remaining players that the room is closing
+            Console.WriteLine($"Sending RoomClosed event to group {roomKey} (reason: {reason})");
             await clients.Group(roomKey).SendAsync("RoomClosed", reason);
             Console.WriteLine($"Sent RoomClosed event to group {roomKey}");
-            
+
             // Clean up user mappings for all players
             foreach (var player in room.RoomPlayers)
             {
@@ -416,7 +418,7 @@ namespace Services
                     CodeRoomUsers.TryRemove(player.PlayerId, out _);
                 }
             }
-            
+
             // Remove the room
             Rooms.TryRemove(roomKey, out _);
             Console.WriteLine($"Room {roomKey} closed and all players kicked");
@@ -427,7 +429,7 @@ namespace Services
             Console.WriteLine($"RoomService.HandlePlayerLeave called - PlayerId: {playerId}, GameType: {gameType}, RoomCode: {roomCode}");
             var roomKey = CreateRoomKey(gameType, roomCode);
             Console.WriteLine($"RoomService: Looking for room with key: {roomKey}");
-            
+
             if (!Rooms.TryGetValue(roomKey, out Room? room))
             {
                 Console.WriteLine($"RoomService: Room {roomKey} not found");
@@ -442,12 +444,12 @@ namespace Services
                 Console.WriteLine($"RoomService: Player {playerId} not found in room {roomKey}");
                 return;
             }
-            
+
             Console.WriteLine($"RoomService: Player {playerId} found in room {roomKey}, proceeding with leave");
 
             // Remove player from room
             room.RoomPlayers.RemoveAll(rp => rp.PlayerId == playerId);
-            
+
             // Remove from disconnected players if present
             room.DisconnectedPlayers.Remove(playerId);
 
@@ -456,11 +458,11 @@ namespace Services
             {
                 room.RoomCloseTime = DateTime.UtcNow.AddSeconds(30);
                 Console.WriteLine($"RoomService: Set room close time to {room.RoomCloseTime} for room {roomKey}");
-                
+
                 // Cancel any existing timer
                 room.RoomTimerCancellation?.Cancel();
                 room.RoomTimerCancellation = new CancellationTokenSource();
-                
+
                 // Start a timer to close the room and kick all remaining players
                 _ = Task.Run(async () =>
                 {
@@ -480,7 +482,7 @@ namespace Services
 
             // Notify other players that this player left
             await clients.Group(roomKey).SendAsync("PlayerLeft", playerId, "Player left the game", room.RoomCloseTime);
-            
+
             // Also notify the leaving player about the room close time so they can see the timer in Return to Game banner
             await clients.Caller.SendAsync("PlayerLeftRoom", "You left the game", room.RoomCloseTime);
 
@@ -507,7 +509,7 @@ namespace Services
             {
                 CodeRoomUsers.TryRemove(playerId, out _);
             }
-            
+
             // Always remove from ActiveMatchmakingSessions to ensure player can start new matchmaking
             var removed = ActiveMatchmakingSessions.TryRemove(playerId, out _);
             Console.WriteLine($"RoomService: Removed player {playerId} from ActiveMatchmakingSessions: {removed}");
@@ -516,25 +518,44 @@ namespace Services
         public void CleanupInactiveMatchmakingSessions()
         {
             var inactiveSessions = new List<string>();
-            
+
             foreach (var kvp in ActiveMatchmakingSessions)
             {
                 var playerId = kvp.Key;
                 var roomKey = kvp.Value;
-                
+
                 // Check if the room still exists and player is in it
-                if (!Rooms.TryGetValue(roomKey, out Room? room) || 
+                if (!Rooms.TryGetValue(roomKey, out Room? room) ||
                     !room.RoomPlayers.Any(rp => rp.PlayerId == playerId))
                 {
                     inactiveSessions.Add(playerId);
                 }
             }
-            
+
             // Remove inactive sessions
             foreach (var playerId in inactiveSessions)
             {
                 ActiveMatchmakingSessions.TryRemove(playerId, out _);
             }
+        }
+        
+        public async Task ForceRemovePlayerFromAllRooms(string playerId, IHubCallerClients clients)
+        {
+            // Remove from all rooms (both matchmaking and code rooms)
+            var roomsToRemove = Rooms.Where(r =>
+                r.Value.RoomPlayers.Any(p => p.PlayerId == playerId) ||
+                r.Value.DisconnectedPlayers.ContainsKey(playerId)
+            ).ToList();
+
+            foreach (var room in roomsToRemove)
+            {
+                await CloseRoomAndKickAllPlayers(room.Key, clients, "Player started new matchmaking or left         room.");
+            }
+
+            // Remove from all mappings
+            MatchMakingRoomUsers.TryRemove(playerId, out _);
+            CodeRoomUsers.TryRemove(playerId, out _);
+            ActiveMatchmakingSessions.TryRemove(playerId, out _);
         }
     }
 }

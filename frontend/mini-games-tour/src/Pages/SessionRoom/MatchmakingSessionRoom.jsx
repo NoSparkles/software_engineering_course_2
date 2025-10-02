@@ -151,13 +151,23 @@ export default function MatchmakingSessionRoom() {
       });
 
       connection.on("RoomClosed", (message) => {
+        console.log("[RoomClosed] event received:", message);
         setStatus(message);
         localStorage.removeItem("roomCloseTime");
         localStorage.removeItem("activeGame");
-        setTimeout(() => {
-          navigate('/');
-        }, 2000);
+        // Immediate navigation for reliability
+        navigate('/');
       });
+
+      // Failsafe: Listen for localStorage removal of activeGame (in case RoomClosed event is missed)
+      const handleStorage = (e) => {
+        if (e.key === "activeGame" && e.newValue === null) {
+          console.log("[RoomClosed][storage] Detected activeGame removal, forcing navigation.");
+          localStorage.removeItem("roomCloseTime");
+          navigate('/');
+        }
+      };
+      window.addEventListener("storage", handleStorage);
 
       connection.on("MatchmakingSessionEnded", (message) => {
         setStatus(message);
@@ -183,7 +193,7 @@ export default function MatchmakingSessionRoom() {
           });
           console.log("LeaveRoom call initiated on unmount");
         }
-        
+        window.removeEventListener("storage", handleStorage);
         connection.off("WaitingForOpponent");
         connection.off("StartGame");
         connection.off("PlayerLeft");

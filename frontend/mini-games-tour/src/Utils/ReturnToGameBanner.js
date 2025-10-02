@@ -5,6 +5,23 @@ import { useCountdownTimer } from './useCountdownTimer';
 import './styles.css';
 
 export default function ReturnToGameBanner() {
+  // Hide banner if 'activeGame' is removed from localStorage (e.g., RoomClosed event)
+  const navigate = useNavigate();
+  useEffect(() => {
+    function handleStorage(e) {
+      if (e.key === "activeGame" && e.newValue === null) {
+        console.log("[ReturnToGameBanner][storage] Detected activeGame removal, hiding banner and navigating home.");
+        setShowBanner(false);
+        setGameInfo(null);
+        // If user is on a session page, force navigation home
+        if (window.location.pathname.includes("session") || window.location.pathname.includes("waiting")) {
+          navigate('/');
+        }
+      }
+    }
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, [navigate]);
   const [showBanner, setShowBanner] = useState(false);
   const [gameInfo, setGameInfo] = useState(null);
   const timeLeft = useCountdownTimer();
@@ -13,7 +30,6 @@ export default function ReturnToGameBanner() {
   useEffect(() => {
     console.log("ReturnToGameBanner: timeLeft changed to:", timeLeft);
   }, [timeLeft]);
-  const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {

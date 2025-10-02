@@ -23,14 +23,17 @@ export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token 
       connectionRef.current = connection;
 
       connection.onclose(() => {
+        console.log("[SignalR] Connection closed");
         setConnectionState("Disconnected");
       });
 
       connection.onreconnecting(() => {
+        console.log("[SignalR] Reconnecting...");
         setConnectionState("Reconnecting");
       });
 
       connection.onreconnected(() => {
+        console.log("[SignalR] Reconnected. Attempting to rejoin room...");
         setConnectionState("Connected");
         setReconnected(true);
         if (gameType && roomCode) {
@@ -43,11 +46,11 @@ export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token 
         .start()
         .then(() => {
           setConnectionState("Connected");
-          console.log("SignalR connected");
+          console.log("[SignalR] Connected");
         })
         .catch(err => {
           setConnectionState("Failed");
-          console.error("SignalR connection failed:", err);
+          console.error("[SignalR] Connection failed:", err);
         });
     }
 

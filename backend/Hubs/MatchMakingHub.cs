@@ -35,17 +35,15 @@ namespace Hubs
             try
             {
                 Console.WriteLine($"Join called with gameType: {gameType}, roomCode: {roomCode}, playerId: {playerId}");
-                
                 var user = await UserService.GetUserFromTokenAsync(jwtToken);
                 if (user == null)
                 {
                     Console.WriteLine("User authentication failed in Join method");
                     throw new Exception("User authentication failed");
                 }
-                
-                
                 var roomKey = RoomService.CreateRoomKey(gameType, roomCode);
-                Console.WriteLine($"Adding to group: {roomKey}");
+                Console.WriteLine($"Ensuring connection is in group: {roomKey}");
+                // Always add the connection to the group, even if already present
                 await Groups.AddToGroupAsync(Context.ConnectionId, roomKey);
                 Console.WriteLine($"Calling JoinAsPlayerMatchMaking");
                 await RoomService.JoinAsPlayerMatchMaking(gameType, roomCode, playerId, user, Context.ConnectionId, Clients);
@@ -64,7 +62,7 @@ namespace Hubs
             try
             {
                 Console.WriteLine($"JoinMatchmaking called with gameType: {gameType}, playerId: {playerId}");
-                
+
                 var user = await UserService.GetUserFromTokenAsync(jwtToken);
                 if (user == null)
                 {
@@ -72,27 +70,104 @@ namespace Hubs
                     await Clients.Caller.SendAsync("UnauthorizedMatchmaking");
                     return null;
                 }
+                await RoomService.ForceRemovePlayerFromAllRooms(playerId, Clients);
+
+                // First, find and close any room this player is currently in
+                Room? oldRoom = null;
+                string? oldRoomKey = null;
+
+                if (RoomService.ActiveMatchmakingSessions.TryGetValue(playerId, out string? activeRoomKey))
+                {
+                    if (RoomService.Rooms.TryGetValue(activeRoomKey, out oldRoom))
+                    {
+                        oldRoomKey = activeRoomKey;
+                        Console.WriteLine($"Player {playerId} found in ActiveMatchmakingSessions: {oldRoomKey}      ");
+                    }
+                }
+
+                // If not found in ActiveMatchmakingSessions, check MatchMakingRoomUsers
+                if (oldRoom == null && RoomService.MatchMakingRoomUsers.TryGetValue(playerId, out RoomUser?         roomUser))
+                {
+                    // Find the room that contains this player
+                    foreach (var room in RoomService.Rooms)
+                    {
+                        if (room.Value.RoomPlayers.Any(p => p.PlayerId == playerId) || 
+                            room.Value.DisconnectedPlayers.ContainsKey(playerId))
+                        {
+                            oldRoom = room.Value;
+                            oldRoomKey = room.Key;
+                            Console.WriteLine($"Player {playerId} found in room {oldRoomKey} via        MatchMakingRoomUsers");
+                            break;
+                        }
+                    }
+                }
+
+                // If still not found, search all rooms for the player
+                if (oldRoom == null)
+                {
+                    foreach (var room in RoomService.Rooms)
+                    {
+                        if (room.Value.RoomPlayers.Any(p => p.PlayerId == playerId) || 
+                            room.Value.DisconnectedPlayers.ContainsKey(playerId))
+                        {
+                            oldRoom = room.Value;
+                            oldRoomKey = room.Key;
+                            Console.WriteLine($"Player {playerId} found in room {oldRoomKey} via room search");
+                            break;
+                        }
+                    }
+                }
+
+                // Close all rooms where the player is present (connected or disconnected)
+                var roomsToClose = RoomService.Rooms.Where(r =>
+                    r.Value.RoomPlayers.Any(p => p.PlayerId == playerId) ||
+                    r.Value.DisconnectedPlayers.ContainsKey(playerId)
+                ).ToList();
+                foreach (var room in roomsToClose)
+                {
+                    var parts = room.Key.Split(':');
+                    var closeGameType = parts[0];
+                    var closeRoomCode = parts[1];
+                    // Call DeclineReconnection for every player in the room
+                    var allPlayers = room.Value.RoomPlayers.Select(p => p.PlayerId)
+                        .Concat(room.Value.DisconnectedPlayers.Keys)
+                        .Distinct().ToList();
+                    foreach (var pid in allPlayers)
+                    {
+                        Console.WriteLine($"Closing room {room.Key} via DeclineReconnection for player {pid}");
+                        await DeclineReconnection(pid, closeGameType, closeRoomCode);
+                    }
+                }
+
+
+                Console.WriteLine($"Looking for rooms that might be waiting for player {playerId}");
+                var roomsWaitingForPlayer = RoomService.Rooms.Where(r => 
+                    r.Value.DisconnectedPlayers.ContainsKey(playerId) && 
+                    r.Value.IsMatchMaking).ToList();
+
+                foreach (var room in roomsWaitingForPlayer)
+                {
+                    Console.WriteLine($"Found room {room.Key} waiting for player {playerId}, closing it");
+                    await RoomService.CloseRoomAndKickAllPlayers(room.Key, Clients, "Player joined new      matchmaking - old room closed");
+                }
+
+
+                Console.WriteLine($"Looking for active rooms that should be closed for player {playerId}");
+                var activeRoomsWithPlayer = RoomService.Rooms.Where(r => 
+                    r.Value.RoomPlayers.Any(p => p.PlayerId == playerId) && 
+                    r.Value.IsMatchMaking &&
+                    r.Value.RoomPlayers.Count > 1).ToList(); // Only close rooms with multiple players
+
+                foreach (var room in activeRoomsWithPlayer)
+                {
+                    Console.WriteLine($"Found active room {room.Key} with player {playerId}, closing it");
+                    await RoomService.CloseRoomAndKickAllPlayers(room.Key, Clients, "Player joined new      matchmaking - old room closed");
+                }
+
+                Console.WriteLine($"Authenticated matchmaking request from {user.Username} (playerId:       {playerId}) for {gameType}");
 
                 // Clean up any inactive matchmaking sessions first
                 RoomService.CleanupInactiveMatchmakingSessions();
-                var playerRoom = RoomService.ActiveMatchmakingSessions.FirstOrDefault(kvp => kvp.Key == playerId);
-                if (playerRoom.Value != null)
-                {
-                    var roomKey = playerRoom.Value;
-                    Console.WriteLine($"EndMatchmakingSession: Found room {roomKey} for player {playerId}");
-
-                    // Close the room and kick all players immediately
-                    await RoomService.CloseRoomAndKickAllPlayers(roomKey, Clients, "Matchmaking session ended by a player");
-                }
-                
-                // Check if player already has an active matchmaking session
-                if (RoomService.HasActiveMatchmakingSession(playerId))
-                {
-                    await Clients.Caller.SendAsync("MatchmakingError", "You already have an active matchmaking session. Please finish your current game first.");
-                    return null;
-                }
-
-                Console.WriteLine($"Authenticated matchmaking request from {user.Username} (playerId: {playerId}) for {gameType}");
 
                 // First, look for rooms with exactly 1 player (waiting for a second player)
                 var availableRoom = RoomService.Rooms.FirstOrDefault(r => 
@@ -107,7 +182,7 @@ namespace Hubs
                     var parts = availableRoom.Key.Split(':');
                     roomCode = parts[1];
                     var roomKey = RoomService.CreateRoomKey(gameType, roomCode);
-                    Console.WriteLine($"Joining existing room {roomCode} for {user.Username} (playerId: {playerId})");
+                    Console.WriteLine($"Joining existing room {roomCode} for {user.Username} (playerId:         {playerId})");
                     await Join(gameType, roomCode, playerId, jwtToken);
                     // MatchFound event will be sent from JoinAsPlayerMatchMaking when game starts
                     return roomCode;
@@ -116,7 +191,7 @@ namespace Hubs
                 {
                     // Create new room
                     roomCode = RoomService.CreateRoom(gameType, true);
-                    Console.WriteLine($"Created new room {roomCode} for {user.Username} (playerId: {playerId})");
+                    Console.WriteLine($"Created new room {roomCode} for {user.Username} (playerId: {playerId})      ");
                     await Join(gameType, roomCode, playerId, jwtToken);
                     await Clients.Caller.SendAsync("WaitingForOpponent", roomCode);
                     return roomCode;
@@ -167,24 +242,16 @@ namespace Hubs
             Console.WriteLine($"DeclineReconnection called for player {playerId}, gameType: {gameType}, roomCode: {roomCode}");
 
             var roomKey = RoomService.CreateRoomKey(gameType, roomCode);
-
             if (RoomService.Rooms.TryGetValue(roomKey, out Room? room))
             {
                 Console.WriteLine($"DeclineReconnection: Found room {roomKey} for player {playerId}");
-
-                // Cancel any existing timers
+                // Restore previous behavior: cancel timers, clear state, notify, and remove room
                 room.RoomTimerCancellation?.Cancel();
                 room.RoomTimerCancellation = null;
-
-                // Clear all timer-related state
                 room.RoomCloseTime = null;
                 room.DisconnectedPlayers.Clear();
-
-                // Notify all players immediately that the room is closing due to declined reconnection
                 await Clients.Group(roomKey).SendAsync("RoomClosed", "A player declined to reconnect. Room closed immediately.");
                 Console.WriteLine($"Sent immediate RoomClosed event to group {roomKey}");
-
-                // Clean up user mappings for all players
                 foreach (var roomPlayer in room.RoomPlayers)
                 {
                     Console.WriteLine($"Cleaning up mappings for player {roomPlayer.PlayerId}");
@@ -198,8 +265,6 @@ namespace Hubs
                         RoomService.CodeRoomUsers.TryRemove(roomPlayer.PlayerId, out _);
                     }
                 }
-
-                // Remove the room from the dictionary
                 RoomService.Rooms.TryRemove(roomKey, out _);
                 Console.WriteLine($"Room {roomKey} closed and all players kicked immediately");
             }
@@ -227,6 +292,7 @@ namespace Hubs
         public async Task LeaveRoom(string gameType, string roomCode, string playerId)
         {
             Console.WriteLine($"MatchMakingHub.LeaveRoom called - PlayerId: {playerId}, GameType: {gameType}, RoomCode: {roomCode}");
+
 
             if (!string.IsNullOrEmpty(playerId) && !string.IsNullOrEmpty(gameType) && !string.IsNullOrEmpty(roomCode))
             {

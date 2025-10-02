@@ -83,7 +83,15 @@ export default function MatchmakingWaitingRoom() {
         setStatus("Authentication failed. Redirecting to login...");
         navigate('/login');
       });
-
+      connection.on("RoomClosed", (message) => {
+        setStatus(message);
+        localStorage.removeItem("roomCloseTime");
+        localStorage.removeItem("activeGame");
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+      });
+      
       return () => {
         connection.off("WaitingForOpponent");
         connection.off("MatchFound");
@@ -92,6 +100,7 @@ export default function MatchmakingWaitingRoom() {
         connection.off("Reconnected");
         connection.off("SetPlayerColor");
         connection.off("UnauthorizedMatchmaking");
+        connection.off("RoomClosed");
       };
     }
   }, [connection, connectionState, playerId, gameType, code, navigate, token]);
