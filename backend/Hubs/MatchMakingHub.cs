@@ -35,6 +35,11 @@ namespace Hubs
             try
             {
                 Console.WriteLine($"Join called with gameType: {gameType}, roomCode: {roomCode}, playerId: {playerId}");
+                if (string.IsNullOrEmpty(gameType) || string.IsNullOrEmpty(roomCode) || string.IsNullOrEmpty(playerId))
+                {
+                    Console.WriteLine("Join failed: Missing required parameters.");
+                    throw new Exception("Missing required parameters for Join.");
+                }
                 var user = await UserService.GetUserFromTokenAsync(jwtToken);
                 if (user == null)
                 {
@@ -42,6 +47,11 @@ namespace Hubs
                     throw new Exception("User authentication failed");
                 }
                 var roomKey = RoomService.CreateRoomKey(gameType, roomCode);
+                if (!RoomService.Rooms.ContainsKey(roomKey))
+                {
+                    Console.WriteLine($"Join failed: Room {roomKey} does not exist.");
+                    throw new Exception($"Room {roomKey} does not exist.");
+                }
                 Console.WriteLine($"Ensuring connection is in group: {roomKey}");
                 // Always add the connection to the group, even if already present
                 await Groups.AddToGroupAsync(Context.ConnectionId, roomKey);

@@ -120,6 +120,26 @@ namespace Services
                     room.RoomCloseTime = null;
                 }
                 await clients.Group(roomKey).SendAsync("PlayerReconnected", playerId, "Player reconnected successfully!");
+
+                // Send current game state and color to reconnecting player
+                var playerIdToColor = new Dictionary<string, string>();
+                foreach (var rp in room.RoomPlayers)
+                {
+                    playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                }
+                await clients.Client(connectionId).SendAsync("SetPlayerColor", playerIdToColor);
+                switch (game)
+                {
+                    case FourInARowGame fourGame:
+                        await clients.Client(connectionId).SendAsync("ReceiveMove", fourGame.GetGameState());
+                        break;
+                    case PairMatching pairGame:
+                        await clients.Client(connectionId).SendAsync("ReceiveBoard", pairGame.GetGameState());
+                        break;
+                    case RockPaperScissors rpsGame:
+                        await clients.Client(connectionId).SendAsync("ReceiveRpsState", rpsGame.GetGameStatePublic());
+                        break;
+                }
             }
 
             if (roomUser is null)
@@ -198,6 +218,26 @@ namespace Services
                     room.RoomCloseTime = null;
                 }
                 await clients.Group(roomKey).SendAsync("PlayerReconnected", playerId, "Player reconnected successfully!");
+
+                // Send current game state and color to reconnecting player
+                var playerIdToColor = new Dictionary<string, string>();
+                foreach (var rp in room.RoomPlayers)
+                {
+                    playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                }
+                await clients.Client(connectionId).SendAsync("SetPlayerColor", playerIdToColor);
+                switch (game)
+                {
+                    case FourInARowGame fourGame:
+                        await clients.Client(connectionId).SendAsync("ReceiveMove", fourGame.GetGameState());
+                        break;
+                    case PairMatching pairGame:
+                        await clients.Client(connectionId).SendAsync("ReceiveBoard", pairGame.GetGameState());
+                        break;
+                    case RockPaperScissors rpsGame:
+                        await clients.Client(connectionId).SendAsync("ReceiveRpsState", rpsGame.GetGameStatePublic());
+                        break;
+                }
             }
 
             if (roomUser is null)
