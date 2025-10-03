@@ -31,24 +31,22 @@ class GlobalConnectionManager {
         const roomCode = connectionData.roomCode;
         const playerId = connectionData.playerId;
        
-        
         if (!gameType || !roomCode || !playerId) {
           console.error(`Missing parameters for LeaveRoom - gameType: ${gameType}, roomCode: ${roomCode}, playerId: ${playerId}`);
           continue;
         }
         
-        const promise = connection.invoke("LeaveRoom", gameType, roomCode, playerId).then(() => {
-          // Only delay if player is alone in the room and board is showing (activeGame)
-          if (showUiDelay) {
-            return new Promise(resolve => setTimeout(resolve, 1700));
-          }
-        }).catch(err => {
+        const promise = connection.invoke("LeaveRoom", gameType, roomCode, playerId).catch(err => {
           console.warn(`LeaveRoom failed on ${type} connection:`, err);
         });
         promises.push(promise);
       }
     }
     await Promise.all(promises);
+    // Always delay after leaving rooms if showUiDelay is true
+    if (showUiDelay) {
+      await new Promise(resolve => setTimeout(resolve, 1700));
+    }
   }
 
   // Check if any connections are active
@@ -60,3 +58,4 @@ class GlobalConnectionManager {
 }
 
 export const globalConnectionManager = new GlobalConnectionManager();
+

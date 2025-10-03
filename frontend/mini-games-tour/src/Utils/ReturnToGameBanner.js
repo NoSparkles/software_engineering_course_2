@@ -316,3 +316,14 @@ export function markJustStartedNewSession(roomCode) {
 export function showLeaveRoomUiDelay() {
   return new Promise(resolve => setTimeout(resolve, 1700));
 }
+
+// --- PATCH: Home button navigation flag ---
+export function markLeaveByHome() {
+  sessionStorage.setItem("leaveByHome", "1");
+}
+export function wasLeaveByHome() {
+  return sessionStorage.getItem("leaveByHome") === "1";
+}
+export function clearLeaveByHome() {
+  sessionStorage.removeItem("leaveByHome");
+}
