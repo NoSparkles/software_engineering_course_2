@@ -486,7 +486,7 @@ namespace Services
         }
 
 
-        public async Task CloseRoomAndKickAllPlayers(string roomKey, IHubCallerClients clients, string reason)
+        public async Task CloseRoomAndKickAllPlayers(string roomKey, IHubCallerClients clients, string reason, string? excludePlayerId = null)
         {
             Console.WriteLine($"CloseRoomAndKickAllPlayers called for room {roomKey}, reason: {reason}");
 
@@ -499,14 +499,44 @@ namespace Services
             Console.WriteLine($"Found room {roomKey} with {room.RoomPlayers.Count} players");
             Console.WriteLine($"Closing room {roomKey} and kicking all players. Reason: {reason}");
 
-            // Notify all remaining players that the room is closing
-            Console.WriteLine($"Sending RoomClosed event to group {roomKey} (reason: {reason})");
-            await clients.Group(roomKey).SendAsync("RoomClosed", reason);
+            // Remove excluded player from mappings BEFORE sending RoomClosed
+            if (excludePlayerId != null)
+            {
+                var excludedPlayer = room.RoomPlayers.FirstOrDefault(p => p.PlayerId == excludePlayerId);
+                if (excludedPlayer != null)
+                {
+                    if (room.IsMatchMaking)
+                    {
+                        MatchMakingRoomUsers.TryRemove(excludePlayerId, out _);
+                        ActiveMatchmakingSessions.TryRemove(excludePlayerId, out _);
+                    }
+                    else
+                    {
+                        CodeRoomUsers.TryRemove(excludePlayerId, out _);
+                    }
+                }
+            }
+
+            // Only send RoomClosed to the group if there are players other than the excluded player
+            if (excludePlayerId == null)
+            {
+                await clients.Group(roomKey).SendAsync("RoomClosed", reason, roomKey);
+            }
+            else
+            {
+                var otherPlayers = room.RoomPlayers.Where(p => p.PlayerId != excludePlayerId).ToList();
+                if (otherPlayers.Count > 0)
+                {
+                    await clients.Group(roomKey).SendAsync("RoomClosed", reason, roomKey);
+                }
+            }
             Console.WriteLine($"Sent RoomClosed event to group {roomKey}");
 
-            // Clean up user mappings for all players
+            // Clean up user mappings for all other players
             foreach (var player in room.RoomPlayers)
             {
+                if (excludePlayerId != null && player.PlayerId == excludePlayerId)
+                    continue;
                 Console.WriteLine($"Cleaning up mappings for player {player.PlayerId}");
                 if (room.IsMatchMaking)
                 {
@@ -557,6 +587,7 @@ namespace Services
             }
 
             Console.WriteLine($"RoomService: Player {playerId} found in room {roomKey}, proceeding with leave");
+
 
             // Remove player from room
             room.RoomPlayers.RemoveAll(rp => rp.PlayerId == playerId);

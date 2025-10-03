@@ -85,7 +85,37 @@ export default function ReturnToGameBanner() {
         localStorage.setItem("PlayerReconnected", Date.now().toString());
         setTimeout(() => localStorage.removeItem("PlayerReconnected"), 100);
       });
-      connection.on("RoomClosed", () => {
+      connection.on("RoomClosed", function(reason, closedRoomCode) {
+        // --- PATCH: Robustly ignore RoomClosed for old sessions using both sessionVersion and roomCode ---
+        const sessionNow = localStorage.getItem("activeGame");
+        const playerId = localStorage.getItem("playerId");
+        const sessionVersion = sessionStorage.getItem("sessionVersion");
+        if (!sessionNow || !playerId) return;
+        const { gameType, code } = JSON.parse(sessionNow);
+
+        // If the closedRoomCode is not for the current session, ignore
+        if (
+          closedRoomCode &&
+          closedRoomCode !== code &&
+          closedRoomCode !== `${gameType}:${code}`.toUpperCase()
+        ) {
+          return;
+        }
+
+        // PATCH: If the sessionVersion for the closedRoomCode does not match the current sessionVersion, ignore
+        // This covers the case where the player rapidly switches sessions and the old RoomClosed arrives late
+        const closedRoomVersion =
+          sessionStorage.getItem(`sessionVersion:${closedRoomCode}`) ||
+          sessionStorage.getItem(`sessionVersion:${(closedRoomCode || "").toUpperCase()}`) ||
+          null;
+        if (
+          closedRoomVersion &&
+          sessionVersion &&
+          closedRoomVersion !== sessionVersion
+        ) {
+          return;
+        }
+
         setShowBanner(false);
         setGameInfo(null);
         setForceTimerReset(x => x + 1);
@@ -269,4 +299,20 @@ export default function ReturnToGameBanner() {
       )}
     </div>
   );
+}
+
+// --- PATCH: Export a helper to mark a new session version ---
+export function markJustStartedNewSession(roomCode) {
+  // Use a unique version for each session (timestamp)
+  const version = Date.now().toString();
+  sessionStorage.setItem("sessionVersion", version);
+  if (roomCode) {
+    sessionStorage.setItem(`sessionVersion:${roomCode}`, version);
+    sessionStorage.setItem(`sessionVersion:${roomCode.toUpperCase()}`, version);
+  }
+}
+
+// --- PATCH: Show a UI status/spinner for 1.7s when leaving a room (for both player A and B) ---
+export function showLeaveRoomUiDelay() {
+  return new Promise(resolve => setTimeout(resolve, 1700));
 }

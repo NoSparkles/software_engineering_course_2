@@ -8,6 +8,7 @@ import RpsBoard from '../../Games/RockPaperScissors/Components/RpsBoard';
 import {Board as FourInARowGameBoard} from '../../Games/FourInRowGame/Components/Board';
 import { useAuth } from '../../Utils/AuthProvider';
 import { globalConnectionManager } from '../../Utils/GlobalConnectionManager';
+import { showLeaveRoomUiDelay } from '../../Utils/ReturnToGameBanner';
 import './styles.css';
 
 export default function MatchmakingSessionRoom() {
@@ -16,7 +17,7 @@ export default function MatchmakingSessionRoom() {
   const { user, token } = useAuth()
   const [status, setStatus] = useState("Game in progress...");
   const [board, setBoard] = useState(null);
-  const [playerColor, setPlayerColor] = useState(null); // only for four-in-a-row
+  const [playerColor, setPlayerColor] = useState(null);
   const playerId = usePlayerId();
   const timeLeft = useCountdownTimer();
   
@@ -150,13 +151,44 @@ export default function MatchmakingSessionRoom() {
         }, 2000);
       });
 
-      connection.on("RoomClosed", (message) => {
-        console.log("[RoomClosed] event received:", message);
+      connection.on("RoomClosed", (message, closedRoomCode) => {
+        console.log("[RoomClosed] event received:", message, closedRoomCode);
         setStatus(message);
         localStorage.removeItem("roomCloseTime");
         localStorage.removeItem("activeGame");
-        // Immediate navigation for reliability
-        navigate('/');
+        // PATCH: Only navigate home if the room is actually closed for everyone (not just because a player left)
+        // If the message indicates the room is closed because all players left or session ended, navigate home.
+        // Otherwise, just show the status and let the user decide.
+        if (
+          typeof message === "string" &&
+          (
+            message.includes("all players left") ||
+            message.includes("session ended") ||
+            message.includes("Room closed - player left and timer expired") ||
+            message.includes("Room closed - player left and timer expired.") ||
+            message.includes("Room closed - all players left") ||
+            message.includes("Matchmaking session ended by a player")
+          )
+        ) {
+          navigate('/');
+        } else {
+          // PATCH: If this RoomClosed is for a different room than the current one, ignore navigation
+          if (closedRoomCode) {
+            const session = localStorage.getItem("activeGame");
+            if (session) {
+              const { gameType: currentGameType, code: currentCode } = JSON.parse(session);
+              const currentRoomKey = `${currentGameType}:${currentCode}`.toUpperCase();
+              if (
+                closedRoomCode !== currentCode &&
+                closedRoomCode !== currentRoomKey
+              ) {
+                // Not for this session, ignore navigation
+                return;
+              }
+            }
+          }
+          // Otherwise, just show the status and let the user decide.
+        }
       });
 
       // Failsafe: Listen for localStorage removal of activeGame (in case RoomClosed event is missed)
@@ -188,10 +220,19 @@ export default function MatchmakingSessionRoom() {
         // Call LeaveRoom when component unmounts (user navigates away)
         if (connection && connection.state === "Connected") {
           console.log("Component unmounting - calling LeaveRoom...");
-          connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
-            console.warn("LeaveRoom failed on unmount:", err);
-          });
-          console.log("LeaveRoom call initiated on unmount");
+          // PATCH: Always show UI delay before leaving, for both player A and player B
+          // Block navigation until delay and backend cleanup are done
+          // Use a synchronous blocking pattern for React 18+ cleanup
+          const leaveWithDelay = async () => {
+            await showLeaveRoomUiDelay();
+            await connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
+              console.warn("LeaveRoom failed on unmount:", err);
+            });
+            console.log("LeaveRoom call initiated on unmount (with UI delay for all)");
+          };
+          // If React supports async cleanup, return the promise
+          // Otherwise, call and ignore the promise (best effort for older React)
+          return leaveWithDelay();
         }
         window.removeEventListener("storage", handleStorage);
         connection.off("WaitingForOpponent");
@@ -284,7 +325,8 @@ export default function MatchmakingSessionRoom() {
         onClick={async () => {
           if (connection && connection.state === "Connected") {
             try {
-              console.log("Calling EndMatchmakingSession...");
+              // PATCH: Always show UI delay before leaving, for both player A and player B
+              await showLeaveRoomUiDelay();
               await connection.invoke("EndMatchmakingSession", playerId);
               console.log("EndMatchmakingSession completed successfully");
             } catch (err) {
@@ -307,6 +349,11 @@ export default function MatchmakingSessionRoom() {
           🚪 End Session
         </button>
       </div>
+      {/* --- PATCH: Always render the board below the controls --- */}
+      <div className="game-board">
+        {board}
+      </div>
+      {/* --- Optionally, show the info and timer below the board --- */}
       <div className="matchmaking-info">
         <p><em>You are playing in matchmaking mode. This game was automatically matched.</em></p>
         {timeLeft !== null ? (
@@ -320,9 +367,6 @@ export default function MatchmakingSessionRoom() {
         ) : (
           <p>The room will remain open until all players have left.</p>
         )}
-      </div>
-      <div className="game-board">
-        {board}
       </div>
     </div>
   );
