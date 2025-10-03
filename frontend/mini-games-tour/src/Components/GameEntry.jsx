@@ -125,19 +125,42 @@ export default function GameEntry() {
       });
 
       connection.on("MatchFound", (roomCode) => {
-        console.log("GameEntry: MatchFound event received, navigating to:", `/${gameType}/matchmaking-waiting/${roomCode}`);
-        setError('');
-        console.log("GameEntry: About to navigate to matchmaking waiting room");
-        navigate(`/${gameType}/matchmaking-waiting/${roomCode}`);
-        console.log("GameEntry: Navigation completed");
-      });
+    console.log("GameEntry: MatchFound event received");
+    setError('');
+        
+    // Clear any existing game session before setting the new one
+    localStorage.removeItem("activeGame");
+    localStorage.removeItem("roomCloseTime");
+        
+    const activeGameData = {
+      gameType,
+      code: roomCode,
+      playerId: playerId,
+      isMatchmaking: true
+    };
+    localStorage.setItem("activeGame", JSON.stringify(activeGameData));
+    
+    console.log("GameEntry: About to navigate to matchmaking waiting room");
+    navigate(`/${gameType}/matchmaking-waiting/${roomCode}`);
+    console.log("GameEntry: Navigation completed");
+  });
 
       connection.on("WaitingForOpponent", (roomCode) => {
-        console.log("GameEntry: WaitingForOpponent event received, navigating to:", `/${gameType}/matchmaking-waiting/${roomCode}`);
+        console.log("GameEntry: WaitingForOpponent event received");
         setError('');
-        console.log("GameEntry: About to navigate to matchmaking waiting room");
+
+        // Clear any existing game session before setting the new one
+        localStorage.removeItem("activeGame");
+        localStorage.removeItem("roomCloseTime");
+
+        const activeGameData = {
+          gameType,
+          code: roomCode,
+          playerId: playerId,
+          isMatchmaking: true
+        };
+        localStorage.setItem("activeGame", JSON.stringify(activeGameData));
         navigate(`/${gameType}/matchmaking-waiting/${roomCode}`);
-        console.log("GameEntry: Navigation completed");
       });
 
       connection.on("StartGame", (roomCode) => {
@@ -218,7 +241,7 @@ export default function GameEntry() {
           }
         }}>Matchmaking</button>
         {error && <p className="error">{error}</p>}
-        <p style={{fontSize: '12px', color: 'gray'}}>Debug: Matchmaking button rendered</p>
+        
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../Utils/AuthProvider';
 import { globalConnectionManager } from '../Utils/GlobalConnectionManager';
+import { markLeaveByHome } from '../Utils/ReturnToGameBanner';
 import './styles.css';
 
 export default function Navbar() {
@@ -12,19 +13,18 @@ export default function Navbar() {
   const handleHomeClick = async () => {
     // Check if user is in a game session
     const activeGame = localStorage.getItem("activeGame");
-    
-    // Check if there are any active connections
     const hasActiveConnections = globalConnectionManager.hasActiveConnections();
-    
+
     if (activeGame || hasActiveConnections) {
-      // Call LeaveRoom on all active connections
       try {
+        // Mark that Home button is triggering the leave (prevents double delay)
+        markLeaveByHome();
         await globalConnectionManager.leaveAllRooms();
       } catch (err) {
         console.warn("LeaveRoom failed:", err);
       }
     }
-    
+
     // Navigate to home
     navigate('/');
   };

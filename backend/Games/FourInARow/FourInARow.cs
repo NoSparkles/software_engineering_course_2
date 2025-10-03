@@ -6,7 +6,7 @@ namespace games
 {
     public class FourInARowGame : GameInstance
     {
-        private Dictionary<string, string> playerColors = new();
+    // PlayerColors now handled in base class using PlayerId as key
         public string[,] Board { get; private set; } = new string[6, 7];
        public string CurrentPlayerColor { get; private set; } = "R";
         // WinnerColor is null when there is no winner yet
