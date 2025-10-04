@@ -3,10 +3,12 @@
   background-color: #0d1117;
   min-height: 100vh;
   padding: 40px;
+  padding-top: 104px;
   font-family: Arial, sans-serif;
   display: flex;
   flex-direction: column;
   align-items: center;
+  box-sizing: border-box;
 }
 
 .users h1 {

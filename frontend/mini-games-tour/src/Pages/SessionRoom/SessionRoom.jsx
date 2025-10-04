@@ -238,103 +238,43 @@ export default function SessionRoom() {
     <div className="session-room">
       <h2>{gameType.toUpperCase()} Session</h2>
       <p>Room Code: <strong>{code}</strong></p>
-      <p>Player: <strong>{user?.username || playerId}</strong></p>
       <p>
         Assigned Color: <strong>{playerColor ? (playerColor === "R" ? "Red" : "Yellow") : "Not assigned yet"}</strong>
       </p>
-      <p>Status: <strong>{status}</strong></p>
-      <p>Connection: <strong style={{
-        color: connectionState === "Connected" ? "green" : 
-               connectionState === "Reconnecting" ? "orange" : 
-               connectionState === "Disconnected" ? "red" : "gray"
-      }}>{connectionState}</strong></p>
+
       {connectionState === "Disconnected" && (
-        <button 
-          onClick={() => {
-            if (connection) {
-              connection.start().catch(err => console.error("Reconnection failed:", err));
-            }
-          }}
-          style={{ 
-            backgroundColor: "#007bff", 
-            color: "white", 
-            border: "none", 
-            padding: "8px 16px", 
-            borderRadius: "4px",
-            cursor: "pointer",
-            marginTop: "10px"
-          }}
-        >
+        <button className="reconnect-btn" onClick={() => {
+          if (connection) connection.start().catch(err => console.error("Reconnection failed:", err));
+        }}>
           Reconnect
         </button>
       )}
+
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
-        <button 
-        onClick={async () => {
-          // Call LeaveRoom before navigating
+        <button onClick={async () => {
           if (!isSpectator && connection && connection.state === "Connected") {
             try {
-              console.log("Calling LeaveRoom before navigation...");
-              // Don't await - fire and forget to avoid timing issues
-              connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
-                console.warn("LeaveRoom failed:", err);
-              });
-              console.log("LeaveRoom call initiated");
+              connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => console.warn("LeaveRoom failed:", err));
             } catch (err) {
               console.warn("LeaveRoom failed:", err);
             }
           }
-          console.log("Navigating to home...");
           navigate('/');
-        }}
-          style={{ 
-            backgroundColor: '#dc3545', 
-            color: 'white', 
-            border: 'none', 
-            padding: '12px 24px', 
-            borderRadius: '6px', 
-            cursor: 'pointer',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-          }}
-        >
+        }}>
           🚪 Leave Room
         </button>
       </div>
+
       {timeLeft !== null ? (
-        <div style={{ 
-          textAlign: "center",
-          margin: "10px 0",
-          padding: "10px",
-          backgroundColor: timeLeft <= 10 ? "#ffebee" : timeLeft <= 20 ? "#fff3e0" : "#f5f5f5",
-          borderRadius: "4px"
-        }}>
-          <p style={{ 
-            color: timeLeft <= 10 ? "red" : timeLeft <= 20 ? "orange" : "black",
-            fontWeight: "bold",
-            margin: 0
-          }}>
-            {timeLeft > 0 ? `Room will close in ${timeLeft} seconds` : "Room is closing now!"}
-          </p>
+        <div className={`time-left ${timeLeft <= 10 ? 'short' : timeLeft <= 20 ? 'medium' : 'long'}`}>
+          {timeLeft > 0 ? `Room will close in ${timeLeft} seconds` : "Room is closing now!"}
         </div>
       ) : (
-        <div style={{ 
-          textAlign: "center",
-          margin: "10px 0",
-          padding: "10px",
-          backgroundColor: "#e8f5e8",
-          borderRadius: "4px"
-        }}>
-          <p style={{ 
-            color: "green",
-            fontWeight: "bold",
-            margin: 0
-          }}>
-            The room will remain open until all players have left.
-          </p>
+        <div className="time-left stable">
+          The room will remain open until all players have left.
         </div>
       )}
+
       <div className="game-board">
         {board}
       </div>

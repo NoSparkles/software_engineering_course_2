@@ -1,38 +1,83 @@
 .waiting-room {
-  text-align: center;
+  color: #fff;
+  background-color: #0d1117;
+  height: 100vh;
   padding: 40px;
+  padding-top: 104px; /* 64px navbar + 40px padding */
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.waiting-room h1 {
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #58a6ff;
+}
+
+.waiting-room .status-message {
+  font-size: 24px;
+  font-weight: bold;
+  color: #9be9a8;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .waiting-room p {
-  font-size: 1.2rem;
-  margin: 10px 0;
-}
-
-button {
+  font-size: 20px;
+  font-weight: bold;
+  color: #ffcc00;
+  background-color: #161b22;
   padding: 10px 20px;
-  font-size: 1rem;
-  background-color: #2ecc71;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: #27ae60;
-}
-
-.matchmaking-info {
-  margin-top: 20px;
-  padding: 15px;
-  background-color: #e8f4fd;
   border-radius: 8px;
-  border-left: 4px solid #3498db;
+  letter-spacing: 2px;
 }
 
-.matchmaking-info p {
-  margin: 0;
-  color: #2c3e50;
+/* Matchmaking Waiting Room */
+.matchmaking-waiting-room {
+  color: #fff;
+  background-color: #0d1117;
+  height: 100vh;
+  padding: 40px;
+  padding-top: 104px; /* 64px navbar + 40px padding */
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.matchmaking-waiting-room h1 {
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #58a6ff;
+}
+
+.matchmaking-waiting-room h2 {
+  font-size: 24px;
+  font-weight: bold;
+  color: #9be9a8;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.matchmaking-waiting-room .matchmaking-info p {
+  font-size: 18px;
   font-style: italic;
-  font-size: 1rem;
+  color: #ffcc00;
+  background-color: #161b22;
+  padding: 12px 24px;
+  border-radius: 8px;
+  max-width: 500px;
+  text-align: center;
 }

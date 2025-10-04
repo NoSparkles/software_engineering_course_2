@@ -1,9 +1,11 @@
 .profile {
   color: #fff;
   background-color: #0d1117;
-  min-height: 100vh;
+  height: 100vh;
   padding: 40px;
+  padding-top: 104px;
   font-family: Arial, sans-serif;
+  box-sizing: border-box;
 }
 
 .profile h1 {
