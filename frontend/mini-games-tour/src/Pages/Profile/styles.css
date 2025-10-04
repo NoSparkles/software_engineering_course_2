@@ -5,6 +5,9 @@
   padding: 40px;
   padding-top: 104px;
   font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   box-sizing: border-box;
 }
 
@@ -14,10 +17,36 @@
   margin-bottom: 10px;
 }
 
-.profile p {
-  font-size: 18px;
+.add-friend-btn,
+.remove-friend-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
   margin-bottom: 20px;
-  color: #ccc;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.add-friend-btn {
+  background-color: #1f6feb;
+  color: #fff;
+}
+
+.add-friend-btn:hover {
+  background-color: #58a6ff;
+  color: #0d1117;
+}
+
+.remove-friend-btn {
+  background-color: #ff4c4c;
+  color: #fff;
+}
+
+.remove-friend-btn:hover {
+  background-color: #ff1a1a;
+  color: #fff;
 }
 
 .friends-container {

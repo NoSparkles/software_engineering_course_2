@@ -134,6 +134,19 @@ namespace Controllers
             return Ok(updatedUser?.Friends);
         }
 
+        // PUT: User/{username}/remove-friend
+        [HttpPut("{username}/remove-friend")]
+        public async Task<ActionResult> RemoveFriend(string username, [FromBody] string friendUsername)
+        {
+            var success = await _userService.RemoveFriendAsync(username, friendUsername);
+            if (!success)
+                return NotFound("User or friend not found.");
+
+            var updatedUser = await _userService.GetUserAsync(username);
+            return Ok(updatedUser?.Friends);
+        }
+
+
         // PUT: User/{username}/update-mmr
         [HttpPut("{username}/update-mmr")]
         public async Task<ActionResult> UpdateMMR(string username, [FromBody] Dictionary<string, int> mmrUpdates)

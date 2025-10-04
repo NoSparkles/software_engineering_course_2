@@ -124,6 +124,26 @@ namespace Services
             return true;
         }
 
+        // Remove a friend (mutual)
+        public async Task<bool> RemoveFriendAsync(string username, string friendUsername)
+        {
+            var user = await _context.Users.FindAsync(username);
+            var friend = await _context.Users.FindAsync(friendUsername);
+
+            if (user == null || friend == null)
+                return false;
+
+            if (user.Friends.Contains(friendUsername))
+                user.Friends.Remove(friendUsername);
+
+            if (friend.Friends.Contains(username))
+                friend.Friends.Remove(username);
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+
         // Update MMR
         public async Task<bool> UpdateMMRAsync(string username, Dictionary<string, int> mmrUpdates)
         {
