@@ -6,6 +6,11 @@ const useUserDatabase = () => {
         data,
         } = useFetch();
 
+    const getUsers = async () => {
+        const result = await fetchData('http://localhost:5236/User')
+        return result
+    }
+
     const getUser = async (username) => {
         const result = await fetchData(`http://localhost:5236/User/${username}`);
         return result
@@ -21,11 +26,10 @@ const useUserDatabase = () => {
         true
         );
         return result
-     };    
-
-
+    };
 
     return {
+        getUsers,
         getUser,
         addFriend
     }

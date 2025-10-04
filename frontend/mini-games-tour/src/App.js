@@ -10,6 +10,7 @@ import Navbar from './Components/Navbar';
 import Login from './Pages/Login/Login';
 import Register from './Pages/Register/Register';
 import Profile from './Pages/Profile/Profile';
+import Users from './Pages/Users/Users'
 import { AuthProvider } from './Utils/AuthProvider';
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
           <Route path='/login' element={<Login />} />
           <Route path='/register' element={<Register />} />
           <Route path='/profile/:username' element={<Profile/>} />
+          <Route path='/users' element={<Users/>} />
           <Route path="/rock-paper-scissors" element={<GameEntry />} />
           <Route path="/four-in-a-row" element={<GameEntry />} />
           <Route path="/pair-matching" element={<GameEntry />} />
