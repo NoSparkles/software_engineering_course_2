@@ -5,14 +5,14 @@ import useUserDatabase from '../../Utils/useUserDatabase'
 import './styles.css'
 
 const Profile = () => {
-  const { 
-    getUser, 
-    sendFriendRequest, 
-    acceptFriendRequest, 
+  const {
+    getUser,
+    sendFriendRequest,
+    acceptFriendRequest,
     declineFriendRequest,
     removeFriend
   } = useUserDatabase()
-  
+
   const { user, refreshUser } = useAuth()
   const { username } = useParams()
   const navigate = useNavigate()
@@ -20,6 +20,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(true)
 
   const fetchProfile = async () => {
+    setLoading(true)
     const result = await getUser(username)
     if (result?.username) {
       setProfileUser(result)
@@ -31,33 +32,51 @@ const Profile = () => {
 
   useEffect(() => {
     fetchProfile()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username])
 
+  /* Actions */
+
+  // Send request (viewer -> profileUser)
   const handleSendRequest = async () => {
     if (!user || !profileUser) return
-    const success = await sendFriendRequest(user.username, profileUser.username)
-    if (success) await fetchProfile()
+    const res = await sendFriendRequest(user.username, profileUser.username)
+    if (res) await fetchProfile()
   }
 
-  const handleAcceptRequest = async (friendUsername) => {
+  // Accept incoming request (viewer accepts requester)
+  const handleAcceptRequest = async (requesterUsername) => {
     if (!user) return
-    const success = await acceptFriendRequest(user.username, friendUsername)
-    if (success) {
+    const res = await acceptFriendRequest(user.username, requesterUsername)
+    if (res) {
       await fetchProfile()
       if (refreshUser) refreshUser()
     }
   }
 
-  const handleDeclineRequest = async (friendUsername) => {
+  // Decline incoming request (viewer declines requester)
+  const handleDeclineRequest = async (requesterUsername) => {
     if (!user) return
-    const success = await declineFriendRequest(user.username, friendUsername)
-    if (success) await fetchProfile()
+    const res = await declineFriendRequest(user.username, requesterUsername)
+    if (res) await fetchProfile()
   }
 
-  const handleUnfriend = async (friendUsername) => {
-    if (!user) return
-    const success = await removeFriend(user.username, friendUsername)
-    if (success) {
+  // Cancel a request that the viewer already sent to profileUser
+  // (call decline on the profileUser's endpoint with viewer as requester)
+  const handleCancelRequest = async () => {
+    if (!user || !profileUser) return
+    const res = await declineFriendRequest(profileUser.username, user.username)
+    if (res) {
+      await fetchProfile()
+      if (refreshUser) refreshUser()
+    }
+  }
+
+  // Unfriend
+  const handleUnfriend = async () => {
+    if (!user || !profileUser) return
+    const res = await removeFriend(user.username, profileUser.username)
+    if (res) {
       await fetchProfile()
       if (refreshUser) refreshUser()
     }
@@ -65,43 +84,61 @@ const Profile = () => {
 
   if (loading) return <div className="profile">Loading...</div>
 
-  const isOwnProfile = user?.username === profileUser.username
-  const isFriend = profileUser.friends.includes(user?.username)
-  const hasIncomingRequest = profileUser.incomingFriendRequests?.includes(user?.username)
+  const viewer = user?.username
+  const isOwnProfile = viewer === profileUser.username
+  const isFriend = profileUser.friends?.includes(viewer)
+  // from viewer perspective:
+  const iSentRequestToThem = profileUser.incomingFriendRequests?.includes(viewer) // profileUser received my request
+  const theySentRequestToMe = profileUser.outgoingFriendRequests?.includes(viewer) // profileUser requested me
 
   return (
     <div className='profile'>
       <h1>{profileUser.username}</h1>
 
-      {!isOwnProfile && isFriend && (
-        <button className='remove-friend-btn' onClick={() => handleUnfriend(profileUser.username)}>
-          Unfriend
-        </button>
-      )}
-
-      {!isOwnProfile && !isFriend && !hasIncomingRequest && (
-        <button className='add-friend-btn' onClick={handleSendRequest}>
-          Send Friend Request
-        </button>
-      )}
-
-      {!isOwnProfile && !isFriend && hasIncomingRequest && (
+      {/* Friend / Request controls for other users */}
+      {!isOwnProfile && (
         <>
-          <button className='accept-friend-btn' onClick={() => handleAcceptRequest(profileUser.username)}>
-            Accept Friend Request
-          </button>
-          <button className='decline-friend-btn' onClick={() => handleDeclineRequest(profileUser.username)}>
-            Decline
-          </button>
+          {isFriend && (
+            <button className='remove-friend-btn' onClick={handleUnfriend}>
+              Unfriend
+            </button>
+          )}
+
+          {!isFriend && iSentRequestToThem && (
+            // I already sent them a request -> allow cancel
+            <button className='cancel-request-btn' onClick={handleCancelRequest}>
+              Cancel Request
+            </button>
+          )}
+
+          {!isFriend && theySentRequestToMe && (
+            // They sent me a request -> I can accept or decline
+            <>
+              <button className='accept-friend-btn' onClick={() => handleAcceptRequest(profileUser.username)}>
+                Accept Friend Request
+              </button>
+              <button className='decline-friend-btn' onClick={() => handleDeclineRequest(profileUser.username)}>
+                Decline
+              </button>
+            </>
+          )}
+
+          {!isFriend && !iSentRequestToThem && !theySentRequestToMe && (
+            // No relation -> send request
+            <button className='add-friend-btn' onClick={handleSendRequest}>
+              Send Friend Request
+            </button>
+          )}
         </>
       )}
 
+      {/* Own profile: show incoming requests list */}
       {isOwnProfile && profileUser.incomingFriendRequests?.length > 0 && (
         <div className='incoming-requests'>
           <h2>Incoming Friend Requests</h2>
           {profileUser.incomingFriendRequests.map((requester, i) => (
             <div key={i} className='friend-request'>
-              <span>{requester}</span>
+              <span className='requester-name'>{requester}</span>
               <button className='accept-friend-btn' onClick={() => handleAcceptRequest(requester)}>
                 Accept
               </button>
@@ -115,7 +152,7 @@ const Profile = () => {
 
       <div className='friends-container'>
         <h2>Friends</h2>
-        {profileUser.friends.map((item, i) => (
+        {profileUser.friends?.map((item, i) => (
           <Link to={`/profile/${item}`} key={i}>{item}</Link>
         ))}
       </div>

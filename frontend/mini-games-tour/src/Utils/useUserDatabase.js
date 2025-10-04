@@ -16,11 +16,10 @@ const useUserDatabase = () => {
   // Send friend request
   const sendFriendRequest = async (myUsername, friendUsername) => {
     const result = await fetchData(
-      `http://localhost:5236/User/${myUsername}/send-friend-request`,
+      `http://localhost:5236/User/${myUsername}/send-request`,
       {
         method: 'PUT',
-        headers: { 'Content-Type': 'text/plain' },
-        body: friendUsername,
+        body: JSON.stringify(friendUsername),
       },
       true
     );
@@ -29,11 +28,10 @@ const useUserDatabase = () => {
 
   const acceptFriendRequest = async (myUsername, friendUsername) => {
     const result = await fetchData(
-      `http://localhost:5236/User/${myUsername}/accept-friend-request`,
+      `http://localhost:5236/User/${myUsername}/accept-request`,
       {
         method: 'PUT',
-        headers: { 'Content-Type': 'text/plain' },
-        body: friendUsername,
+        body: JSON.stringify(friendUsername),
       },
       true
     );
@@ -42,11 +40,10 @@ const useUserDatabase = () => {
 
   const declineFriendRequest = async (myUsername, friendUsername) => {
     const result = await fetchData(
-      `http://localhost:5236/User/${myUsername}/decline-friend-request`,
+      `http://localhost:5236/User/${myUsername}/reject-request`,
       {
         method: 'PUT',
-        headers: { 'Content-Type': 'text/plain' },
-        body: friendUsername,
+        body: JSON.stringify(friendUsername),
       },
       true
     );
