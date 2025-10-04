@@ -44,7 +44,6 @@ namespace Services
                 RockPaperScissorsMMR = 1000,
                 FourInARowMMR = 1000,
                 PairMatchingMMR = 1000,
-                TournamentMMR = 1000
             };
 
             _context.Users.Add(newUser);
@@ -105,24 +104,89 @@ namespace Services
             return true;
         }
 
-        // Add a friend (mutual)
-        public async Task<bool> AddFriendAsync(string username, string friendUsername)
+       // Send a friend request or accept if target already requested
+    public async Task<bool> SendFriendRequestAsync(string username, string targetUsername)
+    {
+        if (username == targetUsername)
+            return false; // can't friend yourself
+
+        var user = await _context.Users.FindAsync(username);
+        var target = await _context.Users.FindAsync(targetUsername);
+
+        if (user == null || target == null)
+            return false;
+
+        // Already friends
+        if (user.Friends.Contains(targetUsername))
+            return false;
+
+        // If target already sent a request to user => accept it
+        if (user.IncomingFriendRequests.Contains(targetUsername))
         {
-            var user = await _context.Users.FindAsync(username);
-            var friend = await _context.Users.FindAsync(friendUsername);
+            user.IncomingFriendRequests.Remove(targetUsername);
+            target.OutgoingFriendRequests.Remove(username);
 
-            if (user == null || friend == null)
-                return false;
-
-            if (!user.Friends.Contains(friendUsername))
-                user.Friends.Add(friendUsername);
-
-            if (!friend.Friends.Contains(username))
-                friend.Friends.Add(username);
+            user.Friends.Add(targetUsername);
+            target.Friends.Add(username);
 
             await _context.SaveChangesAsync();
             return true;
         }
+
+        // Otherwise, send a request
+        if (!user.OutgoingFriendRequests.Contains(targetUsername) &&
+            !target.IncomingFriendRequests.Contains(username))
+        {
+            user.OutgoingFriendRequests.Add(targetUsername);
+            target.IncomingFriendRequests.Add(username);
+
+            await _context.SaveChangesAsync();
+        }
+
+        return true;
+    }
+
+    // Accept a friend request
+    public async Task<bool> AcceptFriendRequestAsync(string username, string requesterUsername)
+    {
+        var user = await _context.Users.FindAsync(username);
+        var requester = await _context.Users.FindAsync(requesterUsername);
+
+        if (user == null || requester == null)
+            return false;
+
+        if (!user.IncomingFriendRequests.Contains(requesterUsername))
+            return false; // no request to accept
+
+        user.IncomingFriendRequests.Remove(requesterUsername);
+        requester.OutgoingFriendRequests.Remove(username);
+
+        user.Friends.Add(requesterUsername);
+        requester.Friends.Add(username);
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    // Reject a friend request
+    public async Task<bool> RejectFriendRequestAsync(string username, string requesterUsername)
+    {
+        var user = await _context.Users.FindAsync(username);
+        var requester = await _context.Users.FindAsync(requesterUsername);
+
+        if (user == null || requester == null)
+            return false;
+
+        if (!user.IncomingFriendRequests.Contains(requesterUsername))
+            return false;
+
+        user.IncomingFriendRequests.Remove(requesterUsername);
+        requester.OutgoingFriendRequests.Remove(username);
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
 
         // Remove a friend (mutual)
         public async Task<bool> RemoveFriendAsync(string username, string friendUsername)
@@ -163,9 +227,6 @@ namespace Services
                         break;
                     case "pairmatching":
                         user.PairMatchingMMR = kvp.Value;
-                        break;
-                    case "tournament":
-                        user.TournamentMMR = kvp.Value;
                         break;
                 }
             }

@@ -5,95 +5,81 @@
   padding: 40px;
   padding-top: 104px;
   font-family: Arial, sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  box-sizing: border-box;
+  text-align: center;
 }
 
 .profile h1 {
-  font-size: 28px;
-  text-align: center;
-  margin-bottom: 10px;
+  font-size: 32px;
+  color: #58a6ff;
+  margin-bottom: 20px;
 }
 
 .add-friend-btn,
-.remove-friend-btn {
-  padding: 8px 16px;
+.remove-friend-btn,
+.accept-friend-btn,
+.decline-friend-btn {
+  padding: 10px 20px;
+  margin: 5px;
   border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
   font-weight: bold;
-  margin-bottom: 20px;
-  transition: background-color 0.2s, color 0.2s;
+  cursor: pointer;
+  border: none;
+  font-size: 16px;
 }
 
 .add-friend-btn {
-  background-color: #1f6feb;
-  color: #fff;
-}
-
-.add-friend-btn:hover {
-  background-color: #58a6ff;
-  color: #0d1117;
+  background-color: #007bff;
+  color: white;
 }
 
 .remove-friend-btn {
-  background-color: #ff4c4c;
-  color: #fff;
+  background-color: #dc3545;
+  color: white;
 }
 
-.remove-friend-btn:hover {
-  background-color: #ff1a1a;
-  color: #fff;
+.accept-friend-btn {
+  background-color: #28a745;
+  color: white;
+}
+
+.decline-friend-btn {
+  background-color: #ff9800;
+  color: white;
 }
 
 .friends-container {
-  margin-bottom: 30px;
-}
-
-.friends-container h2 {
-  margin-bottom: 10px;
+  margin-top: 20px;
 }
 
 .friends-container a {
   display: inline-block;
-  margin: 4px;
-  padding: 6px 12px;
-  background-color: #161b22;
-  color: #58a6ff;
-  border-radius: 6px;
+  margin: 0 5px;
+  color: #9be9a8;
   text-decoration: none;
-  transition: background-color 0.2s;
-}
-
-.friends-container a:hover {
-  background-color: #1f6feb;
-  color: #fff;
 }
 
 .games-info {
-  display: flex;
-  gap: 20px;
+  margin-top: 30px;
 }
 
 .game-info {
-  background-color: #161b22;
-  padding: 15px;
-  border-radius: 8px;
-  flex: 1;
+  margin-bottom: 15px;
 }
 
 .game-info h2 {
   font-size: 20px;
-  margin-bottom: 10px;
+  color: #58a6ff;
 }
 
 .game-mmr,
 .game-streak {
   display: block;
-  font-size: 16px;
-  color: #9be9a8;
-  margin-top: 4px;
+  font-weight: bold;
+  margin-top: 5px;
+}
+
+.friend-requests p {
+  margin: 5px 0;
+  font-weight: bold;
+  color: #ffcc00;
 }
