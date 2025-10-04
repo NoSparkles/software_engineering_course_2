@@ -50,6 +50,7 @@ export default function Navbar() {
       <div className="navbar-right">
         {user?.username ? (
           <>
+            <Link to={`/profile/${user.username}`}>My Profile</Link>
             <span>Hello, {user.username}</span>
             <button onClick={logout}>Log out</button>
           </>

@@ -1,0 +1,68 @@
+.profile {
+  color: #fff;
+  background-color: #0d1117;
+  min-height: 100vh;
+  padding: 40px;
+  font-family: Arial, sans-serif;
+}
+
+.profile h1 {
+  font-size: 28px;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.profile p {
+  font-size: 18px;
+  margin-bottom: 20px;
+  color: #ccc;
+}
+
+.friends-container {
+  margin-bottom: 30px;
+}
+
+.friends-container h2 {
+  margin-bottom: 10px;
+}
+
+.friends-container a {
+  display: inline-block;
+  margin: 4px;
+  padding: 6px 12px;
+  background-color: #161b22;
+  color: #58a6ff;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.friends-container a:hover {
+  background-color: #1f6feb;
+  color: #fff;
+}
+
+.games-info {
+  display: flex;
+  gap: 20px;
+}
+
+.game-info {
+  background-color: #161b22;
+  padding: 15px;
+  border-radius: 8px;
+  flex: 1;
+}
+
+.game-info h2 {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+.game-mmr,
+.game-streak {
+  display: block;
+  font-size: 16px;
+  color: #9be9a8;
+  margin-top: 4px;
+}
