@@ -1,0 +1,85 @@
+.profile {
+  color: #fff;
+  background-color: #0d1117;
+  height: 100vh;
+  padding: 40px;
+  padding-top: 104px;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+.profile h1 {
+  font-size: 32px;
+  color: #58a6ff;
+  margin-bottom: 20px;
+}
+
+.add-friend-btn,
+.remove-friend-btn,
+.accept-friend-btn,
+.decline-friend-btn {
+  padding: 10px 20px;
+  margin: 5px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  font-size: 16px;
+}
+
+.add-friend-btn {
+  background-color: #007bff;
+  color: white;
+}
+
+.remove-friend-btn {
+  background-color: #dc3545;
+  color: white;
+}
+
+.accept-friend-btn {
+  background-color: #28a745;
+  color: white;
+}
+
+.decline-friend-btn {
+  background-color: #ff9800;
+  color: white;
+}
+
+.friends-container {
+  margin-top: 20px;
+}
+
+.friends-container a {
+  display: inline-block;
+  margin: 0 5px;
+  color: #9be9a8;
+  text-decoration: none;
+}
+
+.games-info {
+  margin-top: 30px;
+}
+
+.game-info {
+  margin-bottom: 15px;
+}
+
+.game-info h2 {
+  font-size: 20px;
+  color: #58a6ff;
+}
+
+.game-mmr,
+.game-streak {
+  display: block;
+  font-weight: bold;
+  margin-top: 5px;
+}
+
+.friend-requests p {
+  margin: 5px 0;
+  font-weight: bold;
+  color: #ffcc00;
+}

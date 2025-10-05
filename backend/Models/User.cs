@@ -15,16 +15,18 @@ namespace Models
         // Friends list (usernames)
         public List<string> Friends { get; set; } = new List<string>();
 
+        // Friend requests
+        public List<string> IncomingFriendRequests { get; set; } = new List<string>();
+        public List<string> OutgoingFriendRequests { get; set; } = new List<string>();
+
         // Matchmaking / Ranking points for each game
         public int RockPaperScissorsMMR { get; set; } = 1000;
         public int FourInARowMMR { get; set; } = 1000;
         public int PairMatchingMMR { get; set; } = 1000;
-        public int TournamentMMR { get; set; } = 1000;
 
         // Win streaks
         public int RockPaperScissorsWinStreak { get; set; } = 0;
         public int FourInARowWinStreak { get; set; } = 0;
         public int PairMatchingWinStreak { get; set; } = 0;
-        public int TournamentWinStreak { get; set; } = 0;
     }
 }

@@ -1,55 +1,74 @@
 /* Register.css */
 .register-form {
-  max-width: 400px;
-  margin: 2rem auto;
-  padding: 2rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background-color: #fefefe;
+  color: #fff;
+  background-color: #0d1117;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-family: Arial, sans-serif;
+  box-sizing: border-box;
+  padding: 20px;
+  text-align: center;
 }
 
 .register-form h2 {
-  text-align: center;
-  margin-bottom: 1.5rem;
-  color: #333;
+  font-size: 32px;
+  margin-bottom: 30px;
+  color: #58a6ff;
 }
 
-.register-form .form-group {
-  margin-bottom: 1rem;
-}
-
-.register-form label {
-  display: block;
-  margin-bottom: 0.3rem;
-  font-weight: 500;
-  color: #555;
-}
-
-.register-form input {
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
   width: 100%;
-  padding: 0.5rem;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  box-sizing: border-box;
+  max-width: 300px;
+  text-align: left;
+}
+
+.form-group label {
+  margin-bottom: 6px;
+  font-size: 16px;
+  color: #9be9a8;
+}
+
+.form-group input {
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: 1px solid #161b22;
+  background-color: #161b22;
+  color: #fff;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus {
+  border-color: #58a6ff;
+  box-shadow: 0 0 5px #58a6ff;
 }
 
 .register-form button {
-  width: 100%;
-  padding: 0.7rem;
-  background-color: #28a745;
-  color: white;
+  background-color: #1f6feb;
+  color: #fff;
   border: none;
-  border-radius: 4px;
-  font-size: 1rem;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: bold;
   cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: 10px;
 }
 
 .register-form button:hover {
-  background-color: #218838;
+  background-color: #58a6ff;
 }
 
-.register-form p.error-message {
-  color: red;
-  text-align: center;
-  margin-top: 1rem;
+.register-form .error-message {
+  margin-top: 15px;
+  color: #ff4c4c;
+  font-weight: bold;
 }

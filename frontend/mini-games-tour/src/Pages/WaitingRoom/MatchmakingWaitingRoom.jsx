@@ -145,20 +145,11 @@ export default function MatchmakingWaitingRoom() {
 
   return (
     <div className="matchmaking-waiting-room">
-      <h2>Matchmaking Waiting Room</h2>
-      <p>Game: <strong>{gameType.toUpperCase()}</strong></p>
-      <p>Player: <strong>{user?.username || playerId}</strong></p>
-      {gameType === "four-in-a-row" && (
-        <p>
-          Assigned Color: <strong>{playerColor ? (playerColor === "R" ? "Red" : "Yellow") : "Not assigned yet"}</strong>
-        </p>
-      )}
-      <p>Status: <strong>{status}</strong></p>
-      <p>Connection: <strong>{connectionState}</strong></p>
+      <h1>Matchmaking Waiting Room</h1>
+      <h2>Game: {gameType.toUpperCase()}</h2>
       <div className="matchmaking-info">
-        <p><em>You are in matchmaking mode. The system will automatically pair you with another player.</em></p>
+        <p>You are in matchmaking mode. The system will automatically pair you with another player.</p>
       </div>
-     
     </div>
   );
 }

@@ -1,0 +1,43 @@
+.users {
+  color: #fff;
+  background-color: #0d1117;
+  min-height: 100vh;
+  padding: 40px;
+  padding-top: 104px;
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.users h1 {
+  font-size: 28px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.user-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  width: 100%;
+}
+
+.user-card {
+  background-color: #161b22;
+  padding: 12px 20px;
+  border-radius: 8px;
+  color: #58a6ff;
+  text-decoration: none;
+  font-size: 16px;
+  transition: background-color 0.2s, color 0.2s;
+  text-align: center;
+  flex: 0 0 auto;
+}
+
+.user-card:hover {
+  background-color: #1f6feb;
+  color: #fff;
+}

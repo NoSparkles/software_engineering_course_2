@@ -47,8 +47,6 @@ export default function useFetch(initialUrl = '') {
         headers,
       });
 
-      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
-
       const result = await response.json();
       setData(result);
       return result;

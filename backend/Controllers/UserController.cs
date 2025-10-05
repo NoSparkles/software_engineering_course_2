@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -57,16 +58,6 @@ namespace Controllers
             return Ok(user);
         }
 
-        [HttpDelete("{username}")]
-        public async Task<IActionResult> DeleteUser(string username)
-        {
-            var success = await _userService.DeleteUserAsync(username);
-            if (!success)
-                return NotFound("User not found or could not be deleted.");
-
-            return NoContent();
-        }
-
         // POST: /User/register
         [HttpPost("register")]
         public async Task<ActionResult<User>> Register([FromBody] RegisterDto registerDto)
@@ -93,15 +84,12 @@ namespace Controllers
             if (user == null)
                 return Unauthorized("Invalid username or password.");
 
-            // ✅ Hash the incoming password and compare
             var hashedInput = _userService.HashPassword(loginDto.Password);
             if (user.PasswordHash != hashedInput)
                 return Unauthorized("Invalid username or password.");
 
-            // ✅ Generate JWT
             var token = _userService.GenerateJwtToken(user);
 
-            // ✅ Return token + user info
             return Ok(new
             {
                 token,
@@ -112,21 +100,71 @@ namespace Controllers
                     user.RockPaperScissorsMMR,
                     user.FourInARowMMR,
                     user.PairMatchingMMR,
-                    user.TournamentMMR,
                     user.RockPaperScissorsWinStreak,
                     user.FourInARowWinStreak,
                     user.PairMatchingWinStreak,
-                    user.TournamentWinStreak
+                    user.IncomingFriendRequests,
+                    user.OutgoingFriendRequests
                 }
             });
         }
 
-
-        // PUT: User/{username}/add-friend
-        [HttpPut("{username}/add-friend")]
-        public async Task<ActionResult> AddFriend(string username, [FromBody] string friendUsername)
+        // PUT: User/{username}/send-request
+        [HttpPut("{username}/send-request")]
+        public async Task<ActionResult> SendFriendRequest(string username, [FromBody] string targetUsername)
         {
-            var success = await _userService.AddFriendAsync(username, friendUsername);
+            var success = await _userService.SendFriendRequestAsync(username, targetUsername);
+            if (!success)
+                return BadRequest("Could not send friend request.");
+
+            var updatedUser = await _userService.GetUserAsync(username);
+            return Ok(new
+            {
+                updatedUser.Friends,
+                updatedUser.IncomingFriendRequests,
+                updatedUser.OutgoingFriendRequests
+            });
+        }
+
+        // PUT: User/{username}/accept-request
+        [HttpPut("{username}/accept-request")]
+        public async Task<ActionResult> AcceptFriendRequest(string username, [FromBody] string requesterUsername)
+        {
+            var success = await _userService.AcceptFriendRequestAsync(username, requesterUsername);
+            if (!success)
+                return BadRequest("Could not accept friend request.");
+
+            var updatedUser = await _userService.GetUserAsync(username);
+            return Ok(new
+            {
+                updatedUser.Friends,
+                updatedUser.IncomingFriendRequests,
+                updatedUser.OutgoingFriendRequests
+            });
+        }
+
+        // PUT: User/{username}/reject-request
+        [HttpPut("{username}/reject-request")]
+        public async Task<ActionResult> RejectFriendRequest(string username, [FromBody] string requesterUsername)
+        {
+            var success = await _userService.RejectFriendRequestAsync(username, requesterUsername);
+            if (!success)
+                return BadRequest("Could not reject friend request.");
+
+            var updatedUser = await _userService.GetUserAsync(username);
+            return Ok(new
+            {
+                updatedUser.Friends,
+                updatedUser.IncomingFriendRequests,
+                updatedUser.OutgoingFriendRequests
+            });
+        }
+
+        // PUT: User/{username}/remove-friend
+        [HttpPut("{username}/remove-friend")]
+        public async Task<ActionResult> RemoveFriend(string username, [FromBody] string friendUsername)
+        {
+            var success = await _userService.RemoveFriendAsync(username, friendUsername);
             if (!success)
                 return NotFound("User or friend not found.");
 
@@ -155,7 +193,6 @@ namespace Controllers
         }
     }
 
-    // DTO for registration
     public class RegisterDto
     {
         public string Username { get; set; } = null!;
@@ -167,5 +204,4 @@ namespace Controllers
         public string Username { get; set; } = null!;
         public string Password { get; set; } = null!;
     }
-
 }

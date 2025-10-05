@@ -225,9 +225,6 @@ export default function GameEntry() {
           <button onClick={handleJoinAsSpectator}>Join as Spectator</button>
         </div>
         {error && <p className="error">{error}</p>}
-      </div>
-
-      <div className="entry-section">
         <h3>Or</h3>
         <button onClick={() => {
           console.log("GameEntry: Matchmaking button clicked!");

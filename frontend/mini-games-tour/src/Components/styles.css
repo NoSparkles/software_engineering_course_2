@@ -1,12 +1,20 @@
 /* Navbar.css */
 nav {
+  position: fixed;        /* <-- make navbar fixed */
+  top: 0;                 /* stick to top */
+  left: 0;
+  width: 100%;
   background-color: #1e1e2f;
   color: #fff;
+  height: 64px;
   padding: 1rem 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-sizing: border-box;
+  z-index: 1000;          /* ensure it stays above other content */
 }
+
 
 nav a {
   color: #fff;
@@ -37,20 +45,53 @@ nav .navbar-right button {
 
 /* GameEntry.css */
 .game-entry-container {
+  color: #fff;
+  background-color: #0d1117;
+  height: 100vh;/* full height minus navbar */
+  padding: 40px;
+  padding-top: 104px; /* 64px navbar + 40px top padding */
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.game-entry-container h2 {
+  font-size: 28px;
   text-align: center;
-  padding: 30px;
+  margin-bottom: 20px;
 }
 
 .entry-section {
-  margin: 20px 0;
+  background-color: #161b22;
+  padding: 20px 30px;
+  border-radius: 10px;
+  margin-bottom: 30px;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
 }
 
-input.room-code {
+.entry-section h3 {
+  margin: 10px 0;
+  color: #ccc;
+}
+
+.room-code {
   padding: 10px;
   font-size: 1rem;
-  width: 200px;
-  margin-right: 10px;
+  width: 100%;
+  max-width: 200px;
   text-transform: uppercase;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  background-color: #0d1117;
+  color: #fff;
+  text-align: center;
 }
 
 button {
@@ -61,18 +102,28 @@ button {
   border: none;
   border-radius: 6px;
   cursor: pointer;
+  transition: background-color 0.2s;
 }
 
 button:hover {
-  background-color: #2980b9;
+  background-color: #1f6feb;
 }
 
 .disabled-button {
-  background-color: #bdc3c7;
+  background-color: #21262d;
+  color: #8b949e;
   cursor: not-allowed;
 }
 
 .error {
-  color: red;
+  color: #ff4c4c;
   margin-top: 10px;
+  text-align: center;
+}
+
+.entry-section div {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
 }

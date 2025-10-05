@@ -57,17 +57,9 @@ export default function WaitingRoom() {
 
   return (
     <div className="waiting-room">
-      <h2>Waiting Room</h2>
-      <p>Game: <strong>{gameType.toUpperCase()}</strong></p>
-      <p>Room Code: <strong>{code}</strong></p>
-      <p>Player ID: <strong>{playerId}</strong></p>
-      {gameType === "four-in-a-row" && (
-      <p>
-        Assigned Color: <strong>{playerColor ? (playerColor === "R" ? "Red" : "Yellow") : "Not assigned yet"}</strong>
-      </p>
-    )}
-      <p>Status: <strong>{status}</strong></p>
-      <p>Connection: <strong>{connectionState}</strong></p>
+      <h1>Waiting Room</h1>
+      <h2 className="status-message">Game: {gameType.toUpperCase()}</h2>
+      <p>Room Code: {code}</p>
     </div>
   );
 }
