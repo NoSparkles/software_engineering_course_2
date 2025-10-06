@@ -10,13 +10,15 @@ namespace Hubs
 {
     public class JoinByCodeHub : Hub, IgameHub
     {
-        private readonly UserService UserService;
-        private readonly RoomService RoomService;
+    private readonly UserService UserService;
+    private readonly RoomService RoomService;
+    private readonly Microsoft.AspNetCore.SignalR.IHubContext<SpectatorHub> _spectatorHubContext;
 
-        public JoinByCodeHub(UserService userService, RoomService roomService)
+        public JoinByCodeHub(UserService userService, RoomService roomService, Microsoft.AspNetCore.SignalR.IHubContext<SpectatorHub> spectatorHubContext)
         {
             UserService = userService;
             RoomService = roomService;
+            _spectatorHubContext = spectatorHubContext;
         }
 
 
@@ -31,6 +33,22 @@ namespace Hubs
                 return;
             }
             await game.HandleCommand(playerId, command, Clients, me);
+
+            // Forward updated game state to any spectators connected to SpectatorHub for this room
+            switch (game)
+            {
+                case games.FourInARowGame four:
+                    await _spectatorHubContext.Clients.Group(roomKey).SendAsync("ReceiveMove", four.GetGameState());
+                    break;
+                case games.PairMatching pair:
+                    await _spectatorHubContext.Clients.Group(roomKey).SendAsync("ReceiveBoard", pair.GetGameState());
+                    break;
+                case games.RockPaperScissors rps:
+                    await _spectatorHubContext.Clients.Group(roomKey).SendAsync("ReceiveRpsState", rps.GetGameStatePublic());
+                    break;
+                default:
+                    break;
+            }
         }
 
         public async Task Join(string gameType, string roomCode, string playerId, string jwtToken)

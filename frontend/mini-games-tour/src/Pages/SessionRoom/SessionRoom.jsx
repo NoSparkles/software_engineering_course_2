@@ -22,8 +22,13 @@ export default function SessionRoom() {
   const playerId = usePlayerId();
   const timeLeft = useCountdownTimer();
   
+  
+  const hubUrl = isSpectator
+    ? `http://localhost:5236/SpectatorHub?playerId=${encodeURIComponent(playerId)}&gameType=${encodeURIComponent(gameType)}&roomCode=${encodeURIComponent(code)}`
+    : 'http://localhost:5236/joinByCodeHub';
+
   const { connection, connectionState, reconnected } = useSignalRService({
-    hubUrl: "http://localhost:5236/joinByCodeHub",
+    hubUrl,
     gameType,
     roomCode: code,
     playerId,
@@ -78,7 +83,8 @@ export default function SessionRoom() {
   useEffect(() => {
     if (connection && connectionState === "Connected") {
       if (isSpectator) {
-        connection.invoke("JoinAsSpectator", gameType, code)
+        // pass playerId so server can register spectator correctly
+        connection.invoke("JoinAsSpectator", gameType, code, playerId)
           .then(() => setStatus("Joined as spectator"))
           .catch(err => {
             console.error("JoinAsSpectator failed:", err);

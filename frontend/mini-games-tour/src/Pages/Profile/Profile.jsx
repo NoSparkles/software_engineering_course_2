@@ -7,6 +7,7 @@ import './styles.css'
 const Profile = () => {
   const {
     getUser,
+    getActiveSession,
     sendFriendRequest,
     acceptFriendRequest,
     declineFriendRequest,
@@ -17,6 +18,7 @@ const Profile = () => {
   const { username } = useParams()
   const navigate = useNavigate()
   const [profileUser, setProfileUser] = useState(undefined)
+  const [activeSession, setActiveSession] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const fetchProfile = async () => {
@@ -34,6 +36,20 @@ const Profile = () => {
     fetchProfile()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username])
+
+  useEffect(() => {
+    const fetchActive = async () => {
+      if (!profileUser) return
+      try {
+        const res = await getActiveSession(profileUser.username)
+        setActiveSession(res)
+      } catch (e) {
+        setActiveSession(null)
+      }
+    }
+    fetchActive()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileUser])
 
   /* Actions */
 
@@ -174,6 +190,25 @@ const Profile = () => {
           <span className='game-streak'>Win Streak: {profileUser.rockPaperScissorsWinStreak}</span>
         </div>
       </div>
+      {/* Spectate button when profile user has active session and viewer is not the same */}
+      {!isOwnProfile && activeSession?.exists && (
+        <div style={{ marginTop: 12 }}>
+          <button
+            className='spectate-btn'
+            onClick={() => {
+              const { gameType, roomCode, isMatchmaking } = activeSession
+              if (isMatchmaking) {
+                // navigate to matchmaking spectator route
+                navigate(`/${gameType}/matchmaking-session/${roomCode}?spectator=true`)
+              } else {
+                navigate(`/${gameType}/session/${roomCode}?spectator=true`)
+              }
+            }}
+          >
+            Spectate
+          </button>
+        </div>
+      )}
     </div>
   )
 }

@@ -80,8 +80,8 @@ export default function GameEntry() {
       }
 
       setError('');
-      // navigate directly to the session as a spectator
-      navigate(`/${gameType}/session/${trimmedCode}?spectator=true`);
+  // navigate to the spectate page which will join SpectatorHub and redirect to session
+  navigate(`/${gameType}/spectate/${trimmedCode}`);
     } catch (err) {
       console.error("Error checking room for spectator:", err);
       setError("Could not verify room. Try again.");
