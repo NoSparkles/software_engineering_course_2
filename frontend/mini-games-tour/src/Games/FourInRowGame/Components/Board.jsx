@@ -64,7 +64,7 @@ export const Board = ({ playerColor, connection, roomCode, playerId, spectator =
                             backgroundColor: winner === 'R' ? 'red' : 'yellow',
                             color: '#fff',
                         }}>
-                            Winner: {winner === 'R' ? 'Red' : 'Yellow'}    
+                            {spectator ? `Winner: ${winner === 'R' ? 'Red' : 'Yellow'}` : `Winner: ${winner === 'R' ? 'Red' : 'Yellow'}`}   
                         </div>
                     </span>
                 ) : (

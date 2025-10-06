@@ -63,7 +63,7 @@ builder.Services.AddAuthentication(options =>
         {
             var accessToken = context.Request.Query["access_token"];
             var path = context.HttpContext.Request.Path;
-            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/gamehub"))
+            if (!string.IsNullOrEmpty(accessToken) && (path.StartsWithSegments("/gamehub") || path.StartsWithSegments("/SpectatorHub")))
             {
                 context.Token = accessToken;
             }
@@ -86,6 +86,7 @@ app.UseEndpoints(endpoints =>
     // _ = endpoints.MapHub<GameHub>("/gamehub");
     _ = endpoints.MapHub<JoinByCodeHub>("/JoinByCodeHub");
     _ = endpoints.MapHub<MatchMakingHub>("/MatchMakingHub");
+    _ = endpoints.MapHub<SpectatorHub>("/SpectatorHub");
     _ = endpoints.MapControllers();
 });
 

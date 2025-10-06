@@ -12,10 +12,12 @@ namespace Controllers
     public class UserController : ControllerBase
     {
         private readonly UserService _userService;
+        private readonly Services.RoomService _roomService;
 
-        public UserController(UserService userService)
+        public UserController(UserService userService, Services.RoomService roomService)
         {
             _userService = userService;
+            _roomService = roomService;
         }
 
         [Authorize]
@@ -190,6 +192,29 @@ namespace Controllers
         {
             var users = await _userService.GetAllUsersAsync();
             return Ok(users);
+        }
+
+        // Returns whether the user currently has an active game session and some details about it
+        [HttpGet("{username}/active-session")]
+        public ActionResult<object> GetActiveSession(string username)
+        {
+            // Iterate rooms and look for a RoomUser whose User.Username matches the requested username
+            foreach (var kvp in _roomService.Rooms)
+            {
+                var roomKey = kvp.Key; // format: "{gameType}:{roomCode}"
+                var room = kvp.Value;
+
+                if (room.RoomPlayers.Any(rp => rp.User != null && rp.User.Username == username) ||
+                    room.RoomSpectators.Any(s => s.User != null && s.User.Username == username))
+                {
+                    var parts = roomKey.Split(':');
+                    var gameType = parts.Length > 0 ? parts[0] : "";
+                    var roomCode = parts.Length > 1 ? parts[1] : "";
+                    return Ok(new { exists = true, gameType, roomCode, isMatchmaking = room.IsMatchMaking });
+                }
+            }
+
+            return Ok(new { exists = false, gameType = (string?)null, roomCode = (string?)null, isMatchmaking = false });
         }
     }
 

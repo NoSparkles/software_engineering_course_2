@@ -10,11 +10,13 @@ namespace Hubs
     {
         private readonly UserService UserService;
         private readonly RoomService RoomService;
+        private readonly Microsoft.AspNetCore.SignalR.IHubContext<SpectatorHub> _spectatorHubContext;
 
-        public MatchMakingHub(UserService userService, RoomService roomService)
+        public MatchMakingHub(UserService userService, RoomService roomService, Microsoft.AspNetCore.SignalR.IHubContext<SpectatorHub> spectatorHubContext)
         {
             UserService = userService;
             RoomService = roomService;
+            _spectatorHubContext = spectatorHubContext;
         }
 
         public async Task HandleCommand(string gameType, string roomCode, string playerId, string command, string jwtToken)
@@ -27,7 +29,30 @@ namespace Hubs
             {
                 return;
             }
+            // Ensure the caller is a player, not a spectator
+            if (!me.IsPlayer)
+            {
+                await Clients.Caller.SendAsync("Unauthorized", "Spectators cannot perform game actions.");
+                return;
+            }
             await game.HandleCommand(playerId, command, Clients, me);
+
+            // Forward updated game state to any spectators connected to SpectatorHub for this room
+            var spectatorRoomKey = RoomService.CreateRoomKey(gameType, roomCode);
+            switch (game)
+            {
+                case games.FourInARowGame four:
+                    await _spectatorHubContext.Clients.Group(spectatorRoomKey).SendAsync("ReceiveMove", four.GetGameState());
+                    break;
+                case games.PairMatching pair:
+                    await _spectatorHubContext.Clients.Group(spectatorRoomKey).SendAsync("ReceiveBoard", pair.GetGameState());
+                    break;
+                case games.RockPaperScissors rps:
+                    await _spectatorHubContext.Clients.Group(spectatorRoomKey).SendAsync("ReceiveRpsState", rps.GetGameStatePublic());
+                    break;
+                default:
+                    break;
+            }
         }
 
         public async Task Join(string gameType, string roomCode, string playerId, string jwtToken)
@@ -51,6 +76,16 @@ namespace Hubs
                 {
                     Console.WriteLine($"Join failed: Room {roomKey} does not exist.");
                     throw new Exception($"Room {roomKey} does not exist.");
+                }
+                // Prevent joining rooms that are already full (and this is not a reconnection)
+                var room = RoomService.GetRoomByKey(roomKey);
+                var callerUser = await UserService.GetUserFromTokenAsync(jwtToken);
+                var existingUser = room.RoomPlayers.Find(rp => rp.PlayerId == playerId || (rp.User != null && rp.User.Username == callerUser?.Username));
+                if (room.RoomPlayers.Count >= 2 && existingUser == null)
+                {
+                    Console.WriteLine($"Join failed: Room {roomKey} is full.");
+                    await Clients.Caller.SendAsync("JoinFailed", "Room is full or cannot accept new players.");
+                    return;
                 }
                 Console.WriteLine($"Ensuring connection is in group: {roomKey}");
                 // Always add the connection to the group, even if already present
@@ -222,29 +257,50 @@ namespace Hubs
             return await Task.FromResult(new { exists = result.exists, isMatchmaking = result.isMatchmaking });
         }
 
-        public async Task EndMatchmakingSession(string playerId)
+        public async Task EndMatchmakingSession(string playerId, string jwtToken)
         {
             Console.WriteLine($"EndMatchmakingSession called for player {playerId}");
             Console.WriteLine($"ActiveMatchmakingSessions count: {RoomService.ActiveMatchmakingSessions.Count}");
             Console.WriteLine($"ActiveMatchmakingSessions keys: {string.Join(", ", RoomService.ActiveMatchmakingSessions.Keys)}");
             
             // Find the room this player is in
-            var playerRoom = RoomService.ActiveMatchmakingSessions.FirstOrDefault(kvp => kvp.Key == playerId);
-            if (playerRoom.Value != null)
+            // Require authentication: only the authenticated user belonging to the provided playerId may end the session
+            var callerUser = await UserService.GetUserFromTokenAsync(jwtToken);
+            if (callerUser == null)
             {
-                var roomKey = playerRoom.Value;
-                Console.WriteLine($"EndMatchmakingSession: Found room {roomKey} for player {playerId}");
-                
-                // Close the room and kick all players immediately
-                await RoomService.CloseRoomAndKickAllPlayers(roomKey, Clients, "Matchmaking session ended by a player");
+                Console.WriteLine("EndMatchmakingSession: Unauthorized - missing or invalid token");
+                await Clients.Caller.SendAsync("Unauthorized", "Invalid token");
+                return;
             }
-            else
+
+            var playerRoom = RoomService.ActiveMatchmakingSessions.FirstOrDefault(kvp => kvp.Key == playerId);
+            if (playerRoom.Value == null)
             {
                 Console.WriteLine($"EndMatchmakingSession: No active session found for player {playerId}");
-                // Player doesn't have an active session, just clear it
                 RoomService.ClearActiveMatchmakingSession(playerId);
                 await Clients.Caller.SendAsync("MatchmakingSessionEnded", "No active matchmaking session found.");
+                return;
             }
+
+            var roomKey = playerRoom.Value;
+            // Ensure the callerUser matches one of the players in the room
+            if (!RoomService.Rooms.TryGetValue(roomKey, out var room))
+            {
+                Console.WriteLine($"EndMatchmakingSession: Room {roomKey} not found in Rooms");
+                await Clients.Caller.SendAsync("MatchmakingSessionEnded", "Room not found.");
+                return;
+            }
+
+            var matchingPlayer = room.RoomPlayers.FirstOrDefault(rp => rp.PlayerId == playerId && rp.User != null && rp.User.Username == callerUser.Username);
+            if (matchingPlayer == null)
+            {
+                Console.WriteLine($"EndMatchmakingSession: Caller {callerUser.Username} is not authorized to end session for player {playerId}");
+                await Clients.Caller.SendAsync("Unauthorized", "You are not authorized to end this session.");
+                return;
+            }
+
+            Console.WriteLine($"EndMatchmakingSession: Authorized - closing room {roomKey} for player {playerId}");
+            await RoomService.CloseRoomAndKickAllPlayers(roomKey, Clients, "Matchmaking session ended by a player");
         }
 
         public async Task DeclineReconnection(string playerId, string gameType, string roomCode)

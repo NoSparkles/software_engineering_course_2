@@ -4,7 +4,7 @@ import Card from './Card';
 import ScoreBoard from './ScoreBoard';
 import './styles.css';
 
-export default function GameBoard({ playerColor, connection, roomCode, playerId, connectionState }) {
+export default function GameBoard({ playerColor, connection, roomCode, playerId, connectionState, spectator = false }) {
   const {
     cards,
     flipped,
@@ -14,7 +14,7 @@ export default function GameBoard({ playerColor, connection, roomCode, playerId,
     resetVote,
     flipCard,
     resetGame
-  } = useGameEngine({playerColor, connection, roomCode, playerId, connectionState});
+  } = useGameEngine({playerColor, connection, roomCode, playerId, connectionState, spectator});
 
   return (
     <div className="game-container">
@@ -26,7 +26,10 @@ export default function GameBoard({ playerColor, connection, roomCode, playerId,
             <Card
               key={index}
               card={card}
-              onClick={() => flipCard(index)}
+              onClick={() => {
+                if (spectator) return;
+                flipCard(index);
+              }}
             />
           );
         })}
@@ -34,8 +37,8 @@ export default function GameBoard({ playerColor, connection, roomCode, playerId,
 
       { winner && (
         <div className="game-over">
-          <h3>🎉 Player {scores[1] === 5 ? 1 : 2} Wins!</h3>
-          <button onClick={resetGame}>Play Again</button>
+          <h3>{spectator ? `Winner: ${scores.R > scores.Y ? 'Red' : scores.Y > scores.R ? 'Yellow' : 'Draw'}` : `🎉 Player ${scores[1] === 5 ? 1 : 2} Wins!`}</h3>
+          {!spectator && <button onClick={resetGame}>Play Again</button>}
           {resetVote && (
             <p>Waiting for other player to confirm</p>
           )}

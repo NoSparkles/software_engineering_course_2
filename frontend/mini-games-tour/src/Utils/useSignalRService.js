@@ -48,7 +48,17 @@ export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token 
       setConnectionState("Connected");
       setReconnected(true);
       if (gameType && roomCode) {
-        connection.invoke("Join", gameType, roomCode, playerId, token || "");
+        try {
+          const lower = (hubUrl || "").toLowerCase();
+          if (lower.includes('spectatorhub')) {
+            // Spectator hub expects JoinAsSpectator(gameType, roomCode, playerId)
+            connection.invoke('JoinAsSpectator', gameType, roomCode, playerId || '');
+          } else {
+            connection.invoke('Join', gameType, roomCode, playerId || '', token || '');
+          }
+        } catch (e) {
+          console.warn('Rejoin after reconnect failed', e);
+        }
       }
     });
 

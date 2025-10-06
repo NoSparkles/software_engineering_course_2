@@ -13,6 +13,11 @@ const useUserDatabase = () => {
     return result;
   };
 
+  const getActiveSession = async (username) => {
+    const result = await fetchData(`http://localhost:5236/User/${username}/active-session`);
+    return result;
+  };
+
   // Send friend request
   const sendFriendRequest = async (myUsername, friendUsername) => {
     const result = await fetchData(
@@ -66,6 +71,7 @@ const useUserDatabase = () => {
   return {
     getUsers,
     getUser,
+    getActiveSession,
     sendFriendRequest,
     acceptFriendRequest,
     declineFriendRequest,

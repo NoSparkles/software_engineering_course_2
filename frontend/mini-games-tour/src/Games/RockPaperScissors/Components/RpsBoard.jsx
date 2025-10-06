@@ -103,10 +103,10 @@ export default function RpsBoard({ playerColor, connection, roomCode, playerId, 
           <h3>
             {state.winner === 'DRAW'
               ? '🤝 Match Draw'
-              : (state.winner === you ? '🎉 You Win!' : '💀 You Lose')}
+              : (spectator ? `Winner: ${state.winner === 'R' ? 'Red' : 'Yellow'}` : (state.winner === you ? '🎉 You Win!' : '💀 You Lose'))}
           </h3>
           <p>Final Score — Red {scores.R} : Yellow {scores.Y}</p>
-          <button className="reset-button" onClick={reset}>Play Again</button>
+          {!spectator && <button className="reset-button" onClick={reset}>Play Again</button>}
           {resetVote && <p>Waiting for other player to confirm…</p>}
         </div>
       )}

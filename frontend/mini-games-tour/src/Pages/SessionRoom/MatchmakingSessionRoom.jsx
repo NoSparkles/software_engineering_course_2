@@ -45,8 +45,13 @@ export default function MatchmakingSessionRoom() {
   const playerId = usePlayerId();
   const timeLeft = useCountdownTimer();
   
+  // detect spectator query param
+  const isSpectator = new URLSearchParams(location.search).get('spectator') === 'true';
+
+  const hubUrl = isSpectator ? "http://localhost:5236/SpectatorHub" : "http://localhost:5236/MatchMakingHub";
+
   const { connection, connectionState, reconnected } = useSignalRService({
-    hubUrl: "http://localhost:5236/MatchMakingHub",
+    hubUrl,
     gameType,
     roomCode: code,
     playerId,
@@ -82,13 +87,13 @@ export default function MatchmakingSessionRoom() {
     if (connection && connectionState === "Connected") {
       switch (gameType) {
           case 'rock-paper-scissors':
-            setBoard(<RpsBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={false} token={token}/>);
+            setBoard(<RpsBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator} token={token}/>);
             break;
           case 'four-in-a-row':
-            setBoard(<FourInARowGameBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={false} token={token}/>);
+            setBoard(<FourInARowGameBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator} token={token}/>);
             break;
           case 'pair-matching':
-            setBoard(<PMBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={false} token={token}/>);
+            setBoard(<PMBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator} token={token}/>);
             break;
               default:
                   setBoard(null);
@@ -100,12 +105,22 @@ export default function MatchmakingSessionRoom() {
 
   useEffect(() => {
     if (connection && connectionState === "Connected") {
-      connection.invoke("Join", gameType, code, playerId, token)
-        .then(() => setStatus("Joined matchmaking game session"))
-        .catch(err => {
-          console.error("Join matchmaking session failed:", err);
-          setStatus("Failed to join matchmaking session.");
-        });
+      if (isSpectator) {
+        // For spectators, call JoinAsSpectator on SpectatorHub
+        connection.invoke("JoinAsSpectator", gameType, code, playerId)
+          .then(() => setStatus("Spectating matchmaking session"))
+          .catch(err => {
+            console.error("JoinAsSpectator failed:", err);
+            setStatus("Failed to join matchmaking session.");
+          });
+      } else {
+        connection.invoke("Join", gameType, code, playerId, token)
+          .then(() => setStatus("Joined matchmaking game session"))
+          .catch(err => {
+            console.error("Join matchmaking session failed:", err);
+            setStatus("Failed to join matchmaking session.");
+          });
+      }
 
       connection.on("WaitingForOpponent", () => {
         setStatus("Waiting for second player...");
@@ -146,6 +161,14 @@ export default function MatchmakingSessionRoom() {
 
       connection.on("SetPlayerColor", (color) => {
         setPlayerColor(color[playerId]);
+      });
+
+      // Spectator join events
+      connection.on("SpectatorJoined", (roomCode) => {
+        setStatus("Spectator joined: " + roomCode);
+      });
+      connection.on("SpectatorJoinFailed", (message) => {
+        setStatus("Spectator join failed: " + message);
       });
 
       connection.on("UnauthorizedMatchmaking", () => {
@@ -241,14 +264,21 @@ export default function MatchmakingSessionRoom() {
       });
 
       return () => {
-        // Call LeaveRoom when component unmounts (user navigates away)
+          // Call LeaveRoom when component unmounts
         if (connection && connection.state === "Connected") {
           // PATCH: Always show UI delay before leaving, for both player A and player B
           const leaveWithDelay = async () => {
             await showLeaveRoomUiDelay();
-            await connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
-              console.warn("LeaveRoom failed on unmount:", err);
-            });
+            try {
+              if (isSpectator) {
+              } else {
+                await connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
+                  console.warn("LeaveRoom failed on unmount:", err);
+                });
+              }
+            } catch (err) {
+              console.warn("LeaveRoom cleanup failed:", err);
+            }
             // PATCH: Wait for delay before allowing navigation
           };
           // React does not support async cleanup, so we must block navigation manually elsewhere if needed
@@ -267,6 +297,8 @@ export default function MatchmakingSessionRoom() {
         connection.off("RoomClosing");
         connection.off("RoomClosed");
         connection.off("MatchmakingSessionEnded");
+        connection.off("SpectatorJoined");
+        connection.off("SpectatorJoinFailed");
         connection.off("PlayerDeclinedReconnection");
       };
     }
@@ -338,35 +370,37 @@ export default function MatchmakingSessionRoom() {
         </button>
       )}
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
-        <button 
-        onClick={async () => {
-          if (connection && connection.state === "Connected") {
-            try {
-              delayAppliedRef.current = true;
-              clearLeaveByHome();
-              await showLeaveRoomUiDelay();
-              await connection.invoke("EndMatchmakingSession", playerId);
-              navigate('/');
-              console.log("EndMatchmakingSession completed successfully");
-            } catch (err) {
-              console.warn("Failed to end session:", err);
+        {!isSpectator && (
+          <button 
+          onClick={async () => {
+            if (connection && connection.state === "Connected") {
+              try {
+                delayAppliedRef.current = true;
+                clearLeaveByHome();
+                await showLeaveRoomUiDelay();
+                await connection.invoke("EndMatchmakingSession", playerId, token);
+                navigate('/');
+                console.log("EndMatchmakingSession completed successfully");
+              } catch (err) {
+                console.warn("Failed to end session:", err);
+              }
             }
-          }
-        }}
-          style={{ 
-            backgroundColor: "#dc3545", 
-            color: "white", 
-            border: "none", 
-            padding: "12px 24px", 
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontSize: "16px",
-            fontWeight: "bold",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
           }}
-        >
-          🚪 End Session
-        </button>
+            style={{ 
+              backgroundColor: "#dc3545", 
+              color: "white", 
+              border: "none", 
+              padding: "12px 24px", 
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontSize: "16px",
+              fontWeight: "bold",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
+            }}
+          >
+            🚪 End Session
+          </button>
+        )}
       </div>
       {/* --- PATCH: Always render the board below the controls --- */}
       <div className="game-board">

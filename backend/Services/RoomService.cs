@@ -9,6 +9,7 @@ namespace Services
     public class RoomService
     {
         public ConcurrentDictionary<string, Room> Rooms { get; set; } // roomKey -> Room
+    // RoomService only keeps logical spectator entries in Room.RoomSpectators.
         public ConcurrentDictionary<string, RoomUser> CodeRoomUsers { get; set; } // playerId -> RoomUser
         public ConcurrentDictionary<string, RoomUser> MatchMakingRoomUsers { get; set; } // 
         public ConcurrentDictionary<string, string> ActiveMatchmakingSessions { get; set; } // playerId -> roomKey
@@ -368,11 +369,54 @@ namespace Services
             }
         }
 
-        public async Task JoinAsSpectator(string gameType, string roomCode, string playerId, User? user, string connectionId)
+        public async Task JoinAsSpectator(string gameType, string roomCode, string playerId, User? user, string connectionId, IHubCallerClients clients)
         {
             var roomKey = CreateRoomKey(gameType, roomCode);
-            var RoomUser = new RoomUser(playerId, false, user);
-            // TODO
+
+            if (!Rooms.TryGetValue(roomKey, out Room? room))
+            {
+                await clients.Caller.SendAsync("SpectatorJoinFailed", "Room not found or not active.");
+                return;
+            }
+
+            var game = room.Game;
+
+            // Add spectator to list of logical spectators if not already present
+            var existing = room.RoomSpectators.Find(s => s.PlayerId == playerId);
+            if (existing == null)
+            {
+                room.RoomSpectators.Add(new RoomUser(playerId, false, user));
+            }
+
+            // Send current game state to the spectator
+            switch (game)
+            {
+                case FourInARowGame fourGame:
+                    await clients.Client(connectionId).SendAsync("ReceiveMove", fourGame.GetGameState());
+                    await clients.Client(connectionId).SendAsync("SpectatorJoined", roomCode.ToUpper());
+                    return;
+                case PairMatching pairGame:
+                    await clients.Client(connectionId).SendAsync("ReceiveBoard", pairGame.GetGameState());
+                    await clients.Client(connectionId).SendAsync("SpectatorJoined", roomCode.ToUpper());
+                    return;
+                case RockPaperScissors rpsGame:
+                    await clients.Client(connectionId).SendAsync("ReceiveRpsState", rpsGame.GetGameStatePublic());
+                    await clients.Client(connectionId).SendAsync("SpectatorJoined", roomCode.ToUpper());
+                    return;
+                default:
+                    await clients.Client(connectionId).SendAsync("SpectatorJoinFailed", "Unsupported game type.");
+                    return;
+            }
+        }
+
+        // connection ids to (room, playerId) and will call RemoveSpectator(gameType, roomCode, playerId).
+
+        public void RemoveSpectator(string gameType, string roomCode, string playerId)
+        {
+            var roomKey = CreateRoomKey(gameType, roomCode);
+            if (!Rooms.TryGetValue(roomKey, out Room? room)) return;
+            // Remove logical spectator entries for the provided playerId
+            room.RoomSpectators.RemoveAll(s => s.PlayerId == playerId);
         }
 
         public async Task HandlePlayerDisconnect(string gameType, string roomCode, string playerId, IHubCallerClients clients)
