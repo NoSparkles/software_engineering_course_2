@@ -50,13 +50,16 @@ export function ReturnToGameBanner() {
       let info = null;
       if (session && closeTime) {
         info = JSON.parse(session);
+        // Build all possible active game/waiting room paths
         const activePaths = [
           `/${info.gameType}/session/${info.code}`,
           `/${info.gameType}/waiting/${info.code}`,
           `/${info.gameType}/matchmaking-session/${info.code}`,
           `/${info.gameType}/matchmaking-waiting/${info.code}`
         ];
+        // Use React Router's location.pathname for path detection
         const currentPath = location.pathname;
+        // PATCH: Banner should be visible if NOT in the active room, even if you navigated away
         const isInActiveRoom = activePaths.some(p => currentPath.startsWith(p));
         show = !isInActiveRoom;
       }
@@ -67,7 +70,7 @@ export function ReturnToGameBanner() {
 
     checkBanner();
 
-    // Listen for navigation, reload, storage, focus, popstate, visibilitychange, and location changes
+    // Listen for navigation, reload, storage, focus, popstate, visibilitychange, custom events
     const handleStorage = () => checkBanner();
     const handleFocus = () => checkBanner();
     const handleCustomEvent = (event) => {
@@ -82,12 +85,14 @@ export function ReturnToGameBanner() {
     };
     const handlePopState = () => checkBanner();
     const handleVisibility = () => checkBanner();
+    const handleLeaveRoomBanner = () => checkBanner();
 
     window.addEventListener("storage", handleStorage);
     window.addEventListener("focus", handleFocus);
     window.addEventListener("SetReturnBannerData", handleCustomEvent);
     window.addEventListener("popstate", handlePopState);
     window.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("LeaveRoomBannerCheck", handleLeaveRoomBanner);
 
     return () => {
       window.removeEventListener("storage", handleStorage);
@@ -95,6 +100,7 @@ export function ReturnToGameBanner() {
       window.removeEventListener("SetReturnBannerData", handleCustomEvent);
       window.removeEventListener("popstate", handlePopState);
       window.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("LeaveRoomBannerCheck", handleLeaveRoomBanner);
     };
   }, [location]);
 
@@ -469,6 +475,47 @@ export function ReturnToGameBanner() {
     return () => {
       window.removeEventListener("login-success", handleLoginEvent);
       window.removeEventListener("user-authenticated", handleLoginEvent);
+    };
+  }, []);
+
+  // PATCH: Always re-check backend after leaving room to ensure banner is visible after reconnect/leave
+  useEffect(() => {
+    function handleLeaveRoomBanner() {
+      setTimeout(async () => {
+        // Force backend check for active session after leave
+        const playerId = localStorage.getItem("playerId");
+        const username = localStorage.getItem("username");
+        let url = "/api/active-session?";
+        if (playerId) url += `playerId=${encodeURIComponent(playerId)}&`;
+        if (username) url += `username=${encodeURIComponent(username)}`;
+        try {
+          const resp = await fetch(url);
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data && data.activeGame && data.roomCloseTime) {
+              localStorage.setItem("activeGame", JSON.stringify(data.activeGame));
+              localStorage.setItem("roomCloseTime", data.roomCloseTime);
+              setGameInfo(data.activeGame);
+              setShowBanner(true);
+              setRoomCloseTime(data.roomCloseTime);
+            } else {
+              localStorage.removeItem("activeGame");
+              localStorage.removeItem("roomCloseTime");
+              setShowBanner(false);
+              setGameInfo(null);
+              setRoomCloseTime(null);
+            }
+          }
+        } catch {
+          // Ignore errors
+        }
+      }, 500); // slightly longer delay to allow backend to update
+    }
+
+    window.addEventListener("LeaveRoomBannerCheck", handleLeaveRoomBanner);
+
+    return () => {
+      window.removeEventListener("LeaveRoomBannerCheck", handleLeaveRoomBanner);
     };
   }, []);
 

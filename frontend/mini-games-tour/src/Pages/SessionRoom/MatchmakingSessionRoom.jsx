@@ -263,6 +263,19 @@ export default function MatchmakingSessionRoom() {
   }, [connection, isSpectator]);
   
 
+  const handleLeaveRoom = async () => {
+    if (!isSpectator && connection && connection.state === "Connected") {
+      try {
+        await connection.invoke("LeaveRoom", gameType, code, playerId);
+        // PATCH: Dispatch event to force ReturnToGameBanner to re-check backend after leave
+        window.dispatchEvent(new Event("LeaveRoomBannerCheck"));
+      } catch (err) {
+        console.warn("LeaveRoom failed:", err);
+      }
+    }
+    navigate('/');
+  };
+
   return (
     <div className="session-room">
       <h2>{gameType.toUpperCase()} Matchmaking Session</h2>
@@ -284,16 +297,7 @@ export default function MatchmakingSessionRoom() {
         </button>
       )}
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
-        <button onClick={async () => {
-          if (!isSpectator && connection && connection.state === "Connected") {
-            try {
-              connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => console.warn("LeaveRoom failed:", err));
-            } catch (err) {
-              console.warn("LeaveRoom failed:", err);
-            }
-          }
-          navigate('/');
-        }}>
+        <button onClick={handleLeaveRoom}>
           🚪 Leave Room
         </button>
       </div>

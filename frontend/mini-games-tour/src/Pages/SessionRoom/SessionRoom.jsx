@@ -242,6 +242,19 @@ export default function SessionRoom() {
     };
   }, [connection, isSpectator]);
 
+  const handleLeaveRoom = async () => {
+    if (!isSpectator && connection && connection.state === "Connected") {
+      try {
+        await connection.invoke("LeaveRoom", gameType, code, playerId);
+        // PATCH: Dispatch event to force ReturnToGameBanner to re-check backend after leave
+        window.dispatchEvent(new Event("LeaveRoomBannerCheck"));
+      } catch (err) {
+        console.warn("LeaveRoom failed:", err);
+      }
+    }
+    navigate('/');
+  };
+
   return (
     <div className="session-room">
       <ReturnToGameBanner />
@@ -260,16 +273,7 @@ export default function SessionRoom() {
       )}
 
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
-        <button onClick={async () => {
-          if (!isSpectator && connection && connection.state === "Connected") {
-            try {
-              connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => console.warn("LeaveRoom failed:", err));
-            } catch (err) {
-              console.warn("LeaveRoom failed:", err);
-            }
-          }
-          navigate('/');
-        }}>
+        <button onClick={handleLeaveRoom}>
           🚪 Leave Room
         </button>
       </div>
