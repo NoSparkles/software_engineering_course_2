@@ -30,12 +30,21 @@ class GlobalConnectionManager {
         const gameType = connectionData.gameType;
         const roomCode = connectionData.roomCode;
         const playerId = connectionData.playerId;
-       
+
         if (!gameType || !roomCode || !playerId) {
           console.error(`Missing parameters for LeaveRoom - gameType: ${gameType}, roomCode: ${roomCode}, playerId: ${playerId}`);
           continue;
         }
-        
+
+        // PATCH: Set activeGame and roomCloseTime BEFORE calling LeaveRoom so banner appears instantly (same as leave room button)
+        localStorage.setItem("activeGame", JSON.stringify({
+          gameType,
+          code: roomCode,
+          playerId,
+          isMatchmaking: type === "matchmakingSessionRoom"
+        }));
+        localStorage.setItem("roomCloseTime", new Date(Date.now() + 30000).toISOString());
+
         const promise = connection.invoke("LeaveRoom", gameType, roomCode, playerId).catch(err => {
           console.warn(`LeaveRoom failed on ${type} connection:`, err);
         });

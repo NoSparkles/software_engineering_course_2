@@ -53,7 +53,7 @@ export default function SessionRoom() {
         globalConnectionManager.unregisterConnection('sessionRoom');
       };
     }
-  }, [connection, gameType, code, playerId]);
+  }, [connection, connectionState, gameType, code, playerId]);
 
   useEffect(() => {
     if (connection && connectionState === "Connected") {

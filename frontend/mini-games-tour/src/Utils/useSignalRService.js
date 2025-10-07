@@ -16,6 +16,9 @@ export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token 
       connectionRef.current = null;
     }
 
+    // PATCH: Always clear roomCloseTime when joining a new session (fixes banner/timer bug for joinByCode)
+    localStorage.removeItem("roomCloseTime");
+
     // Now mark the new session version (guaranteed after cleanup)
     if (roomCode) {
       markJustStartedNewSession(roomCode);

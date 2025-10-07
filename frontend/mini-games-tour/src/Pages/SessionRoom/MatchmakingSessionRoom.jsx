@@ -180,9 +180,6 @@ export default function MatchmakingSessionRoom() {
         setStatus(message);
         localStorage.removeItem("roomCloseTime");
         localStorage.removeItem("activeGame");
-        // PATCH: Only navigate home if the room is actually closed for everyone (not just because a player left)
-        // If the message indicates the room is closed because all players left or session ended, navigate home.
-        // Otherwise, just show the status and let the user decide.
         if (
           typeof message === "string" &&
           (
@@ -196,7 +193,6 @@ export default function MatchmakingSessionRoom() {
         ) {
           navigate('/');
         } else {
-          // PATCH: If this RoomClosed is for a different room than the current one, ignore navigation
           if (closedRoomCode) {
             const session = localStorage.getItem("activeGame");
             if (session) {
@@ -206,12 +202,10 @@ export default function MatchmakingSessionRoom() {
                 closedRoomCode !== currentCode &&
                 closedRoomCode !== currentRoomKey
               ) {
-                // Not for this session, ignore navigation
                 return;
               }
             }
           }
-          // Otherwise, just show the status and let the user decide.
         }
       });
 
