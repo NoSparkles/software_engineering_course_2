@@ -90,12 +90,14 @@ namespace Controllers
 
             var token = _userService.GenerateJwtToken(user);
 
+            // PATCH: Add PlayerId to response (use Username as fallback if no PlayerId property)
             return Ok(new
             {
                 token,
                 user = new
                 {
                     user.Username,
+                    PlayerId = user.Username, // PATCH: If you have a PlayerId property, use it. Otherwise, use Username.
                     user.Friends,
                     user.RockPaperScissorsMMR,
                     user.FourInARowMMR,

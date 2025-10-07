@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../Utils/AuthProvider';
+import { setUsernameLocalStorage, setPlayerIdLocalStorage } from '../../Utils/ReturnToGameBanner';
 import './styles.css';
 
 export default function Register() {
@@ -21,6 +22,11 @@ export default function Register() {
 
     const success = await register(username, password);
     if (success) {
+      setUsernameLocalStorage(username);
+      // PATCH: Try to get playerId from user object and save it
+      if (window.localStorage.getItem("playerId")) {
+        setPlayerIdLocalStorage(window.localStorage.getItem("playerId"));
+      }
       navigate('/'); // ✅ go to homepage
     } else {
       setError('Username already exists.');

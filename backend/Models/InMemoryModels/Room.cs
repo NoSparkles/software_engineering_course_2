@@ -15,7 +15,7 @@ namespace Models.InMemoryModels
         public bool GameStarted { get; set; }
         
         // Track disconnected players and their disconnect time
-        public Dictionary<string, DateTime> DisconnectedPlayers { get; set; }
+        public Dictionary<string, RoomUser> DisconnectedPlayers { get; set; } // PATCH: Store RoomUser
         public DateTime? RoomCloseTime { get; set; }
         public CancellationTokenSource? RoomTimerCancellation { get; set; }
         public Room(GameInstance game, bool isMatchMaking)
@@ -25,7 +25,7 @@ namespace Models.InMemoryModels
             RoomPlayers = new List<RoomUser>();
             RoomSpectators = new List<RoomUser>();
             GameStarted = false;
-            DisconnectedPlayers = new Dictionary<string, DateTime>();
+            DisconnectedPlayers = new Dictionary<string, RoomUser>(); // PATCH
             RoomCloseTime = null;
             RoomTimerCancellation = null;
         }

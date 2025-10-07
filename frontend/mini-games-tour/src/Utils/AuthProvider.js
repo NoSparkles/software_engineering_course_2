@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { setUsernameLocalStorage } from './ReturnToGameBanner';
 
 const AuthContext = createContext();
 
@@ -12,7 +13,20 @@ export function AuthProvider({ children }) {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then(res => res.ok ? res.json() : null)
-        .then(data => data && setUser(data));
+        .then(data => {
+          if (data) {
+            setUser(data);
+            setUsernameLocalStorage(data.username);
+            if (data.playerId) {
+              localStorage.setItem('playerId', data.playerId);
+            }
+            // PATCH: Always save username to localStorage/sessionStorage for session lookup
+            if (data.username) {
+              localStorage.setItem('username', data.username);
+              sessionStorage.setItem('username', data.username);
+            }
+          }
+        });
     }
   }, [token]);
 
@@ -29,6 +43,15 @@ export function AuthProvider({ children }) {
     localStorage.setItem('token', data.token);
     setToken(data.token);
     setUser(data.user);
+    setUsernameLocalStorage(username);
+    if (data.user && data.user.playerId) {
+      localStorage.setItem('playerId', data.user.playerId);
+    }
+    // PATCH: Always save username to localStorage/sessionStorage for session lookup
+    if (data.user && data.user.username) {
+      localStorage.setItem('username', data.user.username);
+      sessionStorage.setItem('username', data.user.username);
+    }
     return true;
   };
 
@@ -39,15 +62,26 @@ export function AuthProvider({ children }) {
       body: JSON.stringify({ username, password }),
     });
 
+    if (response.ok) {
+      setUsernameLocalStorage(username);
+      const data = await response.json().catch(() => null);
+      if (data && data.playerId) {
+        localStorage.setItem('playerId', data.playerId);
+      }
+      // PATCH: Always save username to localStorage/sessionStorage for session lookup
+      if (data && data.username) {
+        localStorage.setItem('username', data.username);
+        sessionStorage.setItem('username', data.username);
+      }
+    }
     return response.ok;
   };
 
   const logout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('activeGame');
-    localStorage.removeItem('roomCloseTime');
     setUser(null);
     setToken(null);
+    // Don't clear activeGame and roomCloseTime - let the banner handle this
   };
 
   return (

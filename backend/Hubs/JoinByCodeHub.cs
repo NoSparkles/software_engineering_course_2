@@ -23,7 +23,13 @@ namespace Hubs
         public async Task HandleCommand(string gameType, string roomCode, string playerId, string command, string jwtToken)
         {
             var roomKey = RoomService.CreateRoomKey(gameType, roomCode);
-            var game = RoomService.GetRoomByKey(roomKey).Game;
+            var room = RoomService.GetRoomByKey(roomKey);
+            if (room == null)
+            {
+                Console.WriteLine($"Room {roomKey} not found for HandleCommand");
+                return;
+            }
+            var game = room.Game;
             var user = await UserService.GetUserFromTokenAsync(jwtToken);
             var me = RoomService.GetRoomUser(roomKey, playerId, user);
             if (me is null)
@@ -38,6 +44,9 @@ namespace Hubs
             var user = await UserService.GetUserFromTokenAsync(jwtToken);
             await Groups.AddToGroupAsync(Context.ConnectionId, RoomService.CreateRoomKey(gameType, roomCode));
             await RoomService.JoinAsPlayerNotMatchMaking(gameType, roomCode, playerId, user, Context.ConnectionId, Clients);
+            
+            // Small delay to ensure room setup is complete
+            await Task.Delay(500);
         }
 
         public Task<string> CreateRoom(string gameType, bool isMatchmaking)
@@ -65,6 +74,11 @@ namespace Hubs
                 Console.WriteLine($"JoinByCodeHub: Calling HandlePlayerLeave for {playerId} in {gameType}:{roomCode}");
                 var roomKey = RoomService.CreateRoomKey(gameType, roomCode);
                 var room = RoomService.GetRoomByKey(roomKey);
+                if (room == null)
+                {
+                    Console.WriteLine($"Room {roomKey} not found for LeaveRoom");
+                    return;
+                }
 
                 // Calculate roomCloseTime (30 seconds from now)
                 var roomCloseTime = DateTime.UtcNow.AddSeconds(30);

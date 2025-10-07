@@ -8,6 +8,9 @@ namespace Models
         [Key]
         public string Username { get; set; } = null!; // Primary key
 
+        // PATCH: Add PlayerId property if needed (otherwise, Username is used)
+        public string PlayerId => Username;
+
         // Hashed password
         [Required]
         public string PasswordHash { get; set; } = null!;

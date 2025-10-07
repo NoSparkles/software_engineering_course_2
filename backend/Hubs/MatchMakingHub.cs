@@ -302,10 +302,30 @@ namespace Hubs
         {
             Console.WriteLine($"MatchMakingHub.LeaveRoom called - PlayerId: {playerId}, GameType: {gameType}, RoomCode: {roomCode}");
 
-
             if (!string.IsNullOrEmpty(playerId) && !string.IsNullOrEmpty(gameType) && !string.IsNullOrEmpty(roomCode))
             {
                 Console.WriteLine($"MatchMakingHub: Calling HandlePlayerLeave for {playerId} in {gameType}:{roomCode}");
+                
+                var roomKey = RoomService.CreateRoomKey(gameType, roomCode);
+                var room = RoomService.GetRoomByKey(roomKey);
+                if (room != null)
+                {
+                    // Calculate roomCloseTime (30 seconds from now)
+                    var roomCloseTime = DateTime.UtcNow.AddSeconds(30);
+
+                    // Send SetReturnBannerData to the leaving player
+                    await Clients.Caller.SendAsync(
+                        "SetReturnBannerData",
+                        new {
+                            gameType = gameType,
+                            code = roomCode,
+                            playerId = playerId,
+                            isMatchmaking = true
+                        },
+                        roomCloseTime.ToString("o")
+                    );
+                }
+                
                 await RoomService.HandlePlayerLeave(gameType, roomCode, playerId, Clients);
                 Console.WriteLine($"MatchMakingHub: HandlePlayerLeave completed for {playerId}");
             }
