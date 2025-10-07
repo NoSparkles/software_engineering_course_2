@@ -72,7 +72,18 @@ export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token 
         console.error("[SignalR] Connection failed:", err);
       });
 
+    // PATCH: Disconnect on logout
+    function handleLogout(e) {
+      if (e.key === "token" && e.newValue === null && connectionRef.current) {
+        connectionRef.current.stop();
+        localStorage.removeItem("activeGame");
+        localStorage.removeItem("roomCloseTime");
+      }
+    }
+    window.addEventListener("storage", handleLogout);
+
     return () => {
+      window.removeEventListener("storage", handleLogout);
       if (connectionRef.current) {
         connectionRef.current.stop();
         connectionRef.current = null;

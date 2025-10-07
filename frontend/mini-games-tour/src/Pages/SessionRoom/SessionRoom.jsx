@@ -9,7 +9,7 @@ import {Board as FourInARowGameBoard} from '../../Games/FourInRowGame/Components
 import { useAuth } from '../../Utils/AuthProvider';
 import { globalConnectionManager } from '../../Utils/GlobalConnectionManager';
 import './styles.css';
-import ReturnToGameBanner, { markLeaveByHome } from '../../Utils/ReturnToGameBanner';
+import { markLeaveByHome } from '../../Utils/ReturnToGameBanner';
 
 export default function SessionRoom() {
   const { gameType, code } = useParams();
@@ -276,7 +276,6 @@ export default function SessionRoom() {
 
   return (
     <div className="session-room">
-      <ReturnToGameBanner />
       <h2>{gameType.toUpperCase()} Session</h2>
       <p>Room Code: <strong>{code}</strong></p>
       <p>

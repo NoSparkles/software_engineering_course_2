@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../Utils/AuthProvider';
 import './styles.css';
-import { ReturnToGameBanner } from '../../Utils/ReturnToGameBanner'
+
 export default function Register() {
   const navigate = useNavigate();
   const { register } = useAuth();

@@ -3,7 +3,6 @@ import { useAuth } from '../../Utils/AuthProvider'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import useUserDatabase from '../../Utils/useUserDatabase'
 import './styles.css'
-import { ReturnToGameBanner } from '../../Utils/ReturnToGameBanner'
 
 const Profile = () => {
   const {
@@ -94,7 +93,6 @@ const Profile = () => {
 
   return (
     <div className='profile'>
-      <ReturnToGameBanner />
       <h1>{profileUser.username}</h1>
 
       {/* Friend / Request controls for other users */}

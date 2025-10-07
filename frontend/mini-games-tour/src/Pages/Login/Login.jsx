@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../Utils/AuthProvider';
 import './styles.css';
-import { ReturnToGameBanner } from '../../Utils/ReturnToGameBanner'
+
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -23,7 +23,7 @@ export default function Login() {
 
   return (
     <form className="login-form" onSubmit={handleSubmit}>
-      <ReturnToGameBanner />
+    
       <h2>Log In</h2>
 
       <div className="login-form-group">
