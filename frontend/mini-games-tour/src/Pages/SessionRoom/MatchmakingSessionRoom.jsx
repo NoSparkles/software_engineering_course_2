@@ -105,6 +105,7 @@ export default function MatchmakingSessionRoom() {
           // Clear room close time when game starts - no timer needed
           localStorage.removeItem("roomCloseTime");
           setRoomCloseTime(null);
+          setGameStarted(true);
         }
       });
 
@@ -305,12 +306,11 @@ export default function MatchmakingSessionRoom() {
   };
 
   // Timer display logic for matchmaking:
-  // Show timer if roomCloseTime is set and in the future AND
-  // the current player is still in the room AND there is at least one missing player (room size < expected)
-  // PATCH: Use a more robust approach by tracking expectedRoomSize and updating it on StartGame and WaitingForOpponent.
+  // Show timer if roomCloseTime is set and in the future
+  // Simplified logic to match join by code behavior
   const [roomCloseTime, setRoomCloseTime] = useState(() => localStorage.getItem("roomCloseTime"));
   const [roomPlayers, setRoomPlayers] = useState([playerId]);
-  const [expectedRoomSize, setExpectedRoomSize] = useState(2);
+  const [gameStarted, setGameStarted] = useState(false);
 
   useEffect(() => {
     function handleRoomCloseTimeChange() {
@@ -323,16 +323,7 @@ export default function MatchmakingSessionRoom() {
         setRoomPlayers(players);
       });
 
-      // PATCH: Set expected room size to 2 on StartGame and WaitingForOpponent (for 2-player games)
-      connection.on("StartGame", () => {
-        setExpectedRoomSize(2);
-        // Clear timer when game starts
-        setRoomCloseTime(null);
-        localStorage.removeItem("roomCloseTime");
-      });
-      connection.on("WaitingForOpponent", () => {
-        setExpectedRoomSize(2);
-      });
+      // StartGame handler is already set up in the main useEffect
 
       // PATCH: If a player leaves/disconnects, timer should show for remaining player
       // These handlers are already set up in the main useEffect, so we just update state here
@@ -360,20 +351,17 @@ export default function MatchmakingSessionRoom() {
     return () => window.removeEventListener("storage", handleRoomCloseTimeChange);
   }, [connection, playerId]);
 
-  // Timer is shown in matchmaking only if:
+  // Timer is shown in matchmaking only when:
   // - roomCloseTime is set and in the future
   // - timeLeft > 0
-  // - current player is still in the room (roomPlayers includes playerId)
-  // - roomPlayers.length < expectedRoomSize (someone is missing)
-  // - expectedRoomSize > 1 (don't show timer if game hasn't started and only one player is expected)
+  // - game hasn't started yet OR there are missing players (roomPlayers.length < 2)
+  // Simplified logic to match join by code behavior
   const showTimer = !isSpectator &&
     roomCloseTime &&
     Date.parse(roomCloseTime) > Date.now() &&
     timeLeft !== null &&
     timeLeft > 0 &&
-    roomPlayers.includes(playerId) &&
-    roomPlayers.length < expectedRoomSize &&
-    expectedRoomSize > 1;
+    (!gameStarted || roomPlayers.length < 2);
 
   return (
     <div className="session-room">
