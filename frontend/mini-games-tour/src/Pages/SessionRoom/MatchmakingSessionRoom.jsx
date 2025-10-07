@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useSignalRService } from '../../Utils/useSignalRService';
 import { usePlayerId } from '../../Utils/usePlayerId';
 import { useCountdownTimer } from '../../Utils/useCountdownTimer';
@@ -8,10 +8,8 @@ import RpsBoard from '../../Games/RockPaperScissors/Components/RpsBoard';
 import {Board as FourInARowGameBoard} from '../../Games/FourInRowGame/Components/Board';
 import { useAuth } from '../../Utils/AuthProvider';
 import { globalConnectionManager } from '../../Utils/GlobalConnectionManager';
-import { showLeaveRoomUiDelay, wasLeaveByHome, clearLeaveByHome } from '../../Utils/ReturnToGameBanner';
 import './styles.css';
-import { UNSAFE_NavigationContext as NavigationContext } from "react-router-dom";
-import { useContext, useCallback } from "react";
+
 
 export default function MatchmakingSessionRoom() {
   const { gameType, code } = useParams();
@@ -261,13 +259,13 @@ export default function MatchmakingSessionRoom() {
   
 
   return (
-    <div className="matchmaking-session-room">
+    <div className="session-room">
       <h2>{gameType.toUpperCase()} Matchmaking Session</h2>
       <p>Player: <strong>{user?.username || playerId}</strong></p>
       <p>
         Assigned Color: <strong>{playerColor ? (playerColor === "R" ? "Red" : "Yellow") : "Not assigned yet"}</strong>
       </p>
-      <p>Status: <strong>{status}</strong></p>
+      
       <p>Connection: <strong style={{
         color: connectionState === "Connected" ? "green" : 
                connectionState === "Reconnecting" ? "orange" : 
