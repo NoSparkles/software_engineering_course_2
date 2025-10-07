@@ -11,7 +11,6 @@ import { globalConnectionManager } from '../../Utils/GlobalConnectionManager';
 import { markLeaveByHome } from '../../Utils/ReturnToGameBanner';
 import './styles.css';
 
-
 export default function MatchmakingSessionRoom() {
   const { gameType, code } = useParams();
   const navigate = useNavigate();
@@ -40,11 +39,7 @@ export default function MatchmakingSessionRoom() {
       isMatchmaking: true
     };
     localStorage.setItem("activeGame", JSON.stringify(activeGameData));
-    // PATCH: Set fallback roomCloseTime if not present
-    if (!localStorage.getItem("roomCloseTime")) {
-      const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
-      localStorage.setItem("roomCloseTime", fallbackCloseTime);
-    }
+    // DO NOT set fallback roomCloseTime - let backend handle timer logic
   }, [code, gameType, playerId]);
 
   // Register connection with global manager
@@ -107,6 +102,9 @@ export default function MatchmakingSessionRoom() {
       connection.on("StartGame", (roomCode) => {
         if (roomCode === code) {
           setStatus("Game started! Good luck!");
+          // Clear room close time when game starts - no timer needed
+          localStorage.removeItem("roomCloseTime");
+          setRoomCloseTime(null);
         }
       });
 
@@ -115,10 +113,12 @@ export default function MatchmakingSessionRoom() {
         // Set room close time for countdown if provided
         if (roomCloseTime) {
           localStorage.setItem("roomCloseTime", roomCloseTime);
+          setRoomCloseTime(roomCloseTime);
         } else {
           // Fallback: set 30 seconds from now
           const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
           localStorage.setItem("roomCloseTime", fallbackCloseTime);
+          setRoomCloseTime(fallbackCloseTime);
         }
       });
 
@@ -135,6 +135,12 @@ export default function MatchmakingSessionRoom() {
 
       connection.on("Reconnected", () => {
         setStatus("Reconnected to matchmaking session.");
+        // Rejoin the room on reconnection
+        if (connection && connectionState === "Connected" && !isSpectator) {
+          connection.invoke("Join", gameType, code, playerId, token)
+            .then(() => setStatus("Rejoined matchmaking session"))
+            .catch(err => console.error("Rejoin failed:", err));
+        }
       });
 
       connection.on("SetPlayerColor", (color) => {
@@ -151,6 +157,7 @@ export default function MatchmakingSessionRoom() {
         // Store room close time for countdown
         if (roomCloseTime) {
           localStorage.setItem("roomCloseTime", roomCloseTime);
+          setRoomCloseTime(roomCloseTime);
         }
       });
 
@@ -158,6 +165,7 @@ export default function MatchmakingSessionRoom() {
         setStatus(message);
         // Clear room close time when player reconnects
         localStorage.removeItem("roomCloseTime");
+        setRoomCloseTime(null);
       });
 
       connection.on("RoomClosing", (message) => {
@@ -296,6 +304,77 @@ export default function MatchmakingSessionRoom() {
     navigate('/');
   };
 
+  // Timer display logic for matchmaking:
+  // Show timer if roomCloseTime is set and in the future AND
+  // the current player is still in the room AND there is at least one missing player (room size < expected)
+  // PATCH: Use a more robust approach by tracking expectedRoomSize and updating it on StartGame and WaitingForOpponent.
+  const [roomCloseTime, setRoomCloseTime] = useState(() => localStorage.getItem("roomCloseTime"));
+  const [roomPlayers, setRoomPlayers] = useState([playerId]);
+  const [expectedRoomSize, setExpectedRoomSize] = useState(2);
+
+  useEffect(() => {
+    function handleRoomCloseTimeChange() {
+      setRoomCloseTime(localStorage.getItem("roomCloseTime"));
+    }
+    window.addEventListener("storage", handleRoomCloseTimeChange);
+
+    if (connection) {
+      connection.on("RoomPlayersUpdate", (players) => {
+        setRoomPlayers(players);
+      });
+
+      // PATCH: Set expected room size to 2 on StartGame and WaitingForOpponent (for 2-player games)
+      connection.on("StartGame", () => {
+        setExpectedRoomSize(2);
+        // Clear timer when game starts
+        setRoomCloseTime(null);
+        localStorage.removeItem("roomCloseTime");
+      });
+      connection.on("WaitingForOpponent", () => {
+        setExpectedRoomSize(2);
+      });
+
+      // PATCH: If a player leaves/disconnects, timer should show for remaining player
+      // These handlers are already set up in the main useEffect, so we just update state here
+      connection.on("PlayerDeclinedReconnection", (declinedPlayerId, message) => {
+        const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
+        setRoomCloseTime(fallbackCloseTime);
+        localStorage.setItem("roomCloseTime", fallbackCloseTime);
+      });
+      connection.on("PlayerReconnected", (reconnectedPlayerId, message) => {
+        setRoomCloseTime(null);
+        localStorage.removeItem("roomCloseTime");
+      });
+      connection.on("RoomClosed", () => {
+        setRoomCloseTime(null);
+        localStorage.removeItem("roomCloseTime");
+        setRoomPlayers([]);
+      });
+      return () => {
+        window.removeEventListener("storage", handleRoomCloseTimeChange);
+        connection.off("RoomPlayersUpdate");
+        connection.off("PlayerDeclinedReconnection");
+        connection.off("WaitingForOpponent");
+      };
+    }
+    return () => window.removeEventListener("storage", handleRoomCloseTimeChange);
+  }, [connection, playerId]);
+
+  // Timer is shown in matchmaking only if:
+  // - roomCloseTime is set and in the future
+  // - timeLeft > 0
+  // - current player is still in the room (roomPlayers includes playerId)
+  // - roomPlayers.length < expectedRoomSize (someone is missing)
+  // - expectedRoomSize > 1 (don't show timer if game hasn't started and only one player is expected)
+  const showTimer = !isSpectator &&
+    roomCloseTime &&
+    Date.parse(roomCloseTime) > Date.now() &&
+    timeLeft !== null &&
+    timeLeft > 0 &&
+    roomPlayers.includes(playerId) &&
+    roomPlayers.length < expectedRoomSize &&
+    expectedRoomSize > 1;
+
   return (
     <div className="session-room">
       <h2>{gameType.toUpperCase()} Matchmaking Session</h2>
@@ -322,7 +401,7 @@ export default function MatchmakingSessionRoom() {
         </button>
       </div>
 
-      {timeLeft !== null ? (
+      {showTimer ? (
         <div className={`time-left ${timeLeft <= 10 ? 'short' : timeLeft <= 20 ? 'medium' : 'long'}`}>
           {timeLeft > 0 ? `Room will close in ${timeLeft} seconds` : "Room is closing now!"}
         </div>

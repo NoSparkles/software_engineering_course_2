@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
 using games;
 using Models;
+using Models.InMemoryModels;
 using Services;
 using System.Security.Principal;
 using System.Text.RegularExpressions;
@@ -107,6 +108,10 @@ namespace Hubs
                     room.RoomCloseTime = roomCloseTime;
                 }
 
+                // Send RoomPlayersUpdate to remaining players so they can see updated room state
+                var remainingPlayers = room?.RoomPlayers?.Where(p => p.PlayerId != playerId).Select(p => p.PlayerId).ToList() ?? new List<string>();
+                await Clients.Group(roomKey).SendAsync("RoomPlayersUpdate", remainingPlayers);
+
                 // --- PATCH: Notify all remaining players in the room that a player left and set timer/banner ---
                 await Clients.Group(roomKey).SendAsync(
                     "PlayerLeft",
@@ -153,6 +158,48 @@ namespace Hubs
             else
             {
                 Console.WriteLine("JoinByCodeHub: LeaveRoom called with missing parameters");
+            }
+        }
+
+        public async Task DeclineReconnection(string playerId, string gameType, string roomCode)
+        {
+            Console.WriteLine($"JoinByCodeHub.DeclineReconnection called for player {playerId}, gameType: {gameType}, roomCode: {roomCode}");
+
+            var roomKey = RoomService.CreateRoomKey(gameType, roomCode);
+            if (RoomService.Rooms.TryGetValue(roomKey, out Room room))
+            {
+                Console.WriteLine($"DeclineReconnection: Found room {roomKey} for player {playerId}");
+                
+                // Remove the declining player from disconnected players
+                room.DisconnectedPlayers.Remove(playerId);
+                
+                // Get remaining players before checking if all are disconnected
+                var remainingPlayers = room.RoomPlayers?.Select(p => p.PlayerId).ToList() ?? new List<string>();
+                
+                // Check if all remaining players are also disconnected
+                bool allPlayersDisconnected = room.RoomPlayers.All(rp => room.DisconnectedPlayers.ContainsKey(rp.PlayerId));
+                
+                if (allPlayersDisconnected)
+                {
+                    // All players disconnected, close room immediately
+                    await Clients.Group(roomKey).SendAsync("RoomClosed", "All players declined to reconnect. Room closed.");
+                    RoomService.Rooms.TryRemove(roomKey, out _);
+                    Console.WriteLine($"Room {roomKey} closed - all players declined reconnection");
+                    return;
+                }
+                
+                // Start timer for remaining players
+                await RoomService.StartRoomTimer(roomKey, room, Clients, "Player declined reconnection");
+                
+                // Send events to remaining players
+                await Clients.Group(roomKey).SendAsync("RoomPlayersUpdate", remainingPlayers);
+                await Clients.Group(roomKey).SendAsync("PlayerDeclinedReconnection", playerId, "A player declined to reconnect. Room will close in 30 seconds.");
+                
+                Console.WriteLine($"Room {roomKey} timer started - player {playerId} declined reconnection");
+            }
+            else
+            {
+                Console.WriteLine($"DeclineReconnection: Room {roomKey} not found");
             }
         }
 

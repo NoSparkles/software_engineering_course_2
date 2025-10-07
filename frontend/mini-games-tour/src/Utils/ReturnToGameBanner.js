@@ -81,20 +81,34 @@ export function ReturnToGameBanner() {
         `/${info.gameType}/matchmaking-session/${info.code}`,
         `/${info.gameType}/matchmaking-waiting/${info.code}`
       ];
-      
       const currentPath = location.pathname;
       const isInActiveRoom = activePaths.some(p => currentPath.startsWith(p));
       const show = !isInActiveRoom;
 
-      // Only show timer if banner is showing and timer is active
-      const closeTimestamp = Date.parse(closeTime);
-      const now = Date.now();
-      const hasActiveTimer = closeTimestamp > now;
-      const timerShouldShow = show && hasActiveTimer;
+      // PATCH: Only show timer if roomCloseTime is in the future AND user is NOT in the room
+      let timerShouldShow = false;
+      if (
+        show &&
+        closeTime &&
+        Date.parse(closeTime) > Date.now()
+      ) {
+        timerShouldShow = true;
+      } else {
+        timerShouldShow = false;
+      }
 
-      setShowBanner(show);
+      // PATCH: If user is in the room (session/matchmaking-session), never show timer/banner
+      if (isInActiveRoom) {
+        setShowBanner(false);
+        setShouldShowTimer(false);
+        setGameInfo(null);
+        setRoomCloseTime(null);
+        return;
+      }
+
+      setShowBanner(timerShouldShow);
       setGameInfo(info);
-      setRoomCloseTime(closeTime);
+      setRoomCloseTime(timerShouldShow ? closeTime : null);
       setShouldShowTimer(timerShouldShow);
     }
 
@@ -143,9 +157,21 @@ export function ReturnToGameBanner() {
       });
 
       connection.on("PlayerReconnected", () => {
-        // Player reconnected, hide timer
+        // Player reconnected, hide banner and timer
+        setShowBanner(false);
         setShouldShowTimer(false);
+        setGameInfo(null);
         localStorage.removeItem("roomCloseTime");
+        setRoomCloseTime(null);
+      });
+
+      connection.on("StartGame", () => {
+        // Game started with both players, hide banner and timer
+        setShowBanner(false);
+        setShouldShowTimer(false);
+        setGameInfo(null);
+        localStorage.removeItem("roomCloseTime");
+        localStorage.removeItem("activeGame");
         setRoomCloseTime(null);
       });
 
@@ -190,6 +216,7 @@ export function ReturnToGameBanner() {
       connections.forEach(connection => {
         connection.off("PlayerLeft");
         connection.off("PlayerReconnected");
+        connection.off("StartGame");
         connection.off("SetReturnBannerData");
         connection.off("RoomClosed");
         connection.off("SessionDeclined");

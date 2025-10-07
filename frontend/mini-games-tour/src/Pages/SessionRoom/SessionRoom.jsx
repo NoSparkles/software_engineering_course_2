@@ -39,11 +39,7 @@ export default function SessionRoom() {
         isMatchmaking: false
       };
       localStorage.setItem("activeGame", JSON.stringify(activeGameData));
-      // PATCH: Set fallback roomCloseTime if not present
-      if (!localStorage.getItem("roomCloseTime")) {
-        const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
-        localStorage.setItem("roomCloseTime", fallbackCloseTime);
-      }
+      // DO NOT set fallback roomCloseTime - let backend handle timer logic
   }, [code, gameType, playerId]);
 
   // Register connection with global manager
@@ -106,6 +102,10 @@ export default function SessionRoom() {
       connection.on("StartGame", (roomCode) => {
         if (roomCode === code) {
           setStatus("Game started! Good luck!");
+          // Clear room close time when game starts - no timer needed
+          localStorage.removeItem("roomCloseTime");
+          setGameStarted(true);
+          setRoomCloseTime(null);
         }
       });
 
@@ -114,10 +114,12 @@ export default function SessionRoom() {
         // Set room close time for countdown if provided
         if (roomCloseTime) {
           localStorage.setItem("roomCloseTime", roomCloseTime);
+          setRoomCloseTime(roomCloseTime);
         } else {
           // Fallback: set 30 seconds from now
           const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
           localStorage.setItem("roomCloseTime", fallbackCloseTime);
+          setRoomCloseTime(fallbackCloseTime);
         }
       });
 
@@ -134,6 +136,12 @@ export default function SessionRoom() {
 
       connection.on("Reconnected", () => {
         setStatus("Reconnected to room.");
+        // Rejoin the room on reconnection
+        if (connection && connectionState === "Connected" && !isSpectator) {
+          connection.invoke("Join", gameType, code, playerId, token)
+            .then(() => setStatus("Rejoined room"))
+            .catch(err => console.error("Rejoin failed:", err));
+        }
       });
 
       connection.on("SetPlayerColor", (color) => {
@@ -149,12 +157,15 @@ export default function SessionRoom() {
       });
 
       connection.on("PlayerDisconnected", (disconnectedPlayerId, message, roomCloseTime) => {
+        setStatus(message);
         if (roomCloseTime) {
           localStorage.setItem("roomCloseTime", roomCloseTime);
+          setRoomCloseTime(roomCloseTime);
         } else {
           // Fallback: set 30 seconds from now
           const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
           localStorage.setItem("roomCloseTime", fallbackCloseTime);
+          setRoomCloseTime(fallbackCloseTime);
         }
       });
 
@@ -162,6 +173,7 @@ export default function SessionRoom() {
         setStatus(message);
         // Clear room close time when player reconnects
         localStorage.removeItem("roomCloseTime");
+        setRoomCloseTime(null);
       });
 
       connection.on("RoomClosing", (message) => {
@@ -274,6 +286,49 @@ export default function SessionRoom() {
     navigate('/');
   };
 
+  // Timer display logic for join by code:
+  // Show timer if roomCloseTime is set and in the future, but only when there are disconnected players or game hasn't started
+  // PATCH: Clear timer on StartGame and track room state properly
+  const [roomCloseTime, setRoomCloseTime] = useState(() => localStorage.getItem("roomCloseTime"));
+  const [roomPlayers, setRoomPlayers] = useState([playerId]);
+  const [gameStarted, setGameStarted] = useState(false);
+
+  useEffect(() => {
+    function handleRoomCloseTimeChange() {
+      setRoomCloseTime(localStorage.getItem("roomCloseTime"));
+    }
+    window.addEventListener("storage", handleRoomCloseTimeChange);
+
+    if (connection) {
+      connection.on("RoomPlayersUpdate", (players) => {
+        setRoomPlayers(players);
+      });
+
+      connection.on("PlayerDeclinedReconnection", (declinedPlayerId, message) => {
+        const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
+        setRoomCloseTime(fallbackCloseTime);
+        localStorage.setItem("roomCloseTime", fallbackCloseTime);
+      });
+      return () => {
+        window.removeEventListener("storage", handleRoomCloseTimeChange);
+        connection.off("RoomPlayersUpdate");
+        connection.off("PlayerDeclinedReconnection");
+      };
+    }
+    return () => window.removeEventListener("storage", handleRoomCloseTimeChange);
+  }, [connection]);
+
+  // Timer is shown in join by code only when:
+  // - roomCloseTime is set and in the future
+  // - timeLeft > 0
+  // - game hasn't started yet OR there are missing players (roomPlayers.length < 2)
+  const showTimer = !isSpectator &&
+    roomCloseTime &&
+    Date.parse(roomCloseTime) > Date.now() &&
+    timeLeft !== null &&
+    timeLeft > 0 &&
+    (!gameStarted || roomPlayers.length < 2);
+
   return (
     <div className="session-room">
       <h2>{gameType.toUpperCase()} Session</h2>
@@ -296,7 +351,7 @@ export default function SessionRoom() {
         </button>
       </div>
 
-      {timeLeft !== null ? (
+      {showTimer ? (
         <div className={`time-left ${timeLeft <= 10 ? 'short' : timeLeft <= 20 ? 'medium' : 'long'}`}>
           {timeLeft > 0 ? `Room will close in ${timeLeft} seconds` : "Room is closing now!"}
         </div>

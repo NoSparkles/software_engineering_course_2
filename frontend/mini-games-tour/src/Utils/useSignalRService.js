@@ -13,9 +13,9 @@ export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token 
     // Always clear roomCloseTime and activeGame when joining a new session
     localStorage.removeItem("roomCloseTime");
     localStorage.removeItem("activeGame");
-    sessionStorage.removeItem("leaveByHome"); // PATCH: Clear leaveByHome flag when joining a session
+    sessionStorage.removeItem("leaveByHome");
 
-    // Always set activeGame and roomCloseTime when joining a new session
+    // Always set activeGame when joining a new session
     if (roomCode && gameType) {
       localStorage.setItem("activeGame", JSON.stringify({
         gameType,
@@ -23,11 +23,7 @@ export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token 
         playerId,
         isMatchmaking: hubUrl.toLowerCase().includes("matchmaking")
       }));
-      // PATCH: If joining a session, set a fallback roomCloseTime if not present
-      if (!localStorage.getItem("roomCloseTime")) {
-        const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
-        localStorage.setItem("roomCloseTime", fallbackCloseTime);
-      }
+      // DO NOT set fallback roomCloseTime - let backend handle timer logic
     }
 
     const connection = new HubConnectionBuilder()
@@ -53,12 +49,11 @@ export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token 
     });
 
     connection.onreconnected(() => {
-      console.log("[SignalR] Reconnected. Attempting to rejoin room...");
+      console.log("[SignalR] Reconnected.");
       setConnectionState("Connected");
       setReconnected(true);
-      if (gameType && roomCode) {
-        connection.invoke("Join", gameType, roomCode, playerId, token || "");
-      }
+      // DO NOT automatically rejoin - let the room components handle rejoining
+      // This prevents excessive reconnections and timer issues
     });
 
     connection
