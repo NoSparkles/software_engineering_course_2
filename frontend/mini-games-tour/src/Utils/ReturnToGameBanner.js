@@ -18,8 +18,47 @@ export function ReturnToGameBanner() {
   // --- Only one effect controls banner visibility ---
   useEffect(() => {
     async function checkBanner() {
-      let session = null;
-      let closeTime = null;
+      let session = localStorage.getItem("activeGame");
+      let closeTime = localStorage.getItem("roomCloseTime");
+
+      // PATCH: If session/closeTime missing, try to restore from sessionStorage (for Home->Return->Profile bug)
+      if (!session || !closeTime) {
+        const lastSession = sessionStorage.getItem("lastActiveGame");
+        const lastCloseTime = sessionStorage.getItem("lastRoomCloseTime");
+        if (lastSession && lastCloseTime) {
+          session = lastSession;
+          closeTime = lastCloseTime;
+          localStorage.setItem("activeGame", session);
+          localStorage.setItem("roomCloseTime", lastCloseTime);
+        }
+      }
+
+      // PATCH: If still missing, try to restore from history.state (for SPA navigation)
+      if ((!session || !closeTime) && window.history.state && window.history.state.activeGame && window.history.state.roomCloseTime) {
+        session = JSON.stringify(window.history.state.activeGame);
+        closeTime = window.history.state.roomCloseTime;
+        localStorage.setItem("activeGame", session);
+        localStorage.setItem("roomCloseTime", closeTime);
+        sessionStorage.setItem("lastActiveGame", session);
+        sessionStorage.setItem("lastRoomCloseTime", closeTime);
+      }
+
+      // PATCH: If still missing, try to restore from a global variable (for edge SPA navigation)
+      if ((!session || !closeTime) && window.__lastActiveGame && window.__lastRoomCloseTime) {
+        session = window.__lastActiveGame;
+        closeTime = window.__lastRoomCloseTime;
+        localStorage.setItem("activeGame", session);
+        localStorage.setItem("roomCloseTime", closeTime);
+        sessionStorage.setItem("lastActiveGame", session);
+        sessionStorage.setItem("lastRoomCloseTime", closeTime);
+      }
+
+      // PATCH: If user left via Home or navigation, set a flag so backend knows player left
+      if (sessionStorage.getItem("leaveByHome") === "1") {
+        localStorage.setItem("playerLeftFlag", "1");
+      }
+
+      // Always check backend for active session using both playerId and username
       try {
         const playerId = localStorage.getItem("playerId");
         const username = localStorage.getItem("username");
@@ -34,11 +73,10 @@ export function ReturnToGameBanner() {
             closeTime = data.roomCloseTime;
             localStorage.setItem("activeGame", session);
             localStorage.setItem("roomCloseTime", closeTime);
-          } else {
-            localStorage.removeItem("activeGame");
-            localStorage.removeItem("roomCloseTime");
-            session = null;
-            closeTime = null;
+            sessionStorage.setItem("lastActiveGame", session);
+            sessionStorage.setItem("lastRoomCloseTime", closeTime);
+            window.__lastActiveGame = session;
+            window.__lastRoomCloseTime = closeTime;
           }
         }
       } catch {
@@ -50,16 +88,13 @@ export function ReturnToGameBanner() {
       let info = null;
       if (session && closeTime) {
         info = JSON.parse(session);
-        // Build all possible active game/waiting room paths
         const activePaths = [
           `/${info.gameType}/session/${info.code}`,
           `/${info.gameType}/waiting/${info.code}`,
           `/${info.gameType}/matchmaking-session/${info.code}`,
           `/${info.gameType}/matchmaking-waiting/${info.code}`
         ];
-        // Use React Router's location.pathname for path detection
         const currentPath = location.pathname;
-        // PATCH: Banner should be visible if NOT in the active room, even if you navigated away
         const isInActiveRoom = activePaths.some(p => currentPath.startsWith(p));
         show = !isInActiveRoom;
       }
@@ -613,6 +648,43 @@ export function ReturnToGameBanner() {
   );
 }
 
+
+// PATCH: Ensure ReturnToGameBanner is rendered in App.jsx or main layout so it's always visible
+// If you have an App.jsx or main layout, add this at the top-level render:
+
+// Example for App.jsx:
+// import { ReturnToGameBanner } from './Utils/ReturnToGameBanner';
+// function App() {
+//   return (
+//     <>
+//       <ReturnToGameBanner />
+//       {/* ...existing routes/components... */}
+//     </>
+//   );
+// }
+
+// --- PATCH: Also, ensure localStorage is updated on login (in your login logic) ---
+// After successful login, set localStorage.setItem("username", user.username);
+// and localStorage.setItem("playerId", user.username); // if playerId is username
+
+// --- PATCH: If your login logic does not set these, the banner cannot work reliably ---
+//     </>
+//   );
+// }
+
+// --- PATCH: Also, ensure localStorage is updated on login (in your login logic) ---
+// After successful login, set localStorage.setItem("username", user.username);
+// and localStorage.setItem("playerId", user.username); // if playerId is username
+
+// --- PATCH: If your login logic does not set these, the banner cannot work reliably ---
+// --- PATCH: Also, ensure localStorage is updated on login (in your login logic) ---
+// After successful login, set localStorage.setItem("username", user.username);
+// and localStorage.setItem("playerId", user.username); // if playerId is username
+
+// --- PATCH: If your login logic does not set these, the banner cannot work reliably ---
+
+// --- PATCH: If your login logic does not set these, the banner cannot work reliably ---
+// --- PATCH: If your login logic does not set these, the banner cannot work reliably ---
 // --- PATCH: Export a helper to mark a new session version ---
 export function markJustStartedNewSession(roomCode) {
   // Use a unique version for each session (timestamp)
@@ -626,7 +698,7 @@ export function markJustStartedNewSession(roomCode) {
 
 // --- PATCH: Show a UI status/spinner for 1.7s when leaving a room (for both player A and B) ---
 export function showLeaveRoomUiDelay() {
-  return new Promise(resolve => setTimeout(resolve, 17000));
+  return new Promise(resolve => setTimeout(resolve, 1700));
 }
 
 // --- PATCH: Home button navigation flag ---
@@ -674,6 +746,8 @@ export default ReturnToGameBanner;
 // --- PATCH: Also, ensure localStorage is updated on login (in your login logic) ---
 // After successful login, set localStorage.setItem("username", user.username);
 // and localStorage.setItem("playerId", user.username); // if playerId is username
+
+// --- PATCH: If your login logic does not set these, the banner cannot work reliably ---
 
 // --- PATCH: If your login logic does not set these, the banner cannot work reliably ---
 

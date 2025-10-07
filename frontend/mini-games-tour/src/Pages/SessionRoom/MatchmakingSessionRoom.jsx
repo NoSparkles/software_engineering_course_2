@@ -8,6 +8,7 @@ import RpsBoard from '../../Games/RockPaperScissors/Components/RpsBoard';
 import {Board as FourInARowGameBoard} from '../../Games/FourInRowGame/Components/Board';
 import { useAuth } from '../../Utils/AuthProvider';
 import { globalConnectionManager } from '../../Utils/GlobalConnectionManager';
+import { markLeaveByHome } from '../../Utils/ReturnToGameBanner';
 import './styles.css';
 
 
@@ -267,12 +268,31 @@ export default function MatchmakingSessionRoom() {
     if (!isSpectator && connection && connection.state === "Connected") {
       try {
         await connection.invoke("LeaveRoom", gameType, code, playerId);
-        // PATCH: Dispatch event to force ReturnToGameBanner to re-check backend after leave
         window.dispatchEvent(new Event("LeaveRoomBannerCheck"));
       } catch (err) {
         console.warn("LeaveRoom failed:", err);
       }
     }
+    // PATCH: Mark leave by home/navigation so banner logic and backend know player left
+    markLeaveByHome();
+    setTimeout(() => {
+      const activeGameData = {
+        gameType,
+        code: code,
+        playerId: playerId,
+        isMatchmaking: true
+      };
+      localStorage.setItem("activeGame", JSON.stringify(activeGameData));
+      sessionStorage.setItem("lastActiveGame", JSON.stringify(activeGameData));
+      if (!localStorage.getItem("roomCloseTime")) {
+        const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
+        localStorage.setItem("roomCloseTime", fallbackCloseTime);
+        sessionStorage.setItem("lastRoomCloseTime", fallbackCloseTime);
+      } else {
+        sessionStorage.setItem("lastRoomCloseTime", localStorage.getItem("roomCloseTime"));
+      }
+      window.dispatchEvent(new Event("LeaveRoomBannerCheck"));
+    }, 300);
     navigate('/');
   };
 

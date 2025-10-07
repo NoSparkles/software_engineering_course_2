@@ -13,6 +13,7 @@ export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token 
     // Always clear roomCloseTime and activeGame when joining a new session
     localStorage.removeItem("roomCloseTime");
     localStorage.removeItem("activeGame");
+    sessionStorage.removeItem("leaveByHome"); // PATCH: Clear leaveByHome flag when joining a session
 
     // Always set activeGame and roomCloseTime when joining a new session
     if (roomCode && gameType) {
