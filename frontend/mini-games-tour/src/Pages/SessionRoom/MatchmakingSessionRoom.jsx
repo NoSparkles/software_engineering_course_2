@@ -19,7 +19,7 @@ export default function MatchmakingSessionRoom() {
   const isSpectator = query.get('spectator') === 'true';
   const [status, setStatus] = useState("Game in progress...");
   const [board, setBoard] = useState(null);
-  const [playerColor, setPlayerColor] = useState(null); // only for four-in-a-row
+  const [playerColor, setPlayerColor] = useState(null);
   const playerId = usePlayerId();
   const timeLeft = useCountdownTimer();
   
@@ -39,10 +39,8 @@ export default function MatchmakingSessionRoom() {
       isMatchmaking: true
     };
     localStorage.setItem("activeGame", JSON.stringify(activeGameData));
-    // DO NOT set fallback roomCloseTime - let backend handle timer logic
   }, [code, gameType, playerId]);
 
-  // Register connection with global manager
   useEffect(() => {
     if (connection) {
       globalConnectionManager.registerConnection('matchmakingSessionRoom', connection, {
@@ -102,7 +100,6 @@ export default function MatchmakingSessionRoom() {
       connection.on("StartGame", (roomCode) => {
         if (roomCode === code) {
           setStatus("Game started! Good luck!");
-          // Clear room close time when game starts - no timer needed
           localStorage.removeItem("roomCloseTime");
           setRoomCloseTime(null);
           setGameStarted(true);
@@ -111,12 +108,10 @@ export default function MatchmakingSessionRoom() {
 
       connection.on("PlayerLeft", (leftPlayerId, message, roomCloseTime) => {
         setStatus(message);
-        // Set room close time for countdown if provided
         if (roomCloseTime) {
           localStorage.setItem("roomCloseTime", roomCloseTime);
           setRoomCloseTime(roomCloseTime);
         } else {
-          // Fallback: set 30 seconds from now
           const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
           localStorage.setItem("roomCloseTime", fallbackCloseTime);
           setRoomCloseTime(fallbackCloseTime);
@@ -124,11 +119,9 @@ export default function MatchmakingSessionRoom() {
       });
 
       connection.on("PlayerLeftRoom", (message, roomCloseTime) => {
-        // This is for the player who left - set room close time for Return to Game banner
         if (roomCloseTime) {
           localStorage.setItem("roomCloseTime", roomCloseTime);
         } else {
-          // Fallback: set 30 seconds from now
           const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
           localStorage.setItem("roomCloseTime", fallbackCloseTime);
         }
@@ -136,7 +129,6 @@ export default function MatchmakingSessionRoom() {
 
       connection.on("Reconnected", () => {
         setStatus("Reconnected to matchmaking session.");
-        // Rejoin the room on reconnection
         if (connection && connectionState === "Connected" && !isSpectator) {
           connection.invoke("Join", gameType, code, playerId, token)
             .then(() => setStatus("Rejoined matchmaking session"))
@@ -155,7 +147,6 @@ export default function MatchmakingSessionRoom() {
 
       connection.on("PlayerDisconnected", (disconnectedPlayerId, message, roomCloseTime) => {
         setStatus(message);
-        // Store room close time for countdown
         if (roomCloseTime) {
           localStorage.setItem("roomCloseTime", roomCloseTime);
           setRoomCloseTime(roomCloseTime);
@@ -164,7 +155,6 @@ export default function MatchmakingSessionRoom() {
 
       connection.on("PlayerReconnected", (reconnectedPlayerId, message) => {
         setStatus(message);
-        // Clear room close time when player reconnects
         localStorage.removeItem("roomCloseTime");
         setRoomCloseTime(null);
       });
@@ -186,7 +176,6 @@ export default function MatchmakingSessionRoom() {
         }, 2000);
       });
 
-      // Failsafe: Listen for localStorage removal of activeGame (in case RoomClosed event is missed)
       const handleStorage = (e) => {
         if (e.key === "activeGame" && e.newValue === null) {
           console.log("[RoomClosed][storage] Detected activeGame removal, forcing navigation.");
@@ -207,12 +196,10 @@ export default function MatchmakingSessionRoom() {
 
       connection.on("PlayerDeclinedReconnection", (declinedPlayerId, message) => {
         setStatus(message);
-        // Store room close time for countdown
         localStorage.setItem("roomCloseTime", new Date(Date.now() + 30000).toISOString());
       });
 
       return () => {
-        // Call LeaveRoom when component unmounts (user navigates away)
         if (!isSpectator && connection && connection.state === "Connected") {
           console.log("Component unmounting - calling LeaveRoom...");
           connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
@@ -237,13 +224,11 @@ export default function MatchmakingSessionRoom() {
     }
   }, [gameType, code, navigate, connection, connectionState, playerId, token]);
 
-  // Block navigation and enforce delay when leaving session room
   useEffect(() => {
       const handleBeforeUnload = () => {
         console.log("beforeunload event triggered");
         if (!isSpectator && connection && connection.state === "Connected") {
           console.log("Calling LeaveRoom on beforeunload...");
-          // Fire and forget - don't wait for response
           connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
             console.warn("LeaveRoom failed on beforeunload:", err);
           });
@@ -251,7 +236,6 @@ export default function MatchmakingSessionRoom() {
         }
       };
   
-      // Also listen for popstate events (browser back/forward)
     const handlePopState = () => {
       console.log("popstate event triggered");
       if (!isSpectator && connection && connection.state === "Connected") {
@@ -282,7 +266,6 @@ export default function MatchmakingSessionRoom() {
         console.warn("LeaveRoom failed:", err);
       }
     }
-    // PATCH: Mark leave by home/navigation so banner logic and backend know player left
     markLeaveByHome();
     setTimeout(() => {
       const activeGameData = {
@@ -305,9 +288,6 @@ export default function MatchmakingSessionRoom() {
     navigate('/');
   };
 
-  // Timer display logic for matchmaking:
-  // Show timer if roomCloseTime is set and in the future
-  // Simplified logic to match join by code behavior
   const [roomCloseTime, setRoomCloseTime] = useState(() => localStorage.getItem("roomCloseTime"));
   const [roomPlayers, setRoomPlayers] = useState([playerId]);
   const [gameStarted, setGameStarted] = useState(false);
@@ -323,10 +303,6 @@ export default function MatchmakingSessionRoom() {
         setRoomPlayers(players);
       });
 
-      // StartGame handler is already set up in the main useEffect
-
-      // PATCH: If a player leaves/disconnects, timer should show for remaining player
-      // These handlers are already set up in the main useEffect, so we just update state here
       connection.on("PlayerDeclinedReconnection", (declinedPlayerId, message) => {
         const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
         setRoomCloseTime(fallbackCloseTime);
@@ -351,11 +327,6 @@ export default function MatchmakingSessionRoom() {
     return () => window.removeEventListener("storage", handleRoomCloseTimeChange);
   }, [connection, playerId]);
 
-  // Timer is shown in matchmaking only when:
-  // - roomCloseTime is set and in the future
-  // - timeLeft > 0
-  // - game hasn't started yet OR there are missing players (roomPlayers.length < 2)
-  // Simplified logic to match join by code behavior
   const showTimer = !isSpectator &&
     roomCloseTime &&
     Date.parse(roomCloseTime) > Date.now() &&

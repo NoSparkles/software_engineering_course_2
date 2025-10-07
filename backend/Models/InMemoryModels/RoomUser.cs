@@ -9,7 +9,6 @@ namespace Models.InMemoryModels
         public User? User { get; set; }
         public bool IsPlayer { get; set; }
 
-        // PATCH: Add a constructor for (string playerId, User user)
         public RoomUser() { }
 
         public RoomUser(string playerId, bool isPlayer, User user)
@@ -25,7 +24,7 @@ namespace Models.InMemoryModels
             PlayerId = playerId;
             User = user;
             Username = user?.Username;
-            IsPlayer = true; // default to true if not specified
+            IsPlayer = true;
         }
     }
 }
