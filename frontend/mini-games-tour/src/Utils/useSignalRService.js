@@ -10,18 +10,23 @@ export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token 
   useEffect(() => {
     if (!hubUrl || !playerId) return;
 
-    // --- PATCH: Mark new session version ONLY after previous connections are stopped ---
-    if (connectionRef.current) {
-      connectionRef.current.stop();
-      connectionRef.current = null;
-    }
-
-    // PATCH: Always clear roomCloseTime when joining a new session (fixes banner/timer bug for joinByCode)
+    // Always clear roomCloseTime and activeGame when joining a new session
     localStorage.removeItem("roomCloseTime");
+    localStorage.removeItem("activeGame");
 
-    // Now mark the new session version (guaranteed after cleanup)
-    if (roomCode) {
-      markJustStartedNewSession(roomCode);
+    // Always set activeGame and roomCloseTime when joining a new session
+    if (roomCode && gameType) {
+      localStorage.setItem("activeGame", JSON.stringify({
+        gameType,
+        code: roomCode,
+        playerId,
+        isMatchmaking: hubUrl.toLowerCase().includes("matchmaking")
+      }));
+      // PATCH: If joining a session, set a fallback roomCloseTime if not present
+      if (!localStorage.getItem("roomCloseTime")) {
+        const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
+        localStorage.setItem("roomCloseTime", fallbackCloseTime);
+      }
     }
 
     const connection = new HubConnectionBuilder()

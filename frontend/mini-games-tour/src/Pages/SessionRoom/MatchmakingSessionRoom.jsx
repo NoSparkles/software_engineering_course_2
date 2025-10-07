@@ -32,13 +32,18 @@ export default function MatchmakingSessionRoom() {
   });
 
   useEffect(() => {
-      const activeGameData = {
-        gameType,
-        code: code,
-        playerId: playerId,
-        isMatchmaking: true
-      };
-      localStorage.setItem("activeGame", JSON.stringify(activeGameData));
+    const activeGameData = {
+      gameType,
+      code: code,
+      playerId: playerId,
+      isMatchmaking: true
+    };
+    localStorage.setItem("activeGame", JSON.stringify(activeGameData));
+    // PATCH: Set fallback roomCloseTime if not present
+    if (!localStorage.getItem("roomCloseTime")) {
+      const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
+      localStorage.setItem("roomCloseTime", fallbackCloseTime);
+    }
   }, [code, gameType, playerId]);
 
   // Register connection with global manager

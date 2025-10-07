@@ -3,7 +3,7 @@ import { useAuth } from '../../Utils/AuthProvider'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import useUserDatabase from '../../Utils/useUserDatabase'
 import './styles.css'
-import ReturnToGameBanner from '../../Utils/ReturnToGameBanner'
+import { ReturnToGameBanner } from '../../Utils/ReturnToGameBanner'
 
 const Profile = () => {
   const {

@@ -13,8 +13,90 @@ export function ReturnToGameBanner() {
   const [roomCloseTime, setRoomCloseTime] = useState(() => localStorage.getItem("roomCloseTime"));
   const timeLeft = useCountdownTimer(forceTimerReset);
   const signalrRef = useRef([]);
-  // Track if a player has left (for status message)
   const [playerLeft, setPlayerLeft] = useState(false);
+
+  // --- Only one effect controls banner visibility ---
+  useEffect(() => {
+    async function checkBanner() {
+      let session = null;
+      let closeTime = null;
+      try {
+        const playerId = localStorage.getItem("playerId");
+        const username = localStorage.getItem("username");
+        let url = "/api/active-session?";
+        if (playerId) url += `playerId=${encodeURIComponent(playerId)}&`;
+        if (username) url += `username=${encodeURIComponent(username)}`;
+        const resp = await fetch(url);
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data && data.activeGame && data.roomCloseTime) {
+            session = JSON.stringify(data.activeGame);
+            closeTime = data.roomCloseTime;
+            localStorage.setItem("activeGame", session);
+            localStorage.setItem("roomCloseTime", closeTime);
+          } else {
+            localStorage.removeItem("activeGame");
+            localStorage.removeItem("roomCloseTime");
+            session = null;
+            closeTime = null;
+          }
+        }
+      } catch {
+        session = localStorage.getItem("activeGame");
+        closeTime = localStorage.getItem("roomCloseTime");
+      }
+
+      let show = false;
+      let info = null;
+      if (session && closeTime) {
+        info = JSON.parse(session);
+        const activePaths = [
+          `/${info.gameType}/session/${info.code}`,
+          `/${info.gameType}/waiting/${info.code}`,
+          `/${info.gameType}/matchmaking-session/${info.code}`,
+          `/${info.gameType}/matchmaking-waiting/${info.code}`
+        ];
+        const currentPath = location.pathname;
+        const isInActiveRoom = activePaths.some(p => currentPath.startsWith(p));
+        show = !isInActiveRoom;
+      }
+      setShowBanner(show);
+      setGameInfo(info);
+      setRoomCloseTime(closeTime || null);
+    }
+
+    checkBanner();
+
+    // Listen for navigation, reload, storage, focus, popstate, visibilitychange, and location changes
+    const handleStorage = () => checkBanner();
+    const handleFocus = () => checkBanner();
+    const handleCustomEvent = (event) => {
+      if (event && event.detail) {
+        const { gameData, roomCloseTime } = event.detail;
+        if (gameData && roomCloseTime) {
+          localStorage.setItem("activeGame", JSON.stringify(gameData));
+          localStorage.setItem("roomCloseTime", roomCloseTime);
+          checkBanner();
+        }
+      }
+    };
+    const handlePopState = () => checkBanner();
+    const handleVisibility = () => checkBanner();
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("SetReturnBannerData", handleCustomEvent);
+    window.addEventListener("popstate", handlePopState);
+    window.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("SetReturnBannerData", handleCustomEvent);
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [location]);
 
   // Listen for storage events (cross-tab sync)
   useEffect(() => {
@@ -207,7 +289,7 @@ export function ReturnToGameBanner() {
     checkRoom();
   }, [location]);
 
-  // PATCH: Always check backend for active session, and always update localStorage with backend info
+  // PATCH: Always check backend for active session on every mount, location change, and login/logout (using both playerId and username)
   useEffect(() => {
     async function checkBanner() {
       // Only hide banner on session/waiting pages
@@ -228,23 +310,23 @@ export function ReturnToGameBanner() {
       let closeTime = null;
 
       try {
-        // Always check backend for active session
+        // Always check backend for active session using both playerId and username
         const playerId = localStorage.getItem("playerId");
-        if (playerId) {
-          const resp = await fetch(`/api/active-session?playerId=${encodeURIComponent(playerId)}`);
-          if (resp.ok) {
-            const data = await resp.json();
-            if (data && data.activeGame && data.roomCloseTime) {
-              session = JSON.stringify(data.activeGame);
-              closeTime = data.roomCloseTime;
-              // PATCH: Always update localStorage with backend info
-              localStorage.setItem("activeGame", session);
-              localStorage.setItem("roomCloseTime", closeTime);
-            } else {
-              // PATCH: Always clear localStorage if backend says no active session
-              localStorage.removeItem("activeGame");
-              localStorage.removeItem("roomCloseTime");
-            }
+        const username = localStorage.getItem("username");
+        let url = "/api/active-session?";
+        if (playerId) url += `playerId=${encodeURIComponent(playerId)}&`;
+        if (username) url += `username=${encodeURIComponent(username)}`;
+        const resp = await fetch(url);
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data && data.activeGame && data.roomCloseTime) {
+            session = JSON.stringify(data.activeGame);
+            closeTime = data.roomCloseTime;
+            localStorage.setItem("activeGame", session);
+            localStorage.setItem("roomCloseTime", closeTime);
+          } else {
+            localStorage.removeItem("activeGame");
+            localStorage.removeItem("roomCloseTime");
           }
         }
       } catch (err) {
@@ -271,7 +353,7 @@ export function ReturnToGameBanner() {
 
     checkBanner();
 
-    // Listen for navigation, reload, storage, focus, popstate, and custom SetReturnBannerData event
+    // Listen for navigation, reload, storage, focus, popstate, visibilitychange, and location changes
     const handleStorage = () => checkBanner();
     const handleFocus = () => checkBanner();
     const handleCustomEvent = (event) => {
@@ -302,7 +384,95 @@ export function ReturnToGameBanner() {
     };
   }, [location, forceTimerReset, showBanner, gameInfo, roomCloseTime]);
 
-  // Only show timer/banner if roomCloseTime is set (not null)
+  // PATCH: Always check for active game on login/logout (using both playerId and username)
+  useEffect(() => {
+    async function checkBannerOnAuthChange() {
+      const playerId = localStorage.getItem("playerId");
+      const username = localStorage.getItem("username");
+      let url = "/api/active-session?";
+      if (playerId) url += `playerId=${encodeURIComponent(playerId)}&`;
+      if (username) url += `username=${encodeURIComponent(username)}`;
+      try {
+        const resp = await fetch(url);
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data && data.activeGame && data.roomCloseTime) {
+            localStorage.setItem("activeGame", JSON.stringify(data.activeGame));
+            localStorage.setItem("roomCloseTime", data.roomCloseTime);
+            setGameInfo(data.activeGame);
+            setShowBanner(true);
+            setRoomCloseTime(data.roomCloseTime);
+          } else {
+            localStorage.removeItem("activeGame");
+            localStorage.removeItem("roomCloseTime");
+            setShowBanner(false);
+            setGameInfo(null);
+            setRoomCloseTime(null);
+          }
+        }
+      } catch {
+        // Ignore errors
+      }
+    }
+
+    // Listen for login/logout events (token, playerId, or username changes)
+    window.addEventListener("storage", checkBannerOnAuthChange);
+
+    // Also check on mount
+    checkBannerOnAuthChange();
+
+    return () => {
+      window.removeEventListener("storage", checkBannerOnAuthChange);
+    };
+  }, []);
+
+  // PATCH: Listen for login events and check for active session after login
+  useEffect(() => {
+    function handleLoginEvent(e) {
+      // Custom event dispatched after successful login
+      if (e.type === "login-success" || e.type === "user-authenticated") {
+        // Delay to ensure localStorage is updated
+        setTimeout(async () => {
+          const playerId = localStorage.getItem("playerId");
+          const username = localStorage.getItem("username");
+          let url = "/api/active-session?";
+          if (playerId) url += `playerId=${encodeURIComponent(playerId)}&`;
+          if (username) url += `username=${encodeURIComponent(username)}`;
+          try {
+            const resp = await fetch(url);
+            if (resp.ok) {
+              const data = await resp.json();
+              if (data && data.activeGame && data.roomCloseTime) {
+                localStorage.setItem("activeGame", JSON.stringify(data.activeGame));
+                localStorage.setItem("roomCloseTime", data.roomCloseTime);
+                setGameInfo(data.activeGame);
+                setShowBanner(true);
+                setRoomCloseTime(data.roomCloseTime);
+              } else {
+                localStorage.removeItem("activeGame");
+                localStorage.removeItem("roomCloseTime");
+                setShowBanner(false);
+                setGameInfo(null);
+                setRoomCloseTime(null);
+              }
+            }
+          } catch {
+            // Ignore errors
+          }
+        }, 200); // short delay to allow localStorage update
+      }
+    }
+
+    window.addEventListener("login-success", handleLoginEvent);
+    window.addEventListener("user-authenticated", handleLoginEvent);
+
+    return () => {
+      window.removeEventListener("login-success", handleLoginEvent);
+      window.removeEventListener("user-authenticated", handleLoginEvent);
+    };
+  }, []);
+
+  // Only show timer/banner if roomCloseTime is set (not null) and showBanner is true
   if (!showBanner || !gameInfo || roomCloseTime === null) return null;
 
   const handleReturnToGame = () => {
@@ -409,7 +579,7 @@ export function markJustStartedNewSession(roomCode) {
 
 // --- PATCH: Show a UI status/spinner for 1.7s when leaving a room (for both player A and B) ---
 export function showLeaveRoomUiDelay() {
-  return new Promise(resolve => setTimeout(resolve, 0));
+  return new Promise(resolve => setTimeout(resolve, 17000));
 }
 
 // --- PATCH: Home button navigation flag ---
@@ -425,4 +595,38 @@ export function clearLeaveByHome() {
 
 // PATCH: Export ReturnToGameBanner as named export as well as default
 export default ReturnToGameBanner;
+
+// PATCH: Ensure ReturnToGameBanner is rendered in App.jsx or main layout so it's always visible
+// If you have an App.jsx or main layout, add this at the top-level render:
+
+// Example for App.jsx:
+// import { ReturnToGameBanner } from './Utils/ReturnToGameBanner';
+// function App() {
+//   return (
+//     <>
+//       <ReturnToGameBanner />
+//       {/* ...existing routes/components... */}
+//     </>
+//   );
+// }
+
+// --- PATCH: Also, ensure localStorage is updated on login (in your login logic) ---
+// After successful login, set localStorage.setItem("username", user.username);
+// and localStorage.setItem("playerId", user.username); // if playerId is username
+
+// --- PATCH: If your login logic does not set these, the banner cannot work reliably ---
+//     </>
+//   );
+// }
+
+// --- PATCH: Also, ensure localStorage is updated on login (in your login logic) ---
+// After successful login, set localStorage.setItem("username", user.username);
+// and localStorage.setItem("playerId", user.username); // if playerId is username
+
+// --- PATCH: If your login logic does not set these, the banner cannot work reliably ---
+// --- PATCH: Also, ensure localStorage is updated on login (in your login logic) ---
+// After successful login, set localStorage.setItem("username", user.username);
+// and localStorage.setItem("playerId", user.username); // if playerId is username
+
+// --- PATCH: If your login logic does not set these, the banner cannot work reliably ---
 
