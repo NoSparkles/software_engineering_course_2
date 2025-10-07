@@ -9,6 +9,7 @@ import {Board as FourInARowGameBoard} from '../../Games/FourInRowGame/Components
 import { useAuth } from '../../Utils/AuthProvider';
 import { globalConnectionManager } from '../../Utils/GlobalConnectionManager';
 import './styles.css';
+import ReturnToGameBanner from '../../Utils/ReturnToGameBanner';
 
 export default function SessionRoom() {
   const { gameType, code } = useParams();
@@ -143,10 +144,12 @@ export default function SessionRoom() {
       });
 
       connection.on("PlayerDisconnected", (disconnectedPlayerId, message, roomCloseTime) => {
-        setStatus(message);
-        // Store room close time for countdown
         if (roomCloseTime) {
           localStorage.setItem("roomCloseTime", roomCloseTime);
+        } else {
+          // Fallback: set 30 seconds from now
+          const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
+          localStorage.setItem("roomCloseTime", fallbackCloseTime);
         }
       });
 
@@ -236,6 +239,7 @@ export default function SessionRoom() {
 
   return (
     <div className="session-room">
+      <ReturnToGameBanner />
       <h2>{gameType.toUpperCase()} Session</h2>
       <p>Room Code: <strong>{code}</strong></p>
       <p>

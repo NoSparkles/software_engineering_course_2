@@ -145,25 +145,14 @@ namespace Hubs
         // PATCH: OnDisconnectedAsync should trigger LeaveRoom logic for join-by-code rooms (like matchmaking)
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            // Get the player ID from the connection context
             var playerId = Context.GetHttpContext()?.Request.Query["playerId"].FirstOrDefault();
             var gameType = Context.GetHttpContext()?.Request.Query["gameType"].FirstOrDefault();
             var roomCode = Context.GetHttpContext()?.Request.Query["roomCode"].FirstOrDefault();
 
-            // PATCH: Always send SetReturnBannerData to the disconnecting player for join-by-code rooms
+            // Always call LeaveRoom for join-by-code rooms on disconnect, regardless of navigation target
             if (!string.IsNullOrEmpty(playerId) && !string.IsNullOrEmpty(gameType) && !string.IsNullOrEmpty(roomCode))
             {
-                // Defensive: Always send SetReturnBannerData, even if player already left
-                await Clients.Client(Context.ConnectionId).SendAsync(
-                    "SetReturnBannerData",
-                    new {
-                        gameType = gameType,
-                        code = roomCode,
-                        playerId = playerId,
-                        isMatchmaking = false
-                    },
-                    DateTime.UtcNow.AddSeconds(30).ToString("o")
-                );
+                await LeaveRoom(gameType, roomCode, playerId);
             }
 
             await base.OnDisconnectedAsync(exception);

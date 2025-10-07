@@ -4,7 +4,7 @@ import { HubConnectionBuilder, HttpTransportType } from '@microsoft/signalr';
 import { useCountdownTimer } from './useCountdownTimer';
 import './styles.css';
 
-export default function ReturnToGameBanner() {
+export function ReturnToGameBanner() {
   const navigate = useNavigate();
   const location = useLocation();
   const [showBanner, setShowBanner] = useState(false);
@@ -72,7 +72,7 @@ export default function ReturnToGameBanner() {
       connection.on("PlayerLeft", () => {
         setPlayerLeft(true);
         localStorage.setItem("PlayerLeft", Date.now().toString());
-        setTimeout(() => localStorage.removeItem("PlayerLeft"), 100);
+        setTimeout(() => localStorage.removeItem("PlayerLeft"), 0);
       });
       connection.on("PlayerReconnected", () => {
         // Always clear timer/banner and status for both players
@@ -83,7 +83,7 @@ export default function ReturnToGameBanner() {
         localStorage.removeItem("roomCloseTime");
         setRoomCloseTime(null);
         localStorage.setItem("PlayerReconnected", Date.now().toString());
-        setTimeout(() => localStorage.removeItem("PlayerReconnected"), 100);
+        setTimeout(() => localStorage.removeItem("PlayerReconnected"), 0);
       });
       connection.on("RoomClosed", function(reason, closedRoomCode) {
         // --- PATCH: Robustly ignore RoomClosed for old sessions using both sessionVersion and roomCode ---
@@ -207,6 +207,101 @@ export default function ReturnToGameBanner() {
     checkRoom();
   }, [location]);
 
+  // PATCH: Always check backend for active session, and always update localStorage with backend info
+  useEffect(() => {
+    async function checkBanner() {
+      // Only hide banner on session/waiting pages
+      const path = window.location.pathname.toLowerCase();
+      const isSessionOrWaiting =
+        path.includes("/session/") ||
+        path.includes("/waiting/") ||
+        path.includes("/matchmaking-session/") ||
+        path.includes("/matchmaking-waiting/");
+      if (isSessionOrWaiting) {
+        setShowBanner(false);
+        setGameInfo(null);
+        setRoomCloseTime(null);
+        return;
+      }
+
+      let session = null;
+      let closeTime = null;
+
+      try {
+        // Always check backend for active session
+        const playerId = localStorage.getItem("playerId");
+        if (playerId) {
+          const resp = await fetch(`/api/active-session?playerId=${encodeURIComponent(playerId)}`);
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data && data.activeGame && data.roomCloseTime) {
+              session = JSON.stringify(data.activeGame);
+              closeTime = data.roomCloseTime;
+              // PATCH: Always update localStorage with backend info
+              localStorage.setItem("activeGame", session);
+              localStorage.setItem("roomCloseTime", closeTime);
+            } else {
+              // PATCH: Always clear localStorage if backend says no active session
+              localStorage.removeItem("activeGame");
+              localStorage.removeItem("roomCloseTime");
+            }
+          }
+        }
+      } catch (err) {
+        // Ignore errors, fallback to localStorage
+        session = localStorage.getItem("activeGame");
+        closeTime = localStorage.getItem("roomCloseTime");
+      }
+
+      if (!session || !closeTime) {
+        session = localStorage.getItem("activeGame");
+        closeTime = localStorage.getItem("roomCloseTime");
+      }
+
+      if (session && closeTime) {
+        setGameInfo(JSON.parse(session));
+        setShowBanner(true);
+        setRoomCloseTime(closeTime);
+      } else {
+        setShowBanner(false);
+        setGameInfo(null);
+        setRoomCloseTime(null);
+      }
+    }
+
+    checkBanner();
+
+    // Listen for navigation, reload, storage, focus, popstate, and custom SetReturnBannerData event
+    const handleStorage = () => checkBanner();
+    const handleFocus = () => checkBanner();
+    const handleCustomEvent = (event) => {
+      if (event && event.detail) {
+        const { gameData, roomCloseTime } = event.detail;
+        if (gameData && roomCloseTime) {
+          localStorage.setItem("activeGame", JSON.stringify(gameData));
+          localStorage.setItem("roomCloseTime", roomCloseTime);
+          checkBanner();
+        }
+      }
+    };
+    const handlePopState = () => checkBanner();
+    const handleVisibility = () => checkBanner();
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("SetReturnBannerData", handleCustomEvent);
+    window.addEventListener("popstate", handlePopState);
+    window.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("SetReturnBannerData", handleCustomEvent);
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [location, forceTimerReset, showBanner, gameInfo, roomCloseTime]);
+
   // Only show timer/banner if roomCloseTime is set (not null)
   if (!showBanner || !gameInfo || roomCloseTime === null) return null;
 
@@ -314,7 +409,7 @@ export function markJustStartedNewSession(roomCode) {
 
 // --- PATCH: Show a UI status/spinner for 1.7s when leaving a room (for both player A and B) ---
 export function showLeaveRoomUiDelay() {
-  return new Promise(resolve => setTimeout(resolve, 1700));
+  return new Promise(resolve => setTimeout(resolve, 0));
 }
 
 // --- PATCH: Home button navigation flag ---
@@ -327,3 +422,7 @@ export function wasLeaveByHome() {
 export function clearLeaveByHome() {
   sessionStorage.removeItem("leaveByHome");
 }
+
+// PATCH: Export ReturnToGameBanner as named export as well as default
+export default ReturnToGameBanner;
+
