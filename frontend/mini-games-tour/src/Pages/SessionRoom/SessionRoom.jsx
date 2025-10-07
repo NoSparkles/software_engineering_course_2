@@ -161,7 +161,7 @@ export default function SessionRoom() {
         localStorage.removeItem("roomCloseTime");
         setTimeout(() => {
           navigate('/');
-        }, 2000);
+        });
       });
 
       connection.on("RoomClosed", (message) => {
