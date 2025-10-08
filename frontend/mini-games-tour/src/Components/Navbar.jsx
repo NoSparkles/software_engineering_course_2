@@ -10,14 +10,14 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleHomeClick = async () => {
+  const handleNavigation = async (path) => {
     // Check if user is in a game session
     const activeGame = localStorage.getItem("activeGame");
     const hasActiveConnections = globalConnectionManager.hasActiveConnections();
 
     if (activeGame || hasActiveConnections) {
       try {
-        // Mark that Home button is triggering the leave (prevents double delay)
+        // Mark that navigation is triggering the leave
         markLeaveByHome();
         await globalConnectionManager.leaveAllRooms();
       } catch (err) {
@@ -25,9 +25,13 @@ export default function Navbar() {
       }
     }
 
-    // Navigate to home
-    navigate('/');
+    // Navigate to the specified path
+    navigate(path);
   };
+
+  const handleHomeClick = () => handleNavigation('/');
+  const handleProfileClick = () => handleNavigation(`/profile/${user.username}`);
+  const handleFriendsClick = () => handleNavigation('/users');
 
   return (
     <nav className="navbar">
@@ -50,8 +54,34 @@ export default function Navbar() {
       <div className="navbar-right">
         {user?.username ? (
           <>
-            <Link to={'/users'}>Find Friends</Link>
-            <Link to={`/profile/${user.username}`}>My Profile</Link>
+            <button 
+              onClick={handleFriendsClick}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'white',
+                cursor: 'pointer',
+                textDecoration: 'none',
+                fontSize: 'inherit',
+                fontFamily: 'inherit'
+              }}
+            >
+              Find Friends
+            </button>
+            <button 
+              onClick={handleProfileClick}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'white',
+                cursor: 'pointer',
+                textDecoration: 'none',
+                fontSize: 'inherit',
+                fontFamily: 'inherit'
+              }}
+            >
+              My Profile
+            </button>
             <span>Hello, {user.username}</span>
             <button onClick={logout}>Log out</button>
           </>

@@ -1,60 +1,122 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { HubConnectionBuilder, HttpTransportType } from '@microsoft/signalr';
+import { HubConnectionBuilder } from '@microsoft/signalr';
 import { useCountdownTimer } from './useCountdownTimer';
 import './styles.css';
 
-export default function ReturnToGameBanner() {
+export function ReturnToGameBanner() {
   const navigate = useNavigate();
   const location = useLocation();
   const [showBanner, setShowBanner] = useState(false);
   const [gameInfo, setGameInfo] = useState(null);
-  const [forceTimerReset, setForceTimerReset] = useState(0);
-  const [roomCloseTime, setRoomCloseTime] = useState(() => localStorage.getItem("roomCloseTime"));
-  const timeLeft = useCountdownTimer(forceTimerReset);
+  const [roomCloseTime, setRoomCloseTime] = useState(null);
+  const [shouldShowTimer, setShouldShowTimer] = useState(false);
   const signalrRef = useRef([]);
-  // Track if a player has left (for status message)
-  const [playerLeft, setPlayerLeft] = useState(false);
+  const timeLeft = useCountdownTimer(0);
 
-  // Listen for storage events (cross-tab sync)
+  // Main banner logic
   useEffect(() => {
-    function handleStorage(e) {
-      if (e.key === "activeGame" && e.newValue === null) {
+    async function checkBanner() {
+      // Check if user is logged in
+      const token = localStorage.getItem('token');
+      if (!token) {
         setShowBanner(false);
         setGameInfo(null);
-        if (window.location.pathname.includes("session") || window.location.pathname.includes("waiting")) {
-          navigate('/');
-        }
+        setRoomCloseTime(null);
+        setShouldShowTimer(false);
+        return;
       }
-      if (e.key === "roomCloseTime") {
-        setRoomCloseTime(e.newValue);
-        if (e.newValue === null) {
-          setShowBanner(false);
-          setForceTimerReset(x => x + 1);
-        }
-      }
-      if (e.key === "PlayerLeft") {
-        setPlayerLeft(true);
-      }
-      if (e.key === "PlayerReconnected") {
-        // Always clear timer/banner and status for both players
+
+      // Check for declined reconnection
+      if (localStorage.getItem("declinedReconnectionFlag") === "1" && !localStorage.getItem("activeGame")) {
         setShowBanner(false);
-        setForceTimerReset(x => x + 1);
-        setPlayerLeft(false);
+        setGameInfo(null);
+        setRoomCloseTime(null);
+        setShouldShowTimer(false);
+        return;
       }
+
+      // Get current session from localStorage first
+      let session = localStorage.getItem("activeGame");
+      let closeTime = localStorage.getItem("roomCloseTime");
+
+      // If no local session, check backend
+      if (!session || !closeTime) {
+        try {
+          const username = localStorage.getItem("username");
+          const playerId = localStorage.getItem("playerId");
+          let url = "http://localhost:5236/api/active-session?";
+          if (username) url += `username=${encodeURIComponent(username)}&`;
+          if (playerId) url += `playerId=${encodeURIComponent(playerId)}`;
+          
+          const resp = await fetch(url);
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data && data.activeGame && data.roomCloseTime) {
+              session = JSON.stringify(data.activeGame);
+              closeTime = data.roomCloseTime;
+              localStorage.setItem("activeGame", session);
+              localStorage.setItem("roomCloseTime", closeTime);
+            }
+          }
+        } catch (error) {
+          console.log("Failed to check active session:", error);
+        }
+      }
+
+      // If still no session, hide banner
+      if (!session || !closeTime) {
+        setShowBanner(false);
+        setGameInfo(null);
+        setRoomCloseTime(null);
+        setShouldShowTimer(false);
+        return;
+      }
+
+      // Parse session and determine visibility
+      const info = JSON.parse(session);
+      const activePaths = [
+        `/${info.gameType}/session/${info.code}`,
+        `/${info.gameType}/waiting/${info.code}`,
+        `/${info.gameType}/matchmaking-session/${info.code}`,
+        `/${info.gameType}/matchmaking-waiting/${info.code}`
+      ];
+      const currentPath = location.pathname;
+      const isInActiveRoom = activePaths.some(p => currentPath.startsWith(p));
+      const show = !isInActiveRoom;
+
+      // PATCH: Only show timer if roomCloseTime is in the future AND user is NOT in the room
+      let timerShouldShow = false;
+      if (
+        show &&
+        closeTime &&
+        Date.parse(closeTime) > Date.now()
+      ) {
+        timerShouldShow = true;
+      } else {
+        timerShouldShow = false;
+      }
+
+      // PATCH: If user is in the room (session/matchmaking-session), never show timer/banner
+      if (isInActiveRoom) {
+        setShowBanner(false);
+        setShouldShowTimer(false);
+        setGameInfo(null);
+        setRoomCloseTime(null);
+        return;
+      }
+
+      setShowBanner(timerShouldShow);
+      setGameInfo(info);
+      setRoomCloseTime(timerShouldShow ? closeTime : null);
+      setShouldShowTimer(timerShouldShow);
     }
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
-  }, [navigate]);
 
-  // Keep roomCloseTime in sync with localStorage
-  useEffect(() => {
-    setRoomCloseTime(localStorage.getItem("roomCloseTime"));
-  }, [showBanner]);
+    checkBanner();
+  }, [location]);
 
-  // Listen for PlayerReconnected, RoomClosed, and RoomClosing on both hubs (single effect)
+  // Set up SignalR connections for real-time updates
   useEffect(() => {
-    let connections = [];
     const session = localStorage.getItem("activeGame");
     if (!session) return;
 
@@ -63,6 +125,7 @@ export default function ReturnToGameBanner() {
       "http://localhost:5236/joinByCodeHub"
     ];
 
+    const connections = [];
     hubUrls.forEach(hubUrl => {
       const connection = new HubConnectionBuilder()
         .withUrl(hubUrl)
@@ -70,260 +133,225 @@ export default function ReturnToGameBanner() {
         .build();
 
       connection.on("PlayerLeft", () => {
-        setPlayerLeft(true);
-        localStorage.setItem("PlayerLeft", Date.now().toString());
-        setTimeout(() => localStorage.removeItem("PlayerLeft"), 100);
+        // Player left, check banner again
+        setTimeout(() => {
+          const session = localStorage.getItem("activeGame");
+          if (session) {
+            const info = JSON.parse(session);
+            const activePaths = [
+              `/${info.gameType}/session/${info.code}`,
+              `/${info.gameType}/waiting/${info.code}`,
+              `/${info.gameType}/matchmaking-session/${info.code}`,
+              `/${info.gameType}/matchmaking-waiting/${info.code}`
+            ];
+            const currentPath = location.pathname;
+            const isInActiveRoom = activePaths.some(p => currentPath.startsWith(p));
+            if (!isInActiveRoom) {
+              setShowBanner(true);
+              setGameInfo(info);
+              setRoomCloseTime(localStorage.getItem("roomCloseTime"));
+              setShouldShowTimer(true);
+            }
+          }
+        }, 100);
       });
+
       connection.on("PlayerReconnected", () => {
-        // Always clear timer/banner and status for both players
+        // Player reconnected, hide banner and timer
         setShowBanner(false);
-        setForceTimerReset(x => x + 1);
+        setShouldShowTimer(false);
         setGameInfo(null);
-        setPlayerLeft(false);
         localStorage.removeItem("roomCloseTime");
         setRoomCloseTime(null);
-        localStorage.setItem("PlayerReconnected", Date.now().toString());
-        setTimeout(() => localStorage.removeItem("PlayerReconnected"), 100);
       });
+
+      connection.on("StartGame", () => {
+        // Game started with both players, hide banner and timer
+        setShowBanner(false);
+        setShouldShowTimer(false);
+        setGameInfo(null);
+        localStorage.removeItem("roomCloseTime");
+        localStorage.removeItem("activeGame");
+        setRoomCloseTime(null);
+      });
+
+      connection.on("SetReturnBannerData", function(gameData, roomCloseTime) {
+        if (gameData && roomCloseTime) {
+          localStorage.setItem("activeGame", JSON.stringify(gameData));
+          localStorage.setItem("roomCloseTime", roomCloseTime);
+          setGameInfo(gameData);
+          setRoomCloseTime(roomCloseTime);
+          setShowBanner(true);
+          setShouldShowTimer(true);
+        }
+      });
+
       connection.on("RoomClosed", function(reason, closedRoomCode) {
-        // --- PATCH: Robustly ignore RoomClosed for old sessions using both sessionVersion and roomCode ---
-        const sessionNow = localStorage.getItem("activeGame");
-        const playerId = localStorage.getItem("playerId");
-        const sessionVersion = sessionStorage.getItem("sessionVersion");
-        if (!sessionNow || !playerId) return;
-        const { gameType, code } = JSON.parse(sessionNow);
-
-        // If the closedRoomCode is not for the current session, ignore
-        if (
-          closedRoomCode &&
-          closedRoomCode !== code &&
-          closedRoomCode !== `${gameType}:${code}`.toUpperCase()
-        ) {
-          return;
-        }
-
-        // PATCH: If the sessionVersion for the closedRoomCode does not match the current sessionVersion, ignore
-        // This covers the case where the player rapidly switches sessions and the old RoomClosed arrives late
-        const closedRoomVersion =
-          sessionStorage.getItem(`sessionVersion:${closedRoomCode}`) ||
-          sessionStorage.getItem(`sessionVersion:${(closedRoomCode || "").toUpperCase()}`) ||
-          null;
-        if (
-          closedRoomVersion &&
-          sessionVersion &&
-          closedRoomVersion !== sessionVersion
-        ) {
-          return;
-        }
-
+        // Clear banner when room is closed
+        localStorage.removeItem("activeGame");
+        localStorage.removeItem("roomCloseTime");
         setShowBanner(false);
         setGameInfo(null);
-        setForceTimerReset(x => x + 1);
-        setPlayerLeft(false);
-        localStorage.removeItem("roomCloseTime");
         setRoomCloseTime(null);
+        setShouldShowTimer(false);
       });
-      connection.on("RoomClosing", () => {
+
+      connection.on("SessionDeclined", function(message) {
+        // Clear banner when reconnection is declined
+        localStorage.removeItem("activeGame");
+        localStorage.removeItem("roomCloseTime");
         setShowBanner(false);
         setGameInfo(null);
-        setForceTimerReset(x => x + 1);
-        setPlayerLeft(false);
-        localStorage.removeItem("roomCloseTime");
         setRoomCloseTime(null);
+        setShouldShowTimer(false);
       });
 
       connection.start().catch(() => {});
       connections.push(connection);
     });
+
     signalrRef.current = connections;
 
     return () => {
       connections.forEach(connection => {
         connection.off("PlayerLeft");
         connection.off("PlayerReconnected");
+        connection.off("StartGame");
+        connection.off("SetReturnBannerData");
         connection.off("RoomClosed");
-        connection.off("RoomClosing");
+        connection.off("SessionDeclined");
         connection.stop();
       });
     };
   }, []);
 
-  // Check if room exists
+  // Listen for login/logout events
   useEffect(() => {
-    const session = localStorage.getItem("activeGame");
-    if (!session) {
-      setShowBanner(false);
-      setGameInfo(null);
-      return;
-    }
-
-    const { gameType, code, isMatchmaking } = JSON.parse(session);
-    const pathSegments = location.pathname.toLowerCase().split('/');
-
-    const isSessionPath =
-      pathSegments.length === 4 &&
-      (pathSegments[2] === 'session' ||
-        pathSegments[2] === "waiting" ||
-        pathSegments[2] === "matchmaking-session" ||
-        pathSegments[2] === "matchmaking-waiting") &&
-      pathSegments[1] !== '' &&
-      pathSegments[3] !== '';
-
-    if (isSessionPath) {
-      setShowBanner(false);
-      setGameInfo(null);
-      return;
-    }
-
-    const checkRoom = async () => {
-      try {
-        const hubUrl = isMatchmaking
-          ? "http://localhost:5236/MatchMakingHub"
-          : "http://localhost:5236/joinByCodeHub";
-
-        const connection = new HubConnectionBuilder()
-          .withUrl(hubUrl)
-          .build();
-
-        await connection.start();
-        const { exists, isMatchmaking: roomIsMatchmaking } =
-          await connection.invoke("RoomExistsWithMatchmaking", gameType, code);
-        await connection.stop();
-
-        if (exists) {
-          setGameInfo({ gameType, code, isMatchmaking: roomIsMatchmaking });
-          setShowBanner(true);
-        } else {
-          localStorage.removeItem("activeGame");
-          setShowBanner(false);
-          setGameInfo(null);
-        }
-      } catch {
+    function handleAuthChange(e) {
+      // On logout, remove session and hide banner
+      if (e.key === "token" && e.newValue === null) {
+        localStorage.removeItem("activeGame");
+        localStorage.removeItem("roomCloseTime");
         setShowBanner(false);
         setGameInfo(null);
+        setRoomCloseTime(null);
+        setShouldShowTimer(false);
       }
-    };
+      // On login, check for active session
+      if (e.key === "token" && e.newValue) {
+        setTimeout(() => {
+          const session = localStorage.getItem("activeGame");
+          const closeTime = localStorage.getItem("roomCloseTime");
+          if (session && closeTime) {
+            const info = JSON.parse(session);
+            const activePaths = [
+              `/${info.gameType}/session/${info.code}`,
+              `/${info.gameType}/waiting/${info.code}`,
+              `/${info.gameType}/matchmaking-session/${info.code}`,
+              `/${info.gameType}/matchmaking-waiting/${info.code}`
+            ];
+            const currentPath = window.location.pathname;
+            const isInActiveRoom = activePaths.some(p => currentPath.startsWith(p));
+            if (!isInActiveRoom) {
+              setShowBanner(true);
+              setGameInfo(info);
+              setRoomCloseTime(closeTime);
+              setShouldShowTimer(true);
+            }
+          }
+        }, 200);
+      }
+    }
+    window.addEventListener("storage", handleAuthChange);
+    return () => window.removeEventListener("storage", handleAuthChange);
+  }, []);
 
-    checkRoom();
-  }, [location]);
+  // Timer auto-close logic
+  useEffect(() => {
+    if (shouldShowTimer && roomCloseTime) {
+      const interval = setInterval(() => {
+        const now = Date.now();
+        const closeTimestamp = Date.parse(roomCloseTime);
+        if (closeTimestamp && closeTimestamp <= now) {
+          localStorage.removeItem("activeGame");
+          localStorage.removeItem("roomCloseTime");
+          setShowBanner(false);
+          setGameInfo(null);
+          setRoomCloseTime(null);
+          setShouldShowTimer(false);
+        }
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [shouldShowTimer, roomCloseTime]);
 
-  // Only show timer/banner if roomCloseTime is set (not null)
   if (!showBanner || !gameInfo || roomCloseTime === null) return null;
 
   const handleReturnToGame = () => {
-    const path = gameInfo.isMatchmaking
-      ? `/${gameInfo.gameType}/matchmaking-session/${gameInfo.code}`
-      : `/${gameInfo.gameType}/session/${gameInfo.code}`;
-    localStorage.removeItem("roomCloseTime");
+    const path = `/${gameInfo.gameType}/${gameInfo.isMatchmaking ? 'matchmaking-session' : 'session'}/${gameInfo.code}`;
     setRoomCloseTime(null);
     setShowBanner(false);
+    setShouldShowTimer(false);
     navigate(path);
   };
 
-  const handleDeclineReconnection = async () => {
-    try {
-      const session = localStorage.getItem("activeGame");
-      if (session) {
-        const { gameType, code, isMatchmaking } = JSON.parse(session);
-        const playerId = localStorage.getItem("playerId");
-        const token = localStorage.getItem("token");
-        if (playerId && isMatchmaking && token) {
-          const hubUrl = isMatchmaking
-            ? "http://localhost:5236/MatchMakingHub"
-            : "http://localhost:5236/joinByCodeHub";
-          const connectionUrl = `${hubUrl}?access_token=${encodeURIComponent(token)}`;
-          const connection = new HubConnectionBuilder()
-            .withUrl(connectionUrl, {
-              withCredentials: true,
-              skipNegotiation: false,
-              transport: HttpTransportType.WebSockets | HttpTransportType.LongPolling,
-            })
-            .build();
-          await connection.start();
-          await connection.invoke("DeclineReconnection", playerId, gameType, code);
-          await connection.stop();
-        }
-      }
-    } catch (err) {
-      console.error("Error declining reconnection:", err);
-    } finally {
-      localStorage.removeItem("activeGame");
-      localStorage.removeItem("roomCloseTime");
-      setRoomCloseTime(null);
-      setShowBanner(false);
-    }
-  };
-
-  const formatTime = (seconds) => {
-    if (seconds === null) return "";
-    if (seconds <= 0) return "Room closing now!";
-    return `${seconds} seconds`;
+  const handleDeclineReconnection = () => {
+    localStorage.removeItem("activeGame");
+    localStorage.removeItem("roomCloseTime");
+    localStorage.setItem("declinedReconnectionFlag", "1");
+    setRoomCloseTime(null);
+    setShowBanner(false);
+    setShouldShowTimer(false);
   };
 
   return (
-    <div className="return-banner">
-      <p>You have an active game session.</p>
-      {playerLeft && (
-        <p style={{ color: "#dc3545", fontWeight: "bold", marginTop: "10px" }}>
-          Status: Player left the game
-        </p>
-      )}
-      <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
-        <button onClick={handleReturnToGame}>
-          Return to Game
-        </button>
-        {roomCloseTime !== null && (
-          <button
-            onClick={handleDeclineReconnection}
-            style={{
-              backgroundColor: "#dc3545",
-              color: "white",
-              border: "none",
-              padding: "8px 16px",
-              borderRadius: "4px",
-              cursor: "pointer"
-            }}
-          >
-            Decline Reconnection
+    <div className="return-to-game-banner">
+      <div className="banner-content">
+        <p>You have an active game in progress!</p>
+        <div className="banner-buttons">
+          <button onClick={handleReturnToGame} className="return-button">
+            Return to Game
           </button>
+          {shouldShowTimer && (
+            <button
+              onClick={handleDeclineReconnection}
+              className="decline-button"
+            >
+              Decline
+            </button>
+          )}
+        </div>
+        {shouldShowTimer && (
+          <p style={{
+            color: timeLeft <= 10 ? "red" : timeLeft <= 20 ? "orange" : "black",
+            fontSize: "14px",
+            margin: "5px 0 0 0"
+          }}>
+            Room will close in {timeLeft} seconds
+          </p>
         )}
       </div>
-      {roomCloseTime !== null && (
-        <p style={{
-          color: timeLeft <= 10 ? "red" : timeLeft <= 20 ? "orange" : "black",
-          fontWeight: "bold",
-          marginTop: "10px"
-        }}>
-          {timeLeft > 0 ? `Room will close in ${formatTime(timeLeft)}` : "Room is closing now!"}
-        </p>
-      )}
     </div>
   );
 }
 
-// --- PATCH: Export a helper to mark a new session version ---
-export function markJustStartedNewSession(roomCode) {
-  // Use a unique version for each session (timestamp)
-  const version = Date.now().toString();
-  sessionStorage.setItem("sessionVersion", version);
-  if (roomCode) {
-    sessionStorage.setItem(`sessionVersion:${roomCode}`, version);
-    sessionStorage.setItem(`sessionVersion:${roomCode.toUpperCase()}`, version);
-  }
-}
-
-// --- PATCH: Show a UI status/spinner for 1.7s when leaving a room (for both player A and B) ---
-export function showLeaveRoomUiDelay() {
-  return new Promise(resolve => setTimeout(resolve, 1700));
-}
-
-// --- PATCH: Home button navigation flag ---
+// Helper functions
 export function markLeaveByHome() {
   sessionStorage.setItem("leaveByHome", "1");
 }
-export function wasLeaveByHome() {
-  return sessionStorage.getItem("leaveByHome") === "1";
+
+export function setUsernameLocalStorage(username) {
+  if (username) {
+    localStorage.setItem("username", username);
+    sessionStorage.setItem("username", username);
+  }
 }
-export function clearLeaveByHome() {
-  sessionStorage.removeItem("leaveByHome");
+
+export function setPlayerIdLocalStorage(playerId) {
+  if (playerId) {
+    localStorage.setItem("playerId", playerId);
+    sessionStorage.setItem("playerId", playerId);
+  }
 }
+
+export default ReturnToGameBanner;

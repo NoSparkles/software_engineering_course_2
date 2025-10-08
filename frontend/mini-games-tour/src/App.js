@@ -5,7 +5,7 @@ import WaitingRoom from './Pages/WaitingRoom/WaitingRoom';
 import SessionRoom from './Pages/SessionRoom/SessionRoom';
 import MatchmakingWaitingRoom from './Pages/WaitingRoom/MatchmakingWaitingRoom';
 import MatchmakingSessionRoom from './Pages/SessionRoom/MatchmakingSessionRoom';
-import ReturnToGameBanner from './Utils/ReturnToGameBanner';
+import { ReturnToGameBanner } from './Utils/ReturnToGameBanner';
 import Navbar from './Components/Navbar';
 import Login from './Pages/Login/Login';
 import Register from './Pages/Register/Register';

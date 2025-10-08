@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../Utils/AuthProvider';
+import { setUsernameLocalStorage, setPlayerIdLocalStorage } from '../../Utils/ReturnToGameBanner';
 import './styles.css';
 
 export default function Login() {
@@ -15,6 +16,11 @@ export default function Login() {
 
     const success = await login(username, password);
     if (success) {
+      setUsernameLocalStorage(username); // PATCH: Save username for session lookup
+      // PATCH: Try to get playerId from user object and save it
+      if (window.localStorage.getItem("playerId")) {
+        setPlayerIdLocalStorage(window.localStorage.getItem("playerId"));
+      }
       navigate('/'); // ✅ go to homepage
     } else {
       setError('Invalid username or password.');
@@ -23,6 +29,7 @@ export default function Login() {
 
   return (
     <form className="login-form" onSubmit={handleSubmit}>
+    
       <h2>Log In</h2>
 
       <div className="login-form-group">

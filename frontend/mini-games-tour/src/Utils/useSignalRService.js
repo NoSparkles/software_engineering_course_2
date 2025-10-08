@@ -10,15 +10,17 @@ export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token 
   useEffect(() => {
     if (!hubUrl || !playerId) return;
 
-    // --- PATCH: Mark new session version ONLY after previous connections are stopped ---
-    if (connectionRef.current) {
-      connectionRef.current.stop();
-      connectionRef.current = null;
-    }
+    localStorage.removeItem("roomCloseTime");
+    localStorage.removeItem("activeGame");
+    sessionStorage.removeItem("leaveByHome");
 
-    // Now mark the new session version (guaranteed after cleanup)
-    if (roomCode) {
-      markJustStartedNewSession(roomCode);
+    if (roomCode && gameType) {
+      localStorage.setItem("activeGame", JSON.stringify({
+        gameType,
+        code: roomCode,
+        playerId,
+        isMatchmaking: hubUrl.toLowerCase().includes("matchmaking")
+      }));
     }
 
     const connection = new HubConnectionBuilder()
@@ -44,12 +46,9 @@ export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token 
     });
 
     connection.onreconnected(() => {
-      console.log("[SignalR] Reconnected. Attempting to rejoin room...");
+      console.log("[SignalR] Reconnected.");
       setConnectionState("Connected");
       setReconnected(true);
-      if (gameType && roomCode) {
-        connection.invoke("Join", gameType, roomCode, playerId, token || "");
-      }
     });
 
     connection
@@ -63,7 +62,17 @@ export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token 
         console.error("[SignalR] Connection failed:", err);
       });
 
+    function handleLogout(e) {
+      if (e.key === "token" && e.newValue === null && connectionRef.current) {
+        connectionRef.current.stop();
+        localStorage.removeItem("activeGame");
+        localStorage.removeItem("roomCloseTime");
+      }
+    }
+    window.addEventListener("storage", handleLogout);
+
     return () => {
+      window.removeEventListener("storage", handleLogout);
       if (connectionRef.current) {
         connectionRef.current.stop();
         connectionRef.current = null;

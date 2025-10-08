@@ -249,5 +249,13 @@ namespace Services
             var hash = sha.ComputeHash(bytes);
             return Convert.ToHexString(hash);
         }
+
+        // PATCH: Add GetUserByUsername method for ActiveSessionController
+        public User? GetUserByUsername(string username)
+        {
+            // Use EF Core context to find user by username
+            return _context.Users.FirstOrDefault(u => u.Username == username);
+        }
     }
 }
+
