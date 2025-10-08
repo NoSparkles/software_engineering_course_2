@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
-using games;
+using Games;
 using Models;
 using Models.InMemoryModels;
 using Services;
 using System.Security.Principal;
 using System.Text.RegularExpressions;
+using Extensions;
 
 namespace Hubs
 {
@@ -23,7 +24,7 @@ namespace Hubs
 
         public async Task HandleCommand(string gameType, string roomCode, string playerId, string command, string jwtToken)
         {
-            var roomKey = RoomService.CreateRoomKey(gameType, roomCode);
+            var roomKey = gameType.ToRoomKey(roomCode);
             var room = RoomService.GetRoomByKey(roomKey);
             if (room == null)
             {
@@ -43,7 +44,7 @@ namespace Hubs
         public async Task Join(string gameType, string roomCode, string playerId, string jwtToken)
         {
             var user = await UserService.GetUserFromTokenAsync(jwtToken);
-            await Groups.AddToGroupAsync(Context.ConnectionId, RoomService.CreateRoomKey(gameType, roomCode));
+            await Groups.AddToGroupAsync(Context.ConnectionId, gameType.ToRoomKey(roomCode));
             await RoomService.JoinAsPlayerNotMatchMaking(gameType, roomCode, playerId, user, Context.ConnectionId, Clients);
             
             // Small delay to ensure room setup is complete
@@ -73,7 +74,7 @@ namespace Hubs
             if (!string.IsNullOrEmpty(playerId) && !string.IsNullOrEmpty(gameType) && !string.IsNullOrEmpty(roomCode))
             {
                 Console.WriteLine($"JoinByCodeHub: Calling HandlePlayerLeave for {playerId} in {gameType}:{roomCode}");
-                var roomKey = RoomService.CreateRoomKey(gameType, roomCode);
+                var roomKey = gameType.ToRoomKey(roomCode);
                 var room = RoomService.GetRoomByKey(roomKey);
                 if (room == null)
                 {
@@ -165,7 +166,7 @@ namespace Hubs
         {
             Console.WriteLine($"JoinByCodeHub.DeclineReconnection called for player {playerId}, gameType: {gameType}, roomCode: {roomCode}");
 
-            var roomKey = RoomService.CreateRoomKey(gameType, roomCode);
+            var roomKey = gameType.ToRoomKey(roomCode);
             if (RoomService.Rooms.TryGetValue(roomKey, out Room room))
             {
                 Console.WriteLine($"DeclineReconnection: Found room {roomKey} for player {playerId}");

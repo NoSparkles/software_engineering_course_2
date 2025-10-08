@@ -1,9 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
-using Models;
 using Models.InMemoryModels;
-using System.Linq;
 
-namespace games
+namespace Games
 {
     public class PairMatching : GameInstance
     {

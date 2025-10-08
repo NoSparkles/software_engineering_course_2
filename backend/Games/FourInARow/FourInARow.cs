@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.SignalR;
 using Models;
 using Models.InMemoryModels;
 
-namespace games
+namespace Games
 {
     public class FourInARowGame : GameInstance
     {
