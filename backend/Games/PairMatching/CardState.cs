@@ -1,4 +1,4 @@
-namespace games
+namespace Games
 {
     public enum CardState
     {

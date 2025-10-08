@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
-using games;
+using Games;
+using Extensions;
 using Microsoft.AspNetCore.SignalR;
 using Models;
 using Models.InMemoryModels;
@@ -24,7 +25,7 @@ namespace Services
         public string CreateRoom(string gameType, bool isMatchMaking)
         {
             var roomCode = GenerateRoomCode();
-            var roomKey = CreateRoomKey(gameType, roomCode);
+            var roomKey = gameType.ToRoomKey(roomCode);
             var game = Room.GameTypeToGame(gameType);
             var newRoom = new Room(game, isMatchMaking);
             Rooms[roomKey] = newRoom;
@@ -47,22 +48,22 @@ namespace Services
                 code = new string(Enumerable.Repeat(chars, length)
                     .Select(s => s[rng.Next(s.Length)]).ToArray());
             }
-            while (Rooms.ContainsKey(CreateRoomKey("four-in-a-row", code)) ||
-                   Rooms.ContainsKey(CreateRoomKey("pair-matching", code)) ||
-                   Rooms.ContainsKey(CreateRoomKey("rock-paper-scissors", code)));
+            while (Rooms.ContainsKey("four-in-a-row".ToRoomKey(code)) ||
+                   Rooms.ContainsKey("pair-matching".ToRoomKey(code)) ||
+                   Rooms.ContainsKey("rock-paper-scissors".ToRoomKey(code)));
 
             return code;
         }
 
         public bool RoomExists(string gameType, string roomCode)
         {
-            var roomKey = CreateRoomKey(gameType, roomCode);
+            var roomKey = gameType.ToRoomKey(roomCode);
             return Rooms.ContainsKey(roomKey);
         }
 
         public (bool exists, bool isMatchmaking) RoomExistsWithMatchmaking(string gameType, string roomCode)
         {
-            var roomKey = CreateRoomKey(gameType, roomCode);
+            var roomKey = gameType.ToRoomKey(roomCode);
             if (Rooms.TryGetValue(roomKey, out Room? room))
             {
                 return (true, room.IsMatchMaking);
@@ -94,14 +95,9 @@ namespace Services
             return false;
         }
 
-        public string CreateRoomKey(string gameType, string roomCode)
-        {
-            return $"{gameType}:{roomCode.ToUpper()}";
-        }
-
         public async Task JoinAsPlayerNotMatchMaking(string gameType, string roomCode, string playerId, User? user, string connectionId, IHubCallerClients clients)
         {
-            var roomKey = CreateRoomKey(gameType, roomCode);
+            var roomKey = gameType.ToRoomKey(roomCode);
             var room = GetRoomByKey(roomKey);
             var game = room.Game;
             var roomPlayers = room.RoomPlayers;
@@ -227,7 +223,7 @@ namespace Services
 
         public async Task JoinAsPlayerMatchMaking(string gameType, string roomCode, string playerId, User? user, string connectionId, IHubCallerClients clients)
         {
-            var roomKey = CreateRoomKey(gameType, roomCode);
+            var roomKey = gameType.ToRoomKey(roomCode);
             var room = GetRoomByKey(roomKey);
             var game = room.Game;
             var roomPlayers = room.RoomPlayers;
@@ -359,7 +355,7 @@ namespace Services
 
         public async Task JoinAsSpectator(string gameType, string roomCode, string playerId, User? user, string connectionId)
         {
-            var roomKey = CreateRoomKey(gameType, roomCode);
+            var roomKey = gameType.ToRoomKey(roomCode);
             var roomUser = new RoomUser
             {
                 PlayerId = playerId,
@@ -371,7 +367,7 @@ namespace Services
 
         public async Task HandlePlayerDisconnect(string gameType, string roomCode, string playerId, IHubCallerClients clients)
         {
-            var roomKey = CreateRoomKey(gameType, roomCode);
+            var roomKey = gameType.ToRoomKey(roomCode);
             if (!Rooms.TryGetValue(roomKey, out Room? room))
                 return;
 
@@ -602,7 +598,7 @@ namespace Services
         public async Task HandlePlayerLeave(string gameType, string roomCode, string playerId, IHubCallerClients clients)
         {
             Console.WriteLine($"RoomService.HandlePlayerLeave called - PlayerId: {playerId}, GameType: {gameType}, RoomCode: {roomCode}");
-            var roomKey = CreateRoomKey(gameType, roomCode);
+            var roomKey = gameType.ToRoomKey(roomCode);
             Console.WriteLine($"RoomService: Looking for room with key: {roomKey}");
 
             if (!Rooms.TryGetValue(roomKey, out Room? room))

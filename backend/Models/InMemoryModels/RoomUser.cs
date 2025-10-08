@@ -1,5 +1,3 @@
-using System.Runtime.CompilerServices;
-
 namespace Models.InMemoryModels
 {
     public class RoomUser

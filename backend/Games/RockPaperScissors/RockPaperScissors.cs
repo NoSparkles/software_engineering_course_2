@@ -1,9 +1,8 @@
 using Microsoft.AspNetCore.SignalR;
-using Models;
 using Models.InMemoryModels;
 using System.Text.Json.Serialization;
 
-namespace games
+namespace Games
 {
     public class RockPaperScissors : GameInstance
     {

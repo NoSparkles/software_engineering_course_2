@@ -1,9 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
-using Models;
 using Models.InMemoryModels;
-using System.Linq;
 
-namespace games
+namespace Games
 {
     public class PairMatching : GameInstance
     {
@@ -30,11 +28,8 @@ namespace games
         {
             if (FlippedCards.Count() == 2)
             {
-                Card first = Board[FlippedCards[0][0], FlippedCards[0][1]];
-                Card second = Board[FlippedCards[1][0], FlippedCards[1][1]];
-                // they are not matching for sure
-                first.state = CardState.FaceDown;
-                second.state = CardState.FaceDown;
+                Board[FlippedCards[0][0], FlippedCards[0][1]].state = CardState.FaceDown;
+                Board[FlippedCards[1][0], FlippedCards[1][1]].state = CardState.FaceDown;
                 FlippedCards.Clear();
 
             }
@@ -51,22 +46,18 @@ namespace games
                 string[] parts = command.Split(' ');
                 var col = int.Parse(parts[1]);
                 var row = int.Parse(parts[2]);
-                Card card = Board[row, col];
-                if (card.state == CardState.FaceDown)
+                if (Board[row, col].state == CardState.FaceDown)
                 {
-                    card.state = CardState.FaceUp;
+                    Board[row, col].state = CardState.FaceUp;
                     FlippedCards.Add(new List<int> { row, col });
                 }
 
                 if (FlippedCards.Count() == 2)
                 {
-                    Card first = Board[FlippedCards[0][0], FlippedCards[0][1]];
-                    Card second = Board[FlippedCards[1][0], FlippedCards[1][1]];
-
-                    if (first.Value == second.Value)
+                    if (Board[FlippedCards[0][0], FlippedCards[0][1]].Value == Board[FlippedCards[1][0], FlippedCards[1][1]].Value)
                     {
-                        first.state = CardState.Matched;
-                        second.state = CardState.Matched;
+                        Board[FlippedCards[0][0], FlippedCards[0][1]].state = CardState.Matched;
+                        Board[FlippedCards[1][0], FlippedCards[1][1]].state = CardState.Matched;
                         FlippedCards.Clear();
                         Scores[CurrentPlayerColor] += 1;
                         if (Scores[CurrentPlayerColor] == 5)
