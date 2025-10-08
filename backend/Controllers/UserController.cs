@@ -195,13 +195,13 @@ namespace Controllers
         }
     }
 
-    public class RegisterDto
+    public record class RegisterDto
     {
         public string Username { get; set; } = null!;
         public string Password { get; set; } = null!;
     }
 
-    public class LoginDto
+    public record class LoginDto
     {
         public string Username { get; set; } = null!;
         public string Password { get; set; } = null!;

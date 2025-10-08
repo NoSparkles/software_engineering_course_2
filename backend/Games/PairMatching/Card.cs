@@ -1,6 +1,6 @@
 namespace games
 {
-    public class Card
+    public struct Card
     {
         public int Value { get; set; }
         public CardState state { get; set; }
