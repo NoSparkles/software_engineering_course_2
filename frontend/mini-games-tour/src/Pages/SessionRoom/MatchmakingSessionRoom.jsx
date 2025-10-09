@@ -22,6 +22,7 @@ export default function MatchmakingSessionRoom() {
   const [playerColor, setPlayerColor] = useState(null);
   const playerId = usePlayerId();
   const timeLeft = useCountdownTimer();
+  const [isLeavingRoom, setIsLeavingRoom] = useState(false);
   
   const { connection, connectionState, reconnected } = useSignalRService({
     hubUrl: "http://localhost:5236/MatchMakingHub",
@@ -39,6 +40,10 @@ export default function MatchmakingSessionRoom() {
       isMatchmaking: true
     };
     localStorage.setItem("activeGame", JSON.stringify(activeGameData));
+    
+    // Clear roomCloseTime when entering a room (fresh start)
+    localStorage.removeItem("roomCloseTime");
+    setRoomCloseTime(null);
   }, [code, gameType, playerId]);
 
   useEffect(() => {
@@ -77,6 +82,12 @@ export default function MatchmakingSessionRoom() {
 
   useEffect(() => {
     if (connection && connectionState === "Connected") {
+      // Set up RoomPlayersUpdate listener FIRST before joining
+      connection.on("RoomPlayersUpdate", (players) => {
+        console.log("RoomPlayersUpdate received:", players);
+        setRoomPlayers(players);
+      });
+
       if (isSpectator) {
         connection.invoke("JoinAsSpectator", gameType, code)
           .then(() => setStatus("Joined as spectator"))
@@ -97,8 +108,13 @@ export default function MatchmakingSessionRoom() {
         setStatus("Waiting for second player...");
       });
 
+      connection.on("MatchFound", (roomCode) => {
+        setStatus("Match found! Game starting...");
+      });
+
       connection.on("StartGame", (roomCode) => {
         if (roomCode === code) {
+          console.log("StartGame event received, clearing timers");
           setStatus("Game started! Good luck!");
           localStorage.removeItem("roomCloseTime");
           setRoomCloseTime(null);
@@ -146,17 +162,26 @@ export default function MatchmakingSessionRoom() {
       });
 
       connection.on("PlayerDisconnected", (disconnectedPlayerId, message, roomCloseTime) => {
+        console.log("PlayerDisconnected event received:", { disconnectedPlayerId, message, roomCloseTime });
         setStatus(message);
         if (roomCloseTime) {
+          console.log("Setting roomCloseTime from backend:", roomCloseTime);
           localStorage.setItem("roomCloseTime", roomCloseTime);
           setRoomCloseTime(roomCloseTime);
+        } else {
+          console.log("No roomCloseTime from backend, using fallback");
+          const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
+          localStorage.setItem("roomCloseTime", fallbackCloseTime);
+          setRoomCloseTime(fallbackCloseTime);
         }
       });
 
       connection.on("PlayerReconnected", (reconnectedPlayerId, message) => {
+        console.log("PlayerReconnected event received:", { reconnectedPlayerId, message });
         setStatus(message);
         localStorage.removeItem("roomCloseTime");
         setRoomCloseTime(null);
+        setGameStarted(true); // Resume game when player reconnects
       });
 
       connection.on("RoomClosing", (message) => {
@@ -167,18 +192,23 @@ export default function MatchmakingSessionRoom() {
         });
       });
 
-      connection.on("RoomClosed", (message) => {
+      connection.on("JoinFailed", (message) => {
         setStatus(message);
         localStorage.removeItem("roomCloseTime");
         localStorage.removeItem("activeGame");
-        setTimeout(() => {
-          navigate('/');
-        }, 2000);
+        setTimeout(() => navigate('/'), 2000);
+      });
+
+      connection.on("RoomClosed", (message, closedRoomKey) => {
+        // Room was closed - clear storage and navigate to home
+        setStatus(message);
+        localStorage.removeItem("roomCloseTime");
+        localStorage.removeItem("activeGame");
+        setTimeout(() => navigate('/'), 2000);
       });
 
       const handleStorage = (e) => {
         if (e.key === "activeGame" && e.newValue === null) {
-          console.log("[RoomClosed][storage] Detected activeGame removal, forcing navigation.");
           localStorage.removeItem("roomCloseTime");
           navigate('/');
         }
@@ -200,15 +230,11 @@ export default function MatchmakingSessionRoom() {
       });
 
       return () => {
-        if (!isSpectator && connection && connection.state === "Connected") {
-          console.log("Component unmounting - calling LeaveRoom...");
-          connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
-            console.warn("LeaveRoom failed on unmount:", err);
-          });
-          console.log("LeaveRoom call initiated on unmount");
-        }
-        
+        // Don't call LeaveRoom here - OnDisconnectedAsync will handle it
+        // and mark player as disconnected (allowing reconnection)
+        connection.off("RoomPlayersUpdate");
         connection.off("WaitingForOpponent");
+        connection.off("MatchFound");
         connection.off("StartGame");
         connection.off("PlayerLeft");
         connection.off("PlayerLeftRoom");
@@ -220,71 +246,41 @@ export default function MatchmakingSessionRoom() {
         connection.off("PlayerReconnected");
         connection.off("RoomClosing");
         connection.off("RoomClosed");
+        connection.off("JoinFailed");
       };
     }
   }, [gameType, code, navigate, connection, connectionState, playerId, token]);
 
-  useEffect(() => {
-      const handleBeforeUnload = () => {
-        console.log("beforeunload event triggered");
-        if (!isSpectator && connection && connection.state === "Connected") {
-          console.log("Calling LeaveRoom on beforeunload...");
-          connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
-            console.warn("LeaveRoom failed on beforeunload:", err);
-          });
-          console.log("LeaveRoom call initiated on beforeunload");
-        }
-      };
-  
-    const handlePopState = () => {
-      console.log("popstate event triggered");
-      if (!isSpectator && connection && connection.state === "Connected") {
-        console.log("Calling LeaveRoom on popstate...");
-        connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
-          console.warn("LeaveRoom failed on popstate:", err);
-        });
-        console.log("LeaveRoom call initiated on popstate");
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('popstate', handlePopState);
-    
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [connection, isSpectator]);
+  // Removed beforeunload and popstate handlers - OnDisconnectedAsync handles disconnection
+  // and allows reconnection. Only explicit "Leave Room" button press should close room.
   
 
   const handleLeaveRoom = async () => {
+    if (isLeavingRoom) {
+      return;
+    }
+  
+    setIsLeavingRoom(true);
+  
     if (!isSpectator && connection && connection.state === "Connected") {
       try {
+        // LeaveRoom will close the room immediately for all players
         await connection.invoke("LeaveRoom", gameType, code, playerId);
+        
+        // Clear any reconnection data since room is closed
+        localStorage.removeItem("activeGame");
+        localStorage.removeItem("roomCloseTime");
+        sessionStorage.removeItem("lastActiveGame");
+        sessionStorage.removeItem("lastRoomCloseTime");
+        
         window.dispatchEvent(new Event("LeaveRoomBannerCheck"));
       } catch (err) {
         console.warn("LeaveRoom failed:", err);
+        setIsLeavingRoom(false);
+        return;
       }
     }
-    markLeaveByHome();
-    setTimeout(() => {
-      const activeGameData = {
-        gameType,
-        code: code,
-        playerId: playerId,
-        isMatchmaking: true
-      };
-      localStorage.setItem("activeGame", JSON.stringify(activeGameData));
-      sessionStorage.setItem("lastActiveGame", JSON.stringify(activeGameData));
-      if (!localStorage.getItem("roomCloseTime")) {
-        const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
-        localStorage.setItem("roomCloseTime", fallbackCloseTime);
-        sessionStorage.setItem("lastRoomCloseTime", fallbackCloseTime);
-      } else {
-        sessionStorage.setItem("lastRoomCloseTime", localStorage.getItem("roomCloseTime"));
-      }
-      window.dispatchEvent(new Event("LeaveRoomBannerCheck"));
-    }, 300);
+    
     navigate('/');
   };
 
@@ -298,41 +294,19 @@ export default function MatchmakingSessionRoom() {
     }
     window.addEventListener("storage", handleRoomCloseTimeChange);
 
-    if (connection) {
-      connection.on("RoomPlayersUpdate", (players) => {
-        setRoomPlayers(players);
-      });
-
-      connection.on("PlayerDeclinedReconnection", (declinedPlayerId, message) => {
-        const fallbackCloseTime = new Date(Date.now() + 30000).toISOString();
-        setRoomCloseTime(fallbackCloseTime);
-        localStorage.setItem("roomCloseTime", fallbackCloseTime);
-      });
-      connection.on("PlayerReconnected", (reconnectedPlayerId, message) => {
-        setRoomCloseTime(null);
-        localStorage.removeItem("roomCloseTime");
-      });
-      connection.on("RoomClosed", () => {
-        setRoomCloseTime(null);
-        localStorage.removeItem("roomCloseTime");
-        setRoomPlayers([]);
-      });
-      return () => {
-        window.removeEventListener("storage", handleRoomCloseTimeChange);
-        connection.off("RoomPlayersUpdate");
-        connection.off("PlayerDeclinedReconnection");
-        connection.off("WaitingForOpponent");
-      };
-    }
     return () => window.removeEventListener("storage", handleRoomCloseTimeChange);
-  }, [connection, playerId]);
+  }, []);
 
   const showTimer = !isSpectator &&
     roomCloseTime &&
     Date.parse(roomCloseTime) > Date.now() &&
     timeLeft !== null &&
-    timeLeft > 0 &&
-    (!gameStarted || roomPlayers.length < 2);
+    timeLeft > 0;
+
+  // Debug logging
+  useEffect(() => {
+    console.log("Timer state:", { roomCloseTime, timeLeft, showTimer, isSpectator });
+  }, [roomCloseTime, timeLeft, showTimer, isSpectator]);
 
   return (
     <div className="session-room">
@@ -355,8 +329,15 @@ export default function MatchmakingSessionRoom() {
         </button>
       )}
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
-        <button onClick={handleLeaveRoom}>
-          🚪 Leave Room
+        <button 
+          onClick={handleLeaveRoom} 
+          disabled={isLeavingRoom}
+          style={{ 
+            opacity: isLeavingRoom ? 0.5 : 1,
+            cursor: isLeavingRoom ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {isLeavingRoom ? '🚪 Leaving...' : '🚪 Leave Room'}
         </button>
       </div>
 
@@ -371,7 +352,18 @@ export default function MatchmakingSessionRoom() {
       )}
 
       <div className="game-board">
-        {board}
+        {(connectionState === "Connected" && board) ? (
+          board
+        ) : (
+          <div style={{
+            padding: '40px',
+            textAlign: 'center',
+            fontSize: '1.5em',
+            color: '#666'
+          }}>
+            🔌 Connecting to game...
+          </div>
+        )}
       </div>
     </div>
   );

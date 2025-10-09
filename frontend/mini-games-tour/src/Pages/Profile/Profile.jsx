@@ -31,6 +31,13 @@ const Profile = () => {
   }
 
   useEffect(() => {
+    // Trigger banner check when arriving at profile page
+    setTimeout(() => {
+      window.dispatchEvent(new Event("localStorageUpdate"));
+    }, 100);
+  }, []);
+
+  useEffect(() => {
     fetchProfile()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username])

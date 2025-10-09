@@ -6,12 +6,34 @@ export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token 
   const connectionRef = useRef(null);
   const [connectionState, setConnectionState] = useState("Disconnected");
   const [reconnected, setReconnected] = useState(false);
+  const isCleaningUpRef = useRef(false);
 
   useEffect(() => {
     if (!hubUrl || !playerId) return;
+    
+    isCleaningUpRef.current = false;
 
-    localStorage.removeItem("roomCloseTime");
-    localStorage.removeItem("activeGame");
+    // Only clear old session data if we're starting a NEW session
+    // Check if the stored activeGame is for a different room
+    const existingGame = localStorage.getItem("activeGame");
+    if (existingGame) {
+      try {
+        const gameData = JSON.parse(existingGame);
+        // If it's a different room, clear the old data
+        if (gameData.code !== roomCode || gameData.gameType !== gameType) {
+          console.log("[SignalR] Clearing old session data for different room");
+          localStorage.removeItem("roomCloseTime");
+          localStorage.removeItem("activeGame");
+        } else {
+          console.log("[SignalR] Reconnecting to same room, keeping session data");
+        }
+      } catch (e) {
+        // Invalid JSON, clear it
+        localStorage.removeItem("roomCloseTime");
+        localStorage.removeItem("activeGame");
+      }
+    }
+    
     sessionStorage.removeItem("leaveByHome");
 
     if (roomCode && gameType) {
@@ -23,33 +45,59 @@ export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token 
       }));
     }
 
+    // Build URL with query parameters for OnDisconnectedAsync
+    let connectionUrl = hubUrl;
+    if (playerId && gameType && roomCode) {
+      const params = new URLSearchParams({
+        playerId: playerId,
+        gameType: gameType,
+        roomCode: roomCode
+      });
+      connectionUrl = `${hubUrl}?${params.toString()}`;
+      console.log("[SignalR] Connecting to:", connectionUrl);
+    }
+
     const connection = new HubConnectionBuilder()
-      .withUrl(hubUrl, {
+      .withUrl(connectionUrl, {
         withCredentials: true,
         skipNegotiation: true,
         transport: 1,
       })
       .configureLogging(LogLevel.Information)
-      .withAutomaticReconnect()
+      // Don't use automatic reconnect - it interferes with our disconnect/reconnect logic
+      // .withAutomaticReconnect()
       .build();
 
     connectionRef.current = connection;
 
-    connection.onclose(() => {
-      console.log("[SignalR] Connection closed");
+    connection.onclose((error) => {
+      console.log("[SignalR] Connection closed", { error, isCleaningUp: isCleaningUpRef.current });
       setConnectionState("Disconnected");
+      
+      // Only set roomCloseTime if this is a clean shutdown (component unmounting due to navigation)
+      // isCleaningUpRef.current is set to true when cleanup function runs (navigation away)
+      const activeGame = localStorage.getItem("activeGame");
+      if (activeGame && !localStorage.getItem("roomCloseTime") && isCleaningUpRef.current) {
+        const closeTime = new Date(Date.now() + 30000).toISOString();
+        localStorage.setItem("roomCloseTime", closeTime);
+        console.log("[SignalR] Set roomCloseTime for navigation away");
+        
+        // Delay the event dispatch to allow React Router navigation to complete
+        setTimeout(() => {
+          window.dispatchEvent(new Event("localStorageUpdate"));
+          console.log("[SignalR] Dispatched localStorageUpdate after navigation delay");
+        }, 100);
+      } else {
+        console.log("[SignalR] Not setting roomCloseTime", { 
+          hasActiveGame: !!activeGame, 
+          hasCloseTime: !!localStorage.getItem("roomCloseTime"),
+          isCleaningUp: isCleaningUpRef.current 
+        });
+      }
     });
 
-    connection.onreconnecting(() => {
-      console.log("[SignalR] Reconnecting...");
-      setConnectionState("Reconnecting");
-    });
-
-    connection.onreconnected(() => {
-      console.log("[SignalR] Reconnected.");
-      setConnectionState("Connected");
-      setReconnected(true);
-    });
+    // Removed automatic reconnection handlers since we disabled withAutomaticReconnect()
+    // Manual reconnection is handled by user clicking "Return to Game" button
 
     connection
       .start()
@@ -74,7 +122,16 @@ export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token 
     return () => {
       window.removeEventListener("storage", handleLogout);
       if (connectionRef.current) {
-        connectionRef.current.stop();
+        console.log("[SignalR] Cleanup: stopping connection (navigation away)");
+        // Mark that we're cleaning up (navigating away)
+        isCleaningUpRef.current = true;
+        
+        // Stop the connection which will trigger onclose
+        connectionRef.current.stop().then(() => {
+          console.log("[SignalR] Connection stopped in cleanup");
+        }).catch(err => {
+          console.log("[SignalR] Error stopping connection:", err);
+        });
         connectionRef.current = null;
       }
     };

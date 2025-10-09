@@ -13,6 +13,11 @@ const Users = () => {
     getUsers().then(result => {
       setUsers(result)
     })
+    
+    // Trigger banner check when arriving at users page
+    setTimeout(() => {
+      window.dispatchEvent(new Event("localStorageUpdate"));
+    }, 100);
   }, [])
 
   return (

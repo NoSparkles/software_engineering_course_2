@@ -63,7 +63,7 @@ export default function MatchmakingWaitingRoom() {
       connection.on("StartGame", (roomCode) => {
         if (roomCode === code) {
           setStatus("Game starting...");
-          // Don't navigate here - let MatchFound handle navigation
+          navigate(`/${gameType}/matchmaking-session/${roomCode}`);
         }
       });
 
@@ -105,43 +105,8 @@ export default function MatchmakingWaitingRoom() {
     }
   }, [connection, connectionState, playerId, gameType, code, navigate, token]);
 
-  // Cleanup when component unmounts
-  useEffect(() => {
-    return () => {
-      if (connection && connection.state === "Connected") {
-        connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
-          console.warn("MatchmakingWaitingRoom: LeaveRoom failed on unmount:", err);
-        });
-      }
-    };
-  }, [connection, gameType, code, playerId]);
-
-  // Handle navigation away from the page
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (connection && connection.state === "Connected") {
-        connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
-          console.warn("MatchmakingWaitingRoom: LeaveRoom failed on beforeunload:", err);
-        });
-      }
-    };
-
-    const handlePopState = () => {
-      if (connection && connection.state === "Connected") {
-        connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
-          console.warn("MatchmakingWaitingRoom: LeaveRoom failed on popstate:", err);
-        });
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('popstate', handlePopState);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [connection]);
+  // Removed unmount, beforeunload, and popstate handlers
+  // OnDisconnectedAsync handles disconnection and allows reconnection
 
   return (
     <div className="matchmaking-waiting-room">
