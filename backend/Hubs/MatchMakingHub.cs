@@ -268,7 +268,10 @@ namespace Hubs
                 {
                     // All players disconnected, close room immediately
                     await Clients.Group(roomKey).SendAsync("RoomClosed", "All players declined to reconnect. Room closed.");
-                    RoomService.Rooms.TryRemove(roomKey, out _);
+                    if (RoomService.Rooms.TryRemove(roomKey, out Room? removedRoom))
+                    {
+                        removedRoom?.Dispose();
+                    }
                     Console.WriteLine($"Room {roomKey} closed - all players declined reconnection");
                     return;
                 }

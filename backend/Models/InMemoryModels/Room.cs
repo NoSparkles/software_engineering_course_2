@@ -2,7 +2,7 @@ using Games;
 
 namespace Models.InMemoryModels
 {
-    public class Room
+    public class Room : IDisposable
     {
         public GameInstance Game { get; set; }
         public bool IsMatchMaking { get; set; }
@@ -35,6 +35,12 @@ namespace Models.InMemoryModels
                     "pair-matching" => new PairMatching(),
                     _ => throw new Exception("Unknown game type")
                 };
+        }
+
+        public void Dispose()
+        {
+            RoomTimerCancellation?.Cancel();
+            RoomTimerCancellation?.Dispose();
         }
     }
 }

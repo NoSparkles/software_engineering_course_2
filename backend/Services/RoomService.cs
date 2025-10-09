@@ -389,7 +389,10 @@ namespace Services
             {
                 // All players disconnected, close room immediately
                 await clients.Group(roomKey).SendAsync("RoomClosed", "All players disconnected. Room closed.");
-                Rooms.TryRemove(roomKey, out _);
+                if (Rooms.TryRemove(roomKey, out Room? removedRoom))
+                {
+                    removedRoom?.Dispose();
+                }
                 Console.WriteLine($"Room {roomKey} closed - all players disconnected");
                 return;
             }
@@ -412,14 +415,20 @@ namespace Services
             if (room.RoomPlayers.Count == 0)
             {
                 await clients.Group(roomKey).SendAsync("RoomClosing", "Room is closing - no players remaining.");
-                Rooms.TryRemove(roomKey, out _);
+                if (Rooms.TryRemove(roomKey, out Room? removedRoom))
+                {
+                    removedRoom?.Dispose();
+                }
                 return;
             }
 
             if (room.DisconnectedPlayers.Count > 0 && room.RoomCloseTime.HasValue && DateTime.UtcNow >= room.RoomCloseTime.Value)
             {
                 await clients.Group(roomKey).SendAsync("RoomClosing", "Room is closing due to disconnected player(s).");
-                Rooms.TryRemove(roomKey, out _);
+                if (Rooms.TryRemove(roomKey, out Room? removedRoom))
+                {
+                    removedRoom?.Dispose();
+                }
 
                 foreach (var player in room.RoomPlayers)
                 {
@@ -522,7 +531,10 @@ namespace Services
                 }
             }
 
-            Rooms.TryRemove(roomKey, out _);
+            if (Rooms.TryRemove(roomKey, out Room? removedRoom))
+            {
+                removedRoom?.Dispose();
+            }
             Console.WriteLine($"Room {roomKey} closed and all players kicked");
         }
 
@@ -631,7 +643,10 @@ namespace Services
             {
                 room.RoomCloseTime = null;
                 room.DisconnectedPlayers.Clear();
-                Rooms.TryRemove(roomKey, out _);
+                if (Rooms.TryRemove(roomKey, out Room? removedRoom))
+                {
+                    removedRoom?.Dispose();
+                }
                 await clients.Group(roomKey).SendAsync("RoomClosed", "Room closed - all players left");
                 Console.WriteLine($"Room {roomKey} closed and removed from Rooms dictionary");
                 return;
