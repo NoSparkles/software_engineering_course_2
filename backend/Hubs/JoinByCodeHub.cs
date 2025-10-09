@@ -103,17 +103,16 @@ namespace Hubs
                     room?.RoomPlayers.Count ?? 1
                 );
 
-                // --- PATCH: Set room.RoomCloseTime so remaining player gets timer/banner ---
                 if (room != null)
                 {
                     room.RoomCloseTime = roomCloseTime;
                 }
 
-                // Send RoomPlayersUpdate to remaining players so they can see updated room state
+            
                 var remainingPlayers = room?.RoomPlayers?.Where(p => p.PlayerId != playerId).Select(p => p.PlayerId).ToList() ?? new List<string>();
                 await Clients.Group(roomKey).SendAsync("RoomPlayersUpdate", remainingPlayers);
 
-                // --- PATCH: Notify all remaining players in the room that a player left and set timer/banner ---
+            
                 await Clients.Group(roomKey).SendAsync(
                     "PlayerLeft",
                     playerId,
@@ -122,7 +121,7 @@ namespace Hubs
                     room?.RoomPlayers.Count ?? 0
                 );
 
-                // --- PATCH: Actually close the room after timer expires if no players reconnect ---
+         
                 _ = Task.Run(async () =>
                 {
                     await Task.Delay(TimeSpan.FromSeconds(31));
@@ -141,7 +140,7 @@ namespace Hubs
                         }
                         else
                         {
-                            // If players reconnected, clear RoomCloseTime
+              
                             updatedRoom.RoomCloseTime = null;
                             await Clients.Group(roomKey).SendAsync(
                                 "PlayerReconnected",
@@ -152,7 +151,7 @@ namespace Hubs
                     }
                 });
 
-                // --- PATCH: Ensure leaving player is removed from room before timer logic ---
+        
                 await RoomService.HandlePlayerLeave(gameType, roomCode, playerId, Clients);
                 Console.WriteLine($"JoinByCodeHub: HandlePlayerLeave completed for {playerId}");
             }
@@ -171,14 +170,14 @@ namespace Hubs
             {
                 Console.WriteLine($"DeclineReconnection: Found room {roomKey} for player {playerId}");
                 
-                // Remove the declining player from disconnected players
+         
                 room.DisconnectedPlayers.Remove(playerId);
                 
-                // Get remaining players before checking if all are disconnected
+        
                 var remainingPlayers = room.RoomPlayers?.Select(p => p.PlayerId).ToList() ?? new List<string>();
                 
-                // Check if all remaining players are also disconnected
-                bool allPlayersDisconnected = room.RoomPlayers.All(rp => room.DisconnectedPlayers.ContainsKey(rp.PlayerId));
+             
+                bool allPlayersDisconnected = room.RoomPlayers.All(rp => room.DisconnectedPlayers.ContainsKey(rp.PlayerId));  //Iterating through collection
                 
                 if (allPlayersDisconnected)
                 {

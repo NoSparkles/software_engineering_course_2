@@ -667,7 +667,7 @@ namespace Services
         {
             var inactiveSessions = new List<string>();
 
-            foreach (var kvp in ActiveMatchmakingSessions)
+            foreach (var kvp in ActiveMatchmakingSessions) //Iterating through collection
             {
                 var playerId = kvp.Key;
                 var roomKey = kvp.Value;
@@ -679,7 +679,7 @@ namespace Services
                 }
             }
 
-            foreach (var playerId in inactiveSessions)
+            foreach (var playerId in inactiveSessions) //Iterating through collection
             {
                 ActiveMatchmakingSessions.TryRemove(playerId, out _);
             }

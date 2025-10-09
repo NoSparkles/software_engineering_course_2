@@ -23,11 +23,11 @@ export default function Register() {
     const success = await register(username, password);
     if (success) {
       setUsernameLocalStorage(username);
-      // PATCH: Try to get playerId from user object and save it
+     
       if (window.localStorage.getItem("playerId")) {
         setPlayerIdLocalStorage(window.localStorage.getItem("playerId"));
       }
-      navigate('/'); // ✅ go to homepage
+      navigate('/'); 
     } else {
       setError('Username already exists.');
     }

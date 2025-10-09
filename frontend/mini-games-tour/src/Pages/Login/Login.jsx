@@ -16,12 +16,11 @@ export default function Login() {
 
     const success = await login(username, password);
     if (success) {
-      setUsernameLocalStorage(username); // PATCH: Save username for session lookup
-      // PATCH: Try to get playerId from user object and save it
+      setUsernameLocalStorage(username); 
       if (window.localStorage.getItem("playerId")) {
         setPlayerIdLocalStorage(window.localStorage.getItem("playerId"));
       }
-      navigate('/'); // ✅ go to homepage
+      navigate('/'); 
     } else {
       setError('Invalid username or password.');
     }
