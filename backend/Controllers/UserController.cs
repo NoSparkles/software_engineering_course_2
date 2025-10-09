@@ -117,6 +117,9 @@ namespace Controllers
                 return BadRequest("Could not send friend request.");
 
             var updatedUser = await _userService.GetUserAsync(username);
+            if (updatedUser == null)
+                return NotFound("User not found.");
+            
             return Ok(new
             {
                 updatedUser.Friends,
@@ -133,6 +136,9 @@ namespace Controllers
                 return BadRequest("Could not accept friend request.");
 
             var updatedUser = await _userService.GetUserAsync(username);
+            if (updatedUser == null)
+                return NotFound("User not found.");
+            
             return Ok(new
             {
                 updatedUser.Friends,
@@ -149,6 +155,9 @@ namespace Controllers
                 return BadRequest("Could not reject friend request.");
 
             var updatedUser = await _userService.GetUserAsync(username);
+            if (updatedUser == null)
+                return NotFound("User not found.");
+            
             return Ok(new
             {
                 updatedUser.Friends,

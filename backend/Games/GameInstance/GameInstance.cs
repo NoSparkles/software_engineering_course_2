@@ -13,13 +13,17 @@ namespace Games
 
         public string GetPlayerColor(RoomUser rp)
         {
-            return PlayerColors[rp.PlayerId];
+            if (rp.PlayerId != null && PlayerColors.ContainsKey(rp.PlayerId))
+                return PlayerColors[rp.PlayerId];
+            return "R"; // Default color
         }
 
         public void AssignPlayerColors(RoomUser rp1, RoomUser rp2)
         {
-            PlayerColors[rp1.PlayerId] = "R";
-            PlayerColors[rp2.PlayerId] = "Y";
+            if (rp1.PlayerId != null)
+                PlayerColors[rp1.PlayerId] = "R";
+            if (rp2.PlayerId != null)
+                PlayerColors[rp2.PlayerId] = "Y";
         }
     }
 }

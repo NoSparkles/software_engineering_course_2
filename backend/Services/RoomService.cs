@@ -113,14 +113,14 @@ namespace Services
 
             if (room.RoomTimerCancellation != null || room.RoomCloseTime != null)
             {
-                CancelRoomTimer(room);
+                await CancelRoomTimer(room);
                 await clients.Group(roomKey).SendAsync("PlayerReconnected", null, "Timer cancelled: a player joined.");
             }
 
             var roomUser = new RoomUser
             {
                 PlayerId = playerId,
-                Username = user.Username,
+                Username = user?.Username,
                 User = user,
             };
 
@@ -130,7 +130,7 @@ namespace Services
             {
                 room.DisconnectedPlayers.Remove(playerId);
 
-                bool allConnected = room.RoomPlayers.All(rp => !room.DisconnectedPlayers.ContainsKey(rp.PlayerId));
+                bool allConnected = room.RoomPlayers?.All(rp => rp.PlayerId != null && !room.DisconnectedPlayers.ContainsKey(rp.PlayerId)) ?? false;
                 if (allConnected)
                 {
                     room.RoomCloseTime = null;
@@ -144,9 +144,13 @@ namespace Services
                 }
 
                 var playerIdToColor = new Dictionary<string, string>();
-                foreach (var rp in room.RoomPlayers)
+                if (room.RoomPlayers != null)
                 {
-                    playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                    foreach (var rp in room.RoomPlayers)
+                    {
+                        if (rp.PlayerId != null)
+                            playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                    }
                 }
                 await clients.Client(connectionId).SendAsync("SetPlayerColor", playerIdToColor);
                 switch (game)
@@ -167,7 +171,7 @@ namespace Services
             {
                 roomPlayers.Add(roomUser);
                 // Send RoomPlayersUpdate when a new player joins
-                var allPlayers = room.RoomPlayers?.Select(p => p.PlayerId).ToList() ?? new List<string>();
+                var allPlayers = room.RoomPlayers?.Where(p => p.PlayerId != null).Select(p => p.PlayerId!).ToList() ?? new List<string>();
                 await clients.Group(roomKey).SendAsync("RoomPlayersUpdate", allPlayers);
             }
 
@@ -185,9 +189,13 @@ namespace Services
                 game.AssignPlayerColors(roomPlayers[0], roomPlayers[1]);
 
                 var playerIdToColor = new Dictionary<string, string>();
-                foreach (var rp in room.RoomPlayers)
+                if (room.RoomPlayers != null)
                 {
-                    playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                    foreach (var rp in room.RoomPlayers)
+                    {
+                        if (rp.PlayerId != null)
+                            playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                    }
                 }
 
                 room.RoomCloseTime = null;
@@ -195,7 +203,7 @@ namespace Services
                 room.RoomTimerCancellation = null;
                 
                 // Send RoomPlayersUpdate to all players so they can see updated room state
-                var allPlayers = room.RoomPlayers.Select(p => p.PlayerId).ToList();
+                var allPlayers = room.RoomPlayers?.Where(p => p.PlayerId != null).Select(p => p.PlayerId!).ToList() ?? [];
                 await clients.Group(roomKey).SendAsync("RoomPlayersUpdate", allPlayers);
                 
                 await clients.Group(roomKey).SendAsync("StartGame", roomCode);
@@ -204,9 +212,13 @@ namespace Services
             else if (room.GameStarted)
             {
                 var playerIdToColor = new Dictionary<string, string>();
-                foreach (var rp in room.RoomPlayers)
+                if (room.RoomPlayers != null)
                 {
-                    playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                    foreach (var rp in room.RoomPlayers)
+                    {
+                        if (rp.PlayerId != null)
+                            playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                    }
                 }
                 await clients.Group(roomKey).SendAsync("SetPlayerColor", playerIdToColor);
                 switch (game)
@@ -250,14 +262,14 @@ namespace Services
 
             if (room.RoomTimerCancellation != null || room.RoomCloseTime != null)
             {
-                CancelRoomTimer(room);
+                await CancelRoomTimer(room);
                 await clients.Group(roomKey).SendAsync("PlayerReconnected", null, "Timer cancelled: a player joined.");
             }
 
             var roomUser = new RoomUser
             {
                 PlayerId = playerId,
-                Username = user.Username,
+                Username = user?.Username,
                 User = user,
             };
 
@@ -267,7 +279,7 @@ namespace Services
             {
                 room.DisconnectedPlayers.Remove(playerId);
 
-                bool allConnected = room.RoomPlayers.All(rp => !room.DisconnectedPlayers.ContainsKey(rp.PlayerId));
+                bool allConnected = room.RoomPlayers?.All(rp => rp.PlayerId != null && !room.DisconnectedPlayers.ContainsKey(rp.PlayerId)) ?? false;
                 if (allConnected)
                 {
                     room.RoomCloseTime = null;
@@ -281,9 +293,13 @@ namespace Services
                 }
 
                 var playerIdToColor = new Dictionary<string, string>();
-                foreach (var rp in room.RoomPlayers)
+                if (room.RoomPlayers != null)
                 {
-                    playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                    foreach (var rp in room.RoomPlayers)
+                    {
+                        if (rp.PlayerId != null)
+                            playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                    }
                 }
                 await clients.Client(connectionId).SendAsync("SetPlayerColor", playerIdToColor);
                 switch (game)
@@ -304,7 +320,7 @@ namespace Services
             {
                 roomPlayers.Add(roomUser);
                 // Send RoomPlayersUpdate when a new player joins
-                var allPlayers = room.RoomPlayers?.Select(p => p.PlayerId).ToList() ?? new List<string>();
+                var allPlayers = room.RoomPlayers?.Where(p => p.PlayerId != null).Select(p => p.PlayerId!).ToList() ?? new List<string>();
                 await clients.Group(roomKey).SendAsync("RoomPlayersUpdate", allPlayers);
             }
 
@@ -327,9 +343,13 @@ namespace Services
                 room.RoomTimerCancellation = null;
 
                 var playerIdToColor = new Dictionary<string, string>();
-                foreach (var rp in room.RoomPlayers)
+                if (room.RoomPlayers != null)
                 {
-                    playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                    foreach (var rp in room.RoomPlayers)
+                    {
+                        if (rp.PlayerId != null)
+                            playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                    }
                 }
 
                 if (room.IsMatchMaking)
@@ -341,7 +361,7 @@ namespace Services
                 }
                 
                 // Send RoomPlayersUpdate to all players so they can see updated room state
-                var allPlayers = room.RoomPlayers.Select(p => p.PlayerId).ToList();
+                var allPlayers = room.RoomPlayers?.Where(p => p.PlayerId != null).Select(p => p.PlayerId!).ToList() ?? [];
                 await clients.Group(roomKey).SendAsync("RoomPlayersUpdate", allPlayers);
                 
                 await clients.Group(roomKey).SendAsync("StartGame", roomCode);
@@ -353,9 +373,13 @@ namespace Services
                 room.RoomCloseTime = null;
                 room.RoomTimerCancellation?.Cancel();
                 room.RoomTimerCancellation = null;
-                foreach (var rp in room.RoomPlayers)
+                if (room.RoomPlayers != null)
                 {
-                    playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                    foreach (var rp in room.RoomPlayers)
+                    {
+                        if (rp.PlayerId != null)
+                            playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                    }
                 }
                 await clients.Group(roomKey).SendAsync("SetPlayerColor", playerIdToColor);
                 switch (game)
@@ -379,10 +403,11 @@ namespace Services
             var roomUser = new RoomUser
             {
                 PlayerId = playerId,
-                Username = user.Username,
+                Username = user?.Username,
                 User = user,
             };
             // TODO: Implement spectator logic
+            await Task.CompletedTask; // Suppress async warning
         }
 
         public async Task HandlePlayerDisconnect(string gameType, string roomCode, string playerId, IHubCallerClients clients)
@@ -400,10 +425,10 @@ namespace Services
             room.DisconnectedPlayers[playerId] = roomUser;
 
             // Get remaining players BEFORE checking if all are disconnected
-            var remainingPlayers = room.RoomPlayers?.Where(p => p.PlayerId != playerId).Select(p => p.PlayerId).ToList() ?? new List<string>();
+            var remainingPlayers = room.RoomPlayers?.Where(p => p.PlayerId != null && p.PlayerId != playerId).Select(p => p.PlayerId!).ToList() ?? new List<string>();
 
             // Check if all players are now disconnected
-            bool allPlayersDisconnected = room.RoomPlayers.All(rp => room.DisconnectedPlayers.ContainsKey(rp.PlayerId));
+            bool allPlayersDisconnected = room.RoomPlayers?.All(rp => rp.PlayerId != null && room.DisconnectedPlayers.ContainsKey(rp.PlayerId)) ?? false;
             
             if (allPlayersDisconnected)
             {
@@ -412,16 +437,21 @@ namespace Services
                 await clients.Group(roomKey).SendAsync("RoomClosed", "All players disconnected. Room closed.");
                 
                 // Clean up player mappings
-                foreach (var player in room.RoomPlayers)
+                if (room.RoomPlayers != null)
                 {
-                    if (room.IsMatchMaking)
+                    foreach (var player in room.RoomPlayers)
                     {
-                        MatchMakingRoomUsers.TryRemove(player.PlayerId, out _);
-                        ActiveMatchmakingSessions.TryRemove(player.PlayerId, out _);
-                    }
-                    else
-                    {
-                        CodeRoomUsers.TryRemove(player.PlayerId, out _);
+                        if (player.PlayerId == null) continue;
+                        
+                        if (room.IsMatchMaking)
+                        {
+                            MatchMakingRoomUsers.TryRemove(player.PlayerId, out _);
+                            ActiveMatchmakingSessions.TryRemove(player.PlayerId, out _);
+                        }
+                        else
+                        {
+                            CodeRoomUsers.TryRemove(player.PlayerId, out _);
+                        }
                     }
                 }
                 
@@ -442,7 +472,7 @@ namespace Services
             await clients.Group(roomKey).SendAsync("RoomPlayersUpdate", remainingPlayers);
             
             // Convert DateTime to ISO 8601 string for JavaScript compatibility
-            string roomCloseTimeString = room.RoomCloseTime?.ToString("o"); // "o" format = ISO 8601
+            string? roomCloseTimeString = room.RoomCloseTime?.ToString("o"); // "o" format = ISO 8601
             Console.WriteLine($"RoomService: Sending PlayerDisconnected to group {roomKey} with roomCloseTime: {roomCloseTimeString}");
             await clients.Group(roomKey).SendAsync("PlayerDisconnected", playerId, "Player disconnected. Room will close in 30 seconds if they don't reconnect.", roomCloseTimeString);
         }
@@ -472,6 +502,8 @@ namespace Services
 
                 foreach (var player in room.RoomPlayers)
                 {
+                    if (player.PlayerId == null) continue;
+                    
                     if (room.IsMatchMaking)
                     {
                         MatchMakingRoomUsers.TryRemove(player.PlayerId, out _);
@@ -554,7 +586,7 @@ namespace Services
                     bool anyPlayerStillInThisRoom = false;
                     foreach (var player in otherPlayers)
                     {
-                        if (ActiveMatchmakingSessions.TryGetValue(player.PlayerId, out string? activeRoomKey))
+                        if (player.PlayerId != null && ActiveMatchmakingSessions.TryGetValue(player.PlayerId, out string? activeRoomKey))
                         {
                             if (activeRoomKey == roomKey)
                             {
@@ -585,6 +617,7 @@ namespace Services
 
             foreach (var player in room.RoomPlayers)
             {
+                if (player.PlayerId == null) continue;
                 if (excludePlayerId != null && player.PlayerId == excludePlayerId)
                     continue;
                 Console.WriteLine($"Cleaning up mappings for player {player.PlayerId}");
@@ -606,7 +639,7 @@ namespace Services
             Console.WriteLine($"Room {roomKey} closed and all players kicked");
         }
 
-        private static void CancelRoomTimer(Room room)
+        private static async Task CancelRoomTimer(Room room)
         {
             if (room.RoomCloseTime != null || room.RoomTimerCancellation != null)
             {
@@ -614,9 +647,10 @@ namespace Services
                 room.RoomTimerCancellation?.Cancel();
                 room.RoomTimerCancellation = null;
             }
+            await Task.CompletedTask; // Suppress async warning
         }
 
-        public async Task StartRoomTimer(string roomKey, Room room, IHubCallerClients clients, string reason)
+        public Task StartRoomTimer(string roomKey, Room room, IHubCallerClients clients, string reason)
         {
             // Cancel any existing timer
             room.RoomTimerCancellation?.Cancel();
@@ -673,6 +707,8 @@ namespace Services
                     Console.WriteLine($"Timer for room {roomKey} was cancelled");
                 }
             }, room.RoomTimerCancellation.Token);
+            
+            return Task.CompletedTask;
         }
 
         public async Task HandlePlayerLeave(string gameType, string roomCode, string playerId, IHubCallerClients clients)
@@ -701,13 +737,13 @@ namespace Services
             room.DisconnectedPlayers[playerId] = roomUser;
 
             // Get remaining players BEFORE removing the leaving player
-            var remainingPlayers = room.RoomPlayers?.Where(p => p.PlayerId != playerId).Select(p => p.PlayerId).ToList() ?? [];
+            var remainingPlayers = room.RoomPlayers?.Where(p => p.PlayerId != null && p.PlayerId != playerId).Select(p => p.PlayerId!).ToList() ?? [];
 
             // Remove player from room
-            room.RoomPlayers.RemoveAll(rp => rp.PlayerId == playerId);
+            room.RoomPlayers?.RemoveAll(rp => rp.PlayerId == playerId);
 
             // If room is now empty, close it immediately
-            if (room.RoomPlayers.Count == 0)
+            if (room.RoomPlayers?.Count == 0)
             {
                 room.RoomCloseTime = null;
                 room.DisconnectedPlayers.Clear();
@@ -724,10 +760,14 @@ namespace Services
                 Console.WriteLine($"Matchmaking room {roomKey} - closing immediately as player left");
 
                 // Clean up all remaining players
-                foreach (var player in room.RoomPlayers)
+                if (room.RoomPlayers != null)
                 {
-                    MatchMakingRoomUsers.TryRemove(player.PlayerId, out _);
-                    ActiveMatchmakingSessions.TryRemove(player.PlayerId, out _);
+                    foreach (var player in room.RoomPlayers)
+                    {
+                        if (player.PlayerId == null) continue;
+                        MatchMakingRoomUsers.TryRemove(player.PlayerId, out _);
+                        ActiveMatchmakingSessions.TryRemove(player.PlayerId, out _);
+                    }
                 }
 
                 // Notify remaining players
