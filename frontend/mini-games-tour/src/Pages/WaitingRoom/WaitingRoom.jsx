@@ -37,6 +37,8 @@ export default function WaitingRoom() {
       connection.on("StartGame", (roomCode) => {
         if (roomCode === code) {
           setStatus("Opponent joined. Starting game...");
+          // Mark that we're transitioning to session room (not leaving the game)
+          sessionStorage.setItem("transitioningToSession", "1");
           navigate(`/${gameType}/session/${code}`);
         }
       });

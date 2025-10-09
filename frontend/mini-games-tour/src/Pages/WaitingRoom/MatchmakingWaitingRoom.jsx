@@ -63,6 +63,8 @@ export default function MatchmakingWaitingRoom() {
       connection.on("StartGame", (roomCode) => {
         if (roomCode === code) {
           setStatus("Game starting...");
+          // Mark that we're transitioning to session room (not leaving the game)
+          sessionStorage.setItem("transitioningToSession", "1");
           navigate(`/${gameType}/matchmaking-session/${roomCode}`);
         }
       });

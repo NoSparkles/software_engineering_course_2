@@ -122,6 +122,17 @@ export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token 
     return () => {
       window.removeEventListener("storage", handleLogout);
       if (connectionRef.current) {
+        // Check if we're transitioning to session room (waiting -> session)
+        const isTransitioning = sessionStorage.getItem("transitioningToSession") === "1";
+        
+        if (isTransitioning) {
+          console.log("[SignalR] Cleanup: transitioning to session room, keeping connection alive");
+          sessionStorage.removeItem("transitioningToSession");
+          // Don't stop the connection, don't mark as cleaning up
+          // The new session room will reuse the connection context
+          return;
+        }
+        
         console.log("[SignalR] Cleanup: stopping connection (navigation away)");
         // Mark that we're cleaning up (navigating away)
         isCleaningUpRef.current = true;
