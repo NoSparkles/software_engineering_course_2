@@ -332,6 +332,9 @@ export function ReturnToGameBanner() {
   const handleDeclineReconnection = async () => {
     if (!gameInfo) return;
     
+    // Set a flag to prevent old room components from navigating on RoomClosed
+    sessionStorage.setItem(`hasLeftRoom_${gameInfo.code}`, "1");
+    
     try {
       // Call DeclineReconnection on the appropriate hub
       const hubUrl = gameInfo.isMatchmaking 

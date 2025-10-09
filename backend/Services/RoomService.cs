@@ -513,7 +513,7 @@ namespace Services
 
         public async Task CloseRoomAndKickAllPlayers(string roomKey, IHubCallerClients clients, string reason, string? excludePlayerId = null)
         {
-            Console.WriteLine($"CloseRoomAndKickAllPlayers called for room {roomKey}, reason: {reason}");
+            Console.WriteLine($"CloseRoomAndKickAllPlayers called for room {roomKey}, reason: {reason}, excludePlayerId: {excludePlayerId}");
 
             if (!Rooms.TryGetValue(roomKey, out Room? room))
             {
@@ -524,6 +524,7 @@ namespace Services
             Console.WriteLine($"Found room {roomKey} with {room.RoomPlayers.Count} players");
             Console.WriteLine($"Closing room {roomKey} and kicking all players. Reason: {reason}");
 
+            // Clean up excluded player first if provided
             if (excludePlayerId != null)
             {
                 var excludedPlayer = room.RoomPlayers.FirstOrDefault(p => p.PlayerId == excludePlayerId);
@@ -541,19 +542,46 @@ namespace Services
                 }
             }
 
-            if (excludePlayerId == null)
-            {
-                await clients.Group(roomKey).SendAsync("RoomClosed", reason, roomKey);
-            }
-            else
+            // For matchmaking rooms, check if remaining players have already joined other rooms
+            // before sending RoomClosed event
+            bool shouldSendRoomClosed = true;
+            if (room.IsMatchMaking && excludePlayerId != null)
             {
                 var otherPlayers = room.RoomPlayers.Where(p => p.PlayerId != excludePlayerId).ToList();
                 if (otherPlayers.Count > 0)
                 {
-                    await clients.Group(roomKey).SendAsync("RoomClosed", reason, roomKey);
+                    // Check if any remaining player is still actively in THIS room
+                    bool anyPlayerStillInThisRoom = false;
+                    foreach (var player in otherPlayers)
+                    {
+                        if (ActiveMatchmakingSessions.TryGetValue(player.PlayerId, out string? activeRoomKey))
+                        {
+                            if (activeRoomKey == roomKey)
+                            {
+                                anyPlayerStillInThisRoom = true;
+                                Console.WriteLine($"Player {player.PlayerId} is still in room {roomKey}");
+                                break;
+                            }
+                            else
+                            {
+                                Console.WriteLine($"Player {player.PlayerId} already in different room {activeRoomKey}");
+                            }
+                        }
+                    }
+                    
+                    if (!anyPlayerStillInThisRoom)
+                    {
+                        Console.WriteLine($"No players are still in room {roomKey}, skipping RoomClosed event");
+                        shouldSendRoomClosed = false;
+                    }
                 }
             }
-            Console.WriteLine($"Sent RoomClosed event to group {roomKey}");
+
+            if (shouldSendRoomClosed)
+            {
+                Console.WriteLine($"Sending RoomClosed event to group {roomKey}");
+                await clients.Group(roomKey).SendAsync("RoomClosed", reason, roomKey);
+            }
 
             foreach (var player in room.RoomPlayers)
             {
@@ -783,7 +811,8 @@ namespace Services
                 if (room.IsMatchMaking)
                 {
                     Console.WriteLine($"ForceRemovePlayerFromAllRooms: Closing matchmaking room {roomKey} as player {playerId} is starting a new search");
-                    await CloseRoomAndKickAllPlayers(roomKey, clients, "A player started a new matchmaking search");
+                    // Pass playerId as excluded player so they don't receive RoomClosed event
+                    await CloseRoomAndKickAllPlayers(roomKey, clients, "A player started a new matchmaking search", excludePlayerId: playerId);
                     continue;
                 }
                 
@@ -810,7 +839,8 @@ namespace Services
                 else
                 {
                     // Room still has OTHER players, notify them and close the room
-                    await CloseRoomAndKickAllPlayers(roomKey, clients, "A player left to start a new session");
+                    // Pass playerId as excluded player so they don't receive RoomClosed event
+                    await CloseRoomAndKickAllPlayers(roomKey, clients, "A player left to start a new session", excludePlayerId: playerId);
                 }
             }
         

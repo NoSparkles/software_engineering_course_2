@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSignalRService } from '../../Utils/useSignalRService';
 import { usePlayerId } from '../../Utils/usePlayerId';
@@ -23,6 +23,7 @@ export default function MatchmakingSessionRoom() {
   const playerId = usePlayerId();
   const timeLeft = useCountdownTimer();
   const [isLeavingRoom, setIsLeavingRoom] = useState(false);
+  const hasLeftRoomRef = useRef(false);
   
   const { connection, connectionState, reconnected } = useSignalRService({
     hubUrl: "http://localhost:5236/MatchMakingHub",
@@ -55,6 +56,9 @@ export default function MatchmakingSessionRoom() {
       });
       
       return () => {
+        // Mark that we're cleaning up this component (navigating away)
+        hasLeftRoomRef.current = true;
+        console.log("MatchmakingSessionRoom cleanup - marking hasLeftRoom as true");
         globalConnectionManager.unregisterConnection('matchmakingSessionRoom');
       };
     }
@@ -200,11 +204,104 @@ export default function MatchmakingSessionRoom() {
       });
 
       connection.on("RoomClosed", (message, closedRoomKey) => {
-        // Room was closed - clear storage and navigate to home
-        setStatus(message);
-        localStorage.removeItem("roomCloseTime");
-        localStorage.removeItem("activeGame");
-        setTimeout(() => navigate('/'), 2000);
+        console.log("RoomClosed event received:", { message, closedRoomKey, thisComponentCode: code, hasLeftRoom: hasLeftRoomRef.current });
+        
+        // Check session storage flag (set when declining reconnection or starting new search)
+        if (sessionStorage.getItem(`hasLeftRoom_${code}`) === "1") {
+          console.log("Player has declined reconnection for this room, ignoring RoomClosed");
+          sessionStorage.removeItem(`hasLeftRoom_${code}`);
+          return;
+        }
+        
+        // If we've already intentionally left this room, don't navigate
+        if (hasLeftRoomRef.current) {
+          console.log("Player has already left this room intentionally, ignoring RoomClosed");
+          return;
+        }
+        
+        // Extract room code from closedRoomKey (format: "gameType:roomCode")
+        const closedRoomCode = closedRoomKey ? closedRoomKey.split(':')[1] : code;
+        console.log("Extracted closed room code:", closedRoomCode);
+        
+        // CRITICAL: First check if the closed room is even THIS component's room
+        // This prevents old component instances from reacting to wrong room closures
+        if (closedRoomCode !== code) {
+          console.log(`RoomClosed is for different room (${closedRoomCode} vs ${code}), ignoring`);
+          return;
+        }
+        
+        // Multi-layer verification to ensure we only navigate if still in THIS room
+        const currentPath = window.location.pathname;
+        const isInThisRoomByPath = 
+          currentPath.includes(`/matchmaking-session/${closedRoomCode}`) || 
+          currentPath.includes(`/matchmaking-waiting/${closedRoomCode}`);
+        
+        // Also check activeGame in localStorage
+        const activeGameStr = localStorage.getItem("activeGame");
+        let isInThisRoomByStorage = false;
+        if (activeGameStr) {
+          try {
+            const activeGameData = JSON.parse(activeGameStr);
+            isInThisRoomByStorage = activeGameData.code === closedRoomCode;
+            console.log("ActiveGame check:", { 
+              storedCode: activeGameData.code, 
+              closedCode: closedRoomCode, 
+              matches: isInThisRoomByStorage 
+            });
+          } catch (e) {}
+        }
+        
+        // ALL checks must pass to navigate
+        const shouldNavigate = isInThisRoomByPath && isInThisRoomByStorage && (closedRoomCode === code);
+        
+        if (shouldNavigate) {
+          console.log("Player is CONFIRMED still in the room that was closed, will navigate in 2 seconds");
+          setStatus(message);
+          localStorage.removeItem("roomCloseTime");
+          localStorage.removeItem("activeGame");
+          
+          // Re-check before actually navigating (in case player leaves during the 2-second delay)
+          setTimeout(() => {
+            // Check again if we're still in the same room
+            const finalPath = window.location.pathname;
+            const finalActiveGame = localStorage.getItem("activeGame");
+            let finalStillInRoom = finalPath.includes(`/matchmaking-session/${closedRoomCode}`);
+            
+            if (finalActiveGame) {
+              try {
+                const finalGameData = JSON.parse(finalActiveGame);
+                if (finalGameData.code !== closedRoomCode) {
+                  console.log("Player moved to different room during delay, NOT navigating");
+                  return;
+                }
+              } catch (e) {}
+            }
+            
+            if (!finalStillInRoom) {
+              console.log("Player left room during delay, NOT navigating");
+              return;
+            }
+            
+            if (hasLeftRoomRef.current) {
+              console.log("Player marked as left during delay, NOT navigating");
+              return;
+            }
+            
+            console.log("Final check passed, navigating to home");
+            navigate('/');
+          }, 2000);
+        } else {
+          console.log("Player has already left this room, NOT navigating to home", {
+            isInThisRoomByPath,
+            isInThisRoomByStorage,
+            codesMatch: closedRoomCode === code
+          });
+          // Just clear the storage for this closed room if it matches
+          if (isInThisRoomByStorage && closedRoomCode === code) {
+            localStorage.removeItem("roomCloseTime");
+            localStorage.removeItem("activeGame");
+          }
+        }
       });
 
       const handleStorage = (e) => {
@@ -261,6 +358,7 @@ export default function MatchmakingSessionRoom() {
     }
   
     setIsLeavingRoom(true);
+    hasLeftRoomRef.current = true; // Mark that we're intentionally leaving
   
     if (!isSpectator && connection && connection.state === "Connected") {
       try {
@@ -277,6 +375,7 @@ export default function MatchmakingSessionRoom() {
       } catch (err) {
         console.warn("LeaveRoom failed:", err);
         setIsLeavingRoom(false);
+        hasLeftRoomRef.current = false;
         return;
       }
     }
