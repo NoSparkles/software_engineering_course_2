@@ -25,6 +25,14 @@ namespace Hubs
         public async Task HandleCommand(string gameType, string roomCode, string playerId, string command, string jwtToken)
         {
             var roomKey = gameType.ToRoomKey(roomCode);
+            
+            // Check if room exists
+            if (!RoomService.Rooms.ContainsKey(roomKey))
+            {
+                Console.WriteLine($"HandleCommand failed: Room {roomKey} no longer exists");
+                return;
+            }
+            
             var room = RoomService.GetRoomByKey(roomKey);
             if (room == null)
             {
@@ -44,7 +52,17 @@ namespace Hubs
         public async Task Join(string gameType, string roomCode, string playerId, string jwtToken)
         {
             var user = await UserService.GetUserFromTokenAsync(jwtToken);
-            await Groups.AddToGroupAsync(Context.ConnectionId, gameType.ToRoomKey(roomCode));
+            var roomKey = gameType.ToRoomKey(roomCode);
+            
+            // Check if room exists before trying to join
+            if (!RoomService.Rooms.ContainsKey(roomKey))
+            {
+                Console.WriteLine($"Join failed: Room {roomKey} does not exist");
+                await Clients.Caller.SendAsync("JoinFailed", "Room no longer exists. It may have been closed.");
+                return;
+            }
+            
+            await Groups.AddToGroupAsync(Context.ConnectionId, roomKey);
             await RoomService.JoinAsPlayerNotMatchMaking(gameType, roomCode, playerId, user, Context.ConnectionId, Clients);
             
             // Small delay to ensure room setup is complete
@@ -71,95 +89,38 @@ namespace Hubs
         {
             Console.WriteLine($"JoinByCodeHub.LeaveRoom called - PlayerId: {playerId}, GameType: {gameType}, RoomCode: {roomCode}");
 
-            if (!string.IsNullOrEmpty(playerId) && !string.IsNullOrEmpty(gameType) && !string.IsNullOrEmpty(roomCode))
-            {
-                Console.WriteLine($"JoinByCodeHub: Calling HandlePlayerLeave for {playerId} in {gameType}:{roomCode}");
-                var roomKey = gameType.ToRoomKey(roomCode);
-                var room = RoomService.GetRoomByKey(roomKey);
-                if (room == null)
-                {
-                    Console.WriteLine($"Room {roomKey} not found for LeaveRoom");
-                    return;
-                }
-
-                // Calculate roomCloseTime (30 seconds from now)
-                var roomCloseTime = DateTime.UtcNow.AddSeconds(30);
-
-                // --- PATCH: Always send SetReturnBannerData and PlayerLeftRoom to the leaving player ---
-                await Clients.Caller.SendAsync(
-                    "SetReturnBannerData",
-                    new {
-                        gameType = gameType,
-                        code = roomCode,
-                        playerId = playerId,
-                        isMatchmaking = false
-                    },
-                    roomCloseTime.ToString("o")
-                );
-                await Clients.Caller.SendAsync(
-                    "PlayerLeftRoom",
-                    "You left the room. You can return for 30 seconds.",
-                    roomCloseTime.ToString("o"),
-                    room?.RoomPlayers.Count ?? 1
-                );
-
-                // --- PATCH: Set room.RoomCloseTime so remaining player gets timer/banner ---
-                if (room != null)
-                {
-                    room.RoomCloseTime = roomCloseTime;
-                }
-
-                // Send RoomPlayersUpdate to remaining players so they can see updated room state
-                var remainingPlayers = room?.RoomPlayers?.Where(p => p.PlayerId != playerId).Select(p => p.PlayerId).ToList() ?? new List<string>();
-                await Clients.Group(roomKey).SendAsync("RoomPlayersUpdate", remainingPlayers);
-
-                // --- PATCH: Notify all remaining players in the room that a player left and set timer/banner ---
-                await Clients.Group(roomKey).SendAsync(
-                    "PlayerLeft",
-                    playerId,
-                    $"Player {playerId} left the room.",
-                    roomCloseTime.ToString("o"),
-                    room?.RoomPlayers.Count ?? 0
-                );
-
-                // --- PATCH: Actually close the room after timer expires if no players reconnect ---
-                _ = Task.Run(async () =>
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(31));
-                    var updatedRoom = RoomService.GetRoomByKey(roomKey);
-                    if (updatedRoom != null && updatedRoom.RoomCloseTime.HasValue)
-                    {
-                        // If no players reconnected, close the room
-                        if (updatedRoom.RoomPlayers.Count == 0)
-                        {
-                            await Clients.Group(roomKey).SendAsync(
-                                "RoomClosed",
-                                "Room closed - timer expired and all players left.",
-                                roomCode
-                            );
-                            RoomService.Rooms.TryRemove(roomKey, out _);
-                        }
-                        else
-                        {
-                            // If players reconnected, clear RoomCloseTime
-                            updatedRoom.RoomCloseTime = null;
-                            await Clients.Group(roomKey).SendAsync(
-                                "PlayerReconnected",
-                                playerId,
-                                "Player reconnected, room will remain open."
-                            );
-                        }
-                    }
-                });
-
-                // --- PATCH: Ensure leaving player is removed from room before timer logic ---
-                await RoomService.HandlePlayerLeave(gameType, roomCode, playerId, Clients);
-                Console.WriteLine($"JoinByCodeHub: HandlePlayerLeave completed for {playerId}");
-            }
-            else
+            if (string.IsNullOrEmpty(playerId) || string.IsNullOrEmpty(gameType) || string.IsNullOrEmpty(roomCode))
             {
                 Console.WriteLine("JoinByCodeHub: LeaveRoom called with missing parameters");
+                return;
             }
+
+            var roomKey = gameType.ToRoomKey(roomCode);
+            
+            // Try to get the room safely
+            if (!RoomService.Rooms.TryGetValue(roomKey, out Room? room))
+            {
+                Console.WriteLine($"Room {roomKey} not found for LeaveRoom");
+                // Still remove from group even if room doesn't exist
+                await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomKey);
+                RoomService.CodeRoomUsers.TryRemove(playerId, out _);
+                return;
+            }
+
+            Console.WriteLine($"JoinByCodeHub: Processing LeaveRoom for {playerId} in {gameType}:{roomCode}");
+
+            // Remove the leaving player from SignalR group FIRST
+            // This prevents them from receiving RoomClosed event
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomKey);
+            Console.WriteLine($"Removed connection {Context.ConnectionId} from SignalR group {roomKey}");
+
+            // Close room immediately and kick all players
+            Console.WriteLine($"Code-based room {roomKey} - closing immediately as player pressed Leave Room");
+            
+            // Close room and kick all remaining players
+            await RoomService.CloseRoomAndKickAllPlayers(roomKey, Clients, "A player left the room", excludePlayerId: playerId);
+
+            Console.WriteLine($"JoinByCodeHub: Room closed and all players kicked for {playerId}");
         }
 
         public async Task DeclineReconnection(string playerId, string gameType, string roomCode)
@@ -167,54 +128,47 @@ namespace Hubs
             Console.WriteLine($"JoinByCodeHub.DeclineReconnection called for player {playerId}, gameType: {gameType}, roomCode: {roomCode}");
 
             var roomKey = gameType.ToRoomKey(roomCode);
-            if (RoomService.Rooms.TryGetValue(roomKey, out Room room))
+            if (RoomService.Rooms.TryGetValue(roomKey, out Room? room))
             {
                 Console.WriteLine($"DeclineReconnection: Found room {roomKey} for player {playerId}");
                 
-                // Remove the declining player from disconnected players
-                room.DisconnectedPlayers.Remove(playerId);
+                // Close room immediately when player declines reconnection
+                Console.WriteLine($"Code-based room {roomKey} - closing immediately as player declined reconnection");
                 
-                // Get remaining players before checking if all are disconnected
-                var remainingPlayers = room.RoomPlayers?.Select(p => p.PlayerId).ToList() ?? new List<string>();
+                // Close room and kick all remaining players
+                await RoomService.CloseRoomAndKickAllPlayers(roomKey, Clients, "A player declined to reconnect");
                 
-                // Check if all remaining players are also disconnected
-                bool allPlayersDisconnected = room.RoomPlayers.All(rp => room.DisconnectedPlayers.ContainsKey(rp.PlayerId));
-                
-                if (allPlayersDisconnected)
-                {
-                    // All players disconnected, close room immediately
-                    await Clients.Group(roomKey).SendAsync("RoomClosed", "All players declined to reconnect. Room closed.");
-                    RoomService.Rooms.TryRemove(roomKey, out _);
-                    Console.WriteLine($"Room {roomKey} closed - all players declined reconnection");
-                    return;
-                }
-                
-                // Start timer for remaining players
-                await RoomService.StartRoomTimer(roomKey, room, Clients, "Player declined reconnection");
-                
-                // Send events to remaining players
-                await Clients.Group(roomKey).SendAsync("RoomPlayersUpdate", remainingPlayers);
-                await Clients.Group(roomKey).SendAsync("PlayerDeclinedReconnection", playerId, "A player declined to reconnect. Room will close in 30 seconds.");
-                
-                Console.WriteLine($"Room {roomKey} timer started - player {playerId} declined reconnection");
+                Console.WriteLine($"Room {roomKey} closed - player {playerId} declined reconnection");
             }
             else
             {
                 Console.WriteLine($"DeclineReconnection: Room {roomKey} not found");
+                // Clean up in case room was already closed
+                RoomService.CodeRoomUsers.TryRemove(playerId, out _);
             }
         }
 
-        // PATCH: OnDisconnectedAsync should trigger LeaveRoom logic for join-by-code rooms (like matchmaking)
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
+            Console.WriteLine($"JoinByCodeHub.OnDisconnectedAsync called - ConnectionId: {Context.ConnectionId}");
+            
             var playerId = Context.GetHttpContext()?.Request.Query["playerId"].FirstOrDefault();
             var gameType = Context.GetHttpContext()?.Request.Query["gameType"].FirstOrDefault();
             var roomCode = Context.GetHttpContext()?.Request.Query["roomCode"].FirstOrDefault();
 
-            // Always call LeaveRoom for join-by-code rooms on disconnect, regardless of navigation target
+            Console.WriteLine($"OnDisconnectedAsync - PlayerId: {playerId}, GameType: {gameType}, RoomCode: {roomCode}");
+
+            // OnDisconnectedAsync handles implicit disconnection (navigation, connection drop)
+            // This should mark player as disconnected but allow reconnection (timer)
+            // NOT the same as explicit LeaveRoom (button press)
             if (!string.IsNullOrEmpty(playerId) && !string.IsNullOrEmpty(gameType) && !string.IsNullOrEmpty(roomCode))
             {
-                await LeaveRoom(gameType, roomCode, playerId);
+                Console.WriteLine($"Calling HandlePlayerDisconnect for {playerId}");
+                await RoomService.HandlePlayerDisconnect(gameType, roomCode, playerId, Clients);
+            }
+            else
+            {
+                Console.WriteLine("OnDisconnectedAsync: Missing parameters, not calling HandlePlayerDisconnect");
             }
 
             await base.OnDisconnectedAsync(exception);

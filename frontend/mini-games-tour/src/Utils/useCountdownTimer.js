@@ -31,7 +31,26 @@ export function useCountdownTimer() {
     // Update every second
     const interval = setInterval(updateCountdown, 1000);
 
-    return () => clearInterval(interval);
+    // Listen for storage changes (from other tabs/windows)
+    const handleStorageChange = (e) => {
+      if (e.key === "roomCloseTime") {
+        updateCountdown();
+      }
+    };
+
+    // Listen for custom event (same window)
+    const handleLocalStorageUpdate = () => {
+      updateCountdown();
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("localStorageUpdate", handleLocalStorageUpdate);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("localStorageUpdate", handleLocalStorageUpdate);
+    };
   }, []);
 
   return timeLeft;

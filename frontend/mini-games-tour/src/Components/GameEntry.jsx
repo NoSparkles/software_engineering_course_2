@@ -12,7 +12,7 @@ export default function GameEntry() {
   const navigate = useNavigate();
   const playerId = usePlayerId();
   const { token } = useAuth();
-
+  const [isJoiningMatchmaking, setIsJoiningMatchmaking] = useState(false);
   const gameType = location.pathname.split('/')[1]; // rps, 4inarow, matching
 
   const handleJoinByCode = async () => {
@@ -88,98 +88,56 @@ export default function GameEntry() {
     }
   };
 
-  const handleJoinMatchmaking = async () => {
-    console.log("GameEntry: handleJoinMatchmaking called");
-    console.log("GameEntry: token exists:", !!token);
-    console.log("GameEntry: playerId exists:", !!playerId);
-    console.log("GameEntry: gameType:", gameType);
-    
-    if (!token) {
-      setError('Please log in to use matchmaking.');
+  const handleStartMatchmaking = async (gameType) => {
+    if (isJoiningMatchmaking) {
       return;
     }
 
-    if (!playerId) {
-      setError('Player ID not ready. Please try again.');
+    setIsJoiningMatchmaking(true);
+
+    // Get the current active game before clearing it
+    const currentActiveGame = localStorage.getItem("activeGame");
+    if (currentActiveGame) {
+      try {
+        const gameData = JSON.parse(currentActiveGame);
+        // Set flag to prevent old room component from navigating on RoomClosed
+        sessionStorage.setItem(`hasLeftRoom_${gameData.code}`, "1");
+        console.log(`Set hasLeftRoom flag for old room ${gameData.code}`);
+      } catch (e) {}
+    }
+
+    localStorage.removeItem("activeGame");
+    localStorage.removeItem("roomCloseTime");
+
+    if (!token) {
+      setError("You must be logged in to join matchmaking.");
+      setIsJoiningMatchmaking(false);
       return;
     }
-    
 
     try {
       const connection = new HubConnectionBuilder()
-        .withUrl("http://localhost:5236/MatchMakingHub", {
-          accessTokenFactory: () => token 
-        })
-        .withAutomaticReconnect()
+        .withUrl(`http://localhost:5236/MatchMakingHub?playerId=${playerId}&gameType=${gameType}&roomCode=matchmaking&token=${token}`)
         .build();
-      
+
       await connection.start();
-      
-      // Set up event listeners for matchmaking responses
-      connection.on("UnauthorizedMatchmaking", () => {
-        setError("Authentication failed. Please log in again.");
-      });
 
-      connection.on("MatchmakingError", (errorMessage) => {
-        setError(`Matchmaking error: ${errorMessage}`);
-      });
+      const roomCode = await connection.invoke("JoinMatchmaking", token, gameType, playerId);
 
-      connection.on("MatchFound", (roomCode) => {
-    console.log("GameEntry: MatchFound event received");
-    setError('');
-        
-    // Clear any existing game session before setting the new one
-    localStorage.removeItem("activeGame");
-    localStorage.removeItem("roomCloseTime");
-        
-    const activeGameData = {
-      gameType,
-      code: roomCode,
-      playerId: playerId,
-      isMatchmaking: true
-    };
-    localStorage.setItem("activeGame", JSON.stringify(activeGameData));
-    
-    console.log("GameEntry: About to navigate to matchmaking waiting room");
-    navigate(`/${gameType}/matchmaking-waiting/${roomCode}`);
-    console.log("GameEntry: Navigation completed");
-  });
-
-      connection.on("WaitingForOpponent", (roomCode) => {
-        console.log("GameEntry: WaitingForOpponent event received");
-        setError('');
-
-        // Clear any existing game session before setting the new one
-        localStorage.removeItem("activeGame");
-        localStorage.removeItem("roomCloseTime");
-
-        const activeGameData = {
-          gameType,
-          code: roomCode,
-          playerId: playerId,
-          isMatchmaking: true
-        };
-        localStorage.setItem("activeGame", JSON.stringify(activeGameData));
-        navigate(`/${gameType}/matchmaking-waiting/${roomCode}`);
-      });
-
-      connection.on("StartGame", (roomCode) => {
-        setError('');
+      if (roomCode) {
+        await connection.stop();
         navigate(`/${gameType}/matchmaking-session/${roomCode}`);
-      });
-      
-      // Call the matchmaking method
-      console.log("GameEntry: Calling JoinMatchmaking with:", { gameType, playerId });
-      await connection.invoke("JoinMatchmaking", token, gameType, playerId);
-      console.log("GameEntry: JoinMatchmaking call completed");
-      
-      // Don't stop the connection here - let the event handlers handle it
-      
+      } else {
+        await connection.stop();
+        setError("Failed to join matchmaking. Please try again.");
+        setIsJoiningMatchmaking(false);
+      }
     } catch (err) {
-      console.error("Error with matchmaking:", err);
-      setError("Could not start matchmaking. Please try again.");
+      console.error("Error in handleStartMatchmaking:", err);
+      setError("Could not join matchmaking. Try again.");
+      setIsJoiningMatchmaking(false);
     }
-};
+  };
 
   const handleCreateRoom = async () => {
     try {
@@ -226,17 +184,13 @@ export default function GameEntry() {
         </div>
         {error && <p className="error">{error}</p>}
         <h3>Or</h3>
-        <button onClick={() => {
-          console.log("GameEntry: Matchmaking button clicked!");
-          console.log("GameEntry: About to call handleJoinMatchmaking");
-          console.log("GameEntry: Current state:", { gameType, playerId, token: !!token });
-          try {
-            handleJoinMatchmaking();
-            console.log("GameEntry: handleJoinMatchmaking call completed");
-          } catch (error) {
-            console.error("GameEntry: Error in handleJoinMatchmaking:", error);
-          }
-        }}>Matchmaking</button>
+        <button 
+          onClick={() => handleStartMatchmaking(gameType)}
+          disabled={isJoiningMatchmaking}
+          style={{ opacity: isJoiningMatchmaking ? 0.5 : 1 }}
+        >
+          {isJoiningMatchmaking ? 'Joining...' : 'Matchmaking'}
+        </button>
         {error && <p className="error">{error}</p>}
         
       </div>

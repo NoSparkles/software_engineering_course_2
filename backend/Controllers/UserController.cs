@@ -90,14 +90,13 @@ namespace Controllers
 
             var token = _userService.GenerateJwtToken(user);
 
-            // PATCH: Add PlayerId to response (use Username as fallback if no PlayerId property)
             return Ok(new
             {
                 token,
                 user = new
                 {
                     user.Username,
-                    PlayerId = user.Username, // PATCH: If you have a PlayerId property, use it. Otherwise, use Username.
+                    PlayerId = user.Username,
                     user.Friends,
                     user.RockPaperScissorsMMR,
                     user.FourInARowMMR,
@@ -110,8 +109,6 @@ namespace Controllers
                 }
             });
         }
-
-        // PUT: User/{username}/send-request
         [HttpPut("{username}/send-request")]
         public async Task<ActionResult> SendFriendRequest(string username, [FromBody] string targetUsername)
         {
@@ -120,6 +117,9 @@ namespace Controllers
                 return BadRequest("Could not send friend request.");
 
             var updatedUser = await _userService.GetUserAsync(username);
+            if (updatedUser == null)
+                return NotFound("User not found.");
+            
             return Ok(new
             {
                 updatedUser.Friends,
@@ -128,7 +128,6 @@ namespace Controllers
             });
         }
 
-        // PUT: User/{username}/accept-request
         [HttpPut("{username}/accept-request")]
         public async Task<ActionResult> AcceptFriendRequest(string username, [FromBody] string requesterUsername)
         {
@@ -137,6 +136,9 @@ namespace Controllers
                 return BadRequest("Could not accept friend request.");
 
             var updatedUser = await _userService.GetUserAsync(username);
+            if (updatedUser == null)
+                return NotFound("User not found.");
+            
             return Ok(new
             {
                 updatedUser.Friends,
@@ -145,7 +147,6 @@ namespace Controllers
             });
         }
 
-        // PUT: User/{username}/reject-request
         [HttpPut("{username}/reject-request")]
         public async Task<ActionResult> RejectFriendRequest(string username, [FromBody] string requesterUsername)
         {
@@ -154,6 +155,9 @@ namespace Controllers
                 return BadRequest("Could not reject friend request.");
 
             var updatedUser = await _userService.GetUserAsync(username);
+            if (updatedUser == null)
+                return NotFound("User not found.");
+            
             return Ok(new
             {
                 updatedUser.Friends,
@@ -162,7 +166,6 @@ namespace Controllers
             });
         }
 
-        // PUT: User/{username}/remove-friend
         [HttpPut("{username}/remove-friend")]
         public async Task<ActionResult> RemoveFriend(string username, [FromBody] string friendUsername)
         {
@@ -174,7 +177,6 @@ namespace Controllers
             return Ok(updatedUser?.Friends);
         }
 
-        // PUT: User/{username}/update-mmr
         [HttpPut("{username}/update-mmr")]
         public async Task<ActionResult> UpdateMMR(string username, [FromBody] Dictionary<string, int> mmrUpdates)
         {
@@ -186,7 +188,6 @@ namespace Controllers
             return Ok(updatedUser);
         }
 
-        // GET: User
         [HttpGet]
         public async Task<ActionResult<List<User>>> GetAllUsers()
         {

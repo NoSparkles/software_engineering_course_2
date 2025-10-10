@@ -1,8 +1,15 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import './styles.css'
 
 const Home = () => {
+  useEffect(() => {
+    // Trigger banner check when arriving at home page
+    setTimeout(() => {
+      window.dispatchEvent(new Event("localStorageUpdate"));
+    }, 100);
+  }, []);
+
   return (
     <div className="games">
       <Link className="game-card" to="/rock-paper-scissors">Rock Paper Scissors</Link>

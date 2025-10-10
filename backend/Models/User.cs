@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Models
 {
-    public class User
+    public class User : IEquatable<User>
     {
         [Key]
         public string Username { get; set; } = null!;
@@ -23,6 +23,36 @@ namespace Models
         public int RockPaperScissorsWinStreak { get; set; } = 0;
         public int FourInARowWinStreak { get; set; } = 0;
         public int PairMatchingWinStreak { get; set; } = 0;
+
+    
+        public bool Equals(User? other)
+        {
+            if (other == null) return false;
+            return Username == other.Username;
+        }
+
+       
+        public override bool Equals(object? obj)
+        {
+            return Equals(obj as User);
+        }
+
+        public override int GetHashCode()
+        {
+            return Username.GetHashCode();
+        }
+
+      
+        public static bool operator ==(User? left, User? right)
+        {
+            if (ReferenceEquals(left, right)) return true;
+            if (left is null || right is null) return false;
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(User? left, User? right)
+        {
+            return !(left == right);
+        }
     }
 }
- 

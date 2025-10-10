@@ -11,21 +11,18 @@ export default function Navbar() {
   const location = useLocation();
 
   const handleNavigation = async (path) => {
-    // Check if user is in a game session
+    // Mark that we're navigating away from a game
+    // This helps the Return to Game Banner show immediately
     const activeGame = localStorage.getItem("activeGame");
-    const hasActiveConnections = globalConnectionManager.hasActiveConnections();
-
-    if (activeGame || hasActiveConnections) {
-      try {
-        // Mark that navigation is triggering the leave
-        markLeaveByHome();
-        await globalConnectionManager.leaveAllRooms();
-      } catch (err) {
-        console.warn("LeaveRoom failed:", err);
-      }
+    if (activeGame) {
+      console.log("[Navbar] Navigating away from active game");
+      // Set a navigation flag so banner knows to check after navigation completes
+      sessionStorage.setItem("justNavigatedAway", "1");
     }
-
-    // Navigate to the specified path
+    
+    // Just navigate - SignalR will naturally disconnect via OnDisconnectedAsync
+    // which will mark player as disconnected and allow reconnection
+    // The Return to Game Banner will appear with options to reconnect or decline
     navigate(path);
   };
 

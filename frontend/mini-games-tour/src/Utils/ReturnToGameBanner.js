@@ -85,6 +85,8 @@ export function ReturnToGameBanner() {
       const isInActiveRoom = activePaths.some(p => currentPath.startsWith(p));
       const show = !isInActiveRoom;
 
+      console.log("[Banner] Check:", { currentPath, isInActiveRoom, closeTime, info });
+
       // PATCH: Only show timer if roomCloseTime is in the future AND user is NOT in the room
       let timerShouldShow = false;
       if (
@@ -99,6 +101,7 @@ export function ReturnToGameBanner() {
 
       // PATCH: If user is in the room (session/matchmaking-session), never show timer/banner
       if (isInActiveRoom) {
+        console.log("[Banner] User in active room, hiding banner");
         setShowBanner(false);
         setShouldShowTimer(false);
         setGameInfo(null);
@@ -106,6 +109,7 @@ export function ReturnToGameBanner() {
         return;
       }
 
+      console.log("[Banner] Setting banner state:", { showBanner: timerShouldShow, closeTime });
       setShowBanner(timerShouldShow);
       setGameInfo(info);
       setRoomCloseTime(timerShouldShow ? closeTime : null);
@@ -113,6 +117,36 @@ export function ReturnToGameBanner() {
     }
 
     checkBanner();
+    
+    // Check if we just navigated away (set by Navbar)
+    if (sessionStorage.getItem("justNavigatedAway") === "1") {
+      sessionStorage.removeItem("justNavigatedAway");
+      // Delay to ensure navigation has completed
+      setTimeout(() => {
+        console.log("[Banner] Checking after navigation delay");
+        checkBanner();
+      }, 150);
+    }
+    
+    // Also check when localStorage changes
+    const handleStorageChange = (e) => {
+      if (e.key === "roomCloseTime" || e.key === "activeGame") {
+        checkBanner();
+      }
+    };
+    
+    // Listen for custom event when localStorage is updated in same window
+    const handleLocalStorageUpdate = () => {
+      setTimeout(() => checkBanner(), 100);
+    };
+    
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("localStorageUpdate", handleLocalStorageUpdate);
+    
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("localStorageUpdate", handleLocalStorageUpdate);
+    };
   }, [location]);
 
   // Set up SignalR connections for real-time updates
@@ -295,7 +329,31 @@ export function ReturnToGameBanner() {
     navigate(path);
   };
 
-  const handleDeclineReconnection = () => {
+  const handleDeclineReconnection = async () => {
+    if (!gameInfo) return;
+    
+    // Set a flag to prevent old room components from navigating on RoomClosed
+    sessionStorage.setItem(`hasLeftRoom_${gameInfo.code}`, "1");
+    
+    try {
+      // Call DeclineReconnection on the appropriate hub
+      const hubUrl = gameInfo.isMatchmaking 
+        ? "http://localhost:5236/MatchMakingHub" 
+        : "http://localhost:5236/joinByCodeHub";
+      
+      const { HubConnectionBuilder } = await import('@microsoft/signalr');
+      const connection = new HubConnectionBuilder()
+        .withUrl(hubUrl)
+        .build();
+      
+      await connection.start();
+      await connection.invoke("DeclineReconnection", gameInfo.playerId, gameInfo.gameType, gameInfo.code);
+      await connection.stop();
+    } catch (err) {
+      console.warn("DeclineReconnection failed:", err);
+    }
+    
+    // Clear local storage
     localStorage.removeItem("activeGame");
     localStorage.removeItem("roomCloseTime");
     localStorage.setItem("declinedReconnectionFlag", "1");

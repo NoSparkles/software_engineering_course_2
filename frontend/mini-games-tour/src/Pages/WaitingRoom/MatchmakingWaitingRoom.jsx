@@ -63,7 +63,9 @@ export default function MatchmakingWaitingRoom() {
       connection.on("StartGame", (roomCode) => {
         if (roomCode === code) {
           setStatus("Game starting...");
-          // Don't navigate here - let MatchFound handle navigation
+          // Mark that we're transitioning to session room (not leaving the game)
+          sessionStorage.setItem("transitioningToSession", "1");
+          navigate(`/${gameType}/matchmaking-session/${roomCode}`);
         }
       });
 
@@ -83,13 +85,75 @@ export default function MatchmakingWaitingRoom() {
         setStatus("Authentication failed. Redirecting to login...");
         navigate('/login');
       });
-      connection.on("RoomClosed", (message) => {
-        setStatus(message);
-        localStorage.removeItem("roomCloseTime");
-        localStorage.removeItem("activeGame");
-        setTimeout(() => {
-          navigate('/');
-        }, 2000);
+      connection.on("RoomClosed", (message, closedRoomKey) => {
+        console.log("RoomClosed event received in MatchmakingWaitingRoom:", { message, closedRoomKey, thisComponentCode: code });
+        
+        // Extract room code from closedRoomKey (format: "gameType:roomCode")
+        const closedRoomCode = closedRoomKey ? closedRoomKey.split(':')[1] : code;
+        console.log("Extracted closed room code:", closedRoomCode);
+        
+        // CRITICAL: First check if the closed room is even THIS component's room
+        if (closedRoomCode !== code) {
+          console.log(`RoomClosed is for different room (${closedRoomCode} vs ${code}), ignoring`);
+          return;
+        }
+        
+        // Multi-layer verification
+        const currentPath = window.location.pathname;
+        const isInThisRoomByPath = currentPath.includes(`/matchmaking-waiting/${closedRoomCode}`);
+        
+        const activeGameStr = localStorage.getItem("activeGame");
+        let isInThisRoomByStorage = false;
+        if (activeGameStr) {
+          try {
+            const activeGameData = JSON.parse(activeGameStr);
+            isInThisRoomByStorage = activeGameData.code === closedRoomCode;
+          } catch (e) {}
+        }
+        
+        const shouldNavigate = isInThisRoomByPath && isInThisRoomByStorage && (closedRoomCode === code);
+        
+        if (shouldNavigate) {
+          console.log("Player is CONFIRMED still in the waiting room that was closed, will navigate in 2 seconds");
+          setStatus(message);
+          localStorage.removeItem("roomCloseTime");
+          localStorage.removeItem("activeGame");
+          
+          // Re-check before actually navigating
+          setTimeout(() => {
+            const finalPath = window.location.pathname;
+            const finalActiveGame = localStorage.getItem("activeGame");
+            let finalStillInRoom = finalPath.includes(`/matchmaking-waiting/${closedRoomCode}`);
+            
+            if (finalActiveGame) {
+              try {
+                const finalGameData = JSON.parse(finalActiveGame);
+                if (finalGameData.code !== closedRoomCode) {
+                  console.log("Player moved to different room during delay, NOT navigating");
+                  return;
+                }
+              } catch (e) {}
+            }
+            
+            if (!finalStillInRoom) {
+              console.log("Player left room during delay, NOT navigating");
+              return;
+            }
+            
+            console.log("Final check passed, navigating to home");
+            navigate('/');
+          }, 2000);
+        } else {
+          console.log("Player has already left this waiting room, NOT navigating to home", {
+            isInThisRoomByPath,
+            isInThisRoomByStorage,
+            codesMatch: closedRoomCode === code
+          });
+          if (isInThisRoomByStorage && closedRoomCode === code) {
+            localStorage.removeItem("roomCloseTime");
+            localStorage.removeItem("activeGame");
+          }
+        }
       });
       
       return () => {
@@ -105,43 +169,8 @@ export default function MatchmakingWaitingRoom() {
     }
   }, [connection, connectionState, playerId, gameType, code, navigate, token]);
 
-  // Cleanup when component unmounts
-  useEffect(() => {
-    return () => {
-      if (connection && connection.state === "Connected") {
-        connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
-          console.warn("MatchmakingWaitingRoom: LeaveRoom failed on unmount:", err);
-        });
-      }
-    };
-  }, [connection, gameType, code, playerId]);
-
-  // Handle navigation away from the page
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (connection && connection.state === "Connected") {
-        connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
-          console.warn("MatchmakingWaitingRoom: LeaveRoom failed on beforeunload:", err);
-        });
-      }
-    };
-
-    const handlePopState = () => {
-      if (connection && connection.state === "Connected") {
-        connection.invoke("LeaveRoom", gameType, code, playerId).catch(err => {
-          console.warn("MatchmakingWaitingRoom: LeaveRoom failed on popstate:", err);
-        });
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('popstate', handlePopState);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [connection]);
+  // Removed unmount, beforeunload, and popstate handlers
+  // OnDisconnectedAsync handles disconnection and allows reconnection
 
   return (
     <div className="matchmaking-waiting-room">
