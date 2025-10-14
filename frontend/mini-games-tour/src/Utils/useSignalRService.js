@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 import { markJustStartedNewSession } from "./ReturnToGameBanner";
 
-export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token }) {
+export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token, isSpectator = false }) {
   const connectionRef = useRef(null);
   const [connectionState, setConnectionState] = useState("Disconnected");
   const [reconnected, setReconnected] = useState(false);
@@ -36,7 +36,8 @@ export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token 
     
     sessionStorage.removeItem("leaveByHome");
 
-    if (roomCode && gameType) {
+    // Only mark activeGame for actual players, not spectators
+    if (!isSpectator && roomCode && gameType) {
       localStorage.setItem("activeGame", JSON.stringify({
         gameType,
         code: roomCode,
@@ -77,7 +78,8 @@ export function useSignalRService({ hubUrl, gameType, roomCode, playerId, token 
       // Only set roomCloseTime if this is a clean shutdown (component unmounting due to navigation)
       // isCleaningUpRef.current is set to true when cleanup function runs (navigation away)
       const activeGame = localStorage.getItem("activeGame");
-      if (activeGame && !localStorage.getItem("roomCloseTime") && isCleaningUpRef.current) {
+      // Spectators should never cause roomCloseTime to be set on navigation/cleanup
+      if (!isSpectator && activeGame && !localStorage.getItem("roomCloseTime") && isCleaningUpRef.current) {
         const closeTime = new Date(Date.now() + 30000).toISOString();
         localStorage.setItem("roomCloseTime", closeTime);
         console.log("[SignalR] Set roomCloseTime for navigation away");

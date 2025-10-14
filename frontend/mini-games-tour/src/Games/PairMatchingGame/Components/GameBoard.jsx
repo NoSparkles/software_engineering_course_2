@@ -4,7 +4,7 @@ import Card from './Card';
 import ScoreBoard from './ScoreBoard';
 import './styles.css';
 
-export default function GameBoard({ playerColor, connection, roomCode, playerId, connectionState }) {
+export default function GameBoard({ playerColor, connection, roomCode, playerId, connectionState, spectator }) {
   const {
     cards,
     flipped,
@@ -26,7 +26,11 @@ export default function GameBoard({ playerColor, connection, roomCode, playerId,
             <Card
               key={index}
               card={card}
-              onClick={() => flipCard(index)}
+              onClick={() => {
+                if (spectator) return; // spectators cannot flip
+                flipCard(index);
+              }}
+              disabled={!!spectator}
             />
           );
         })}

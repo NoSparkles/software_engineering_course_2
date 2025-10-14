@@ -31,6 +31,7 @@ export default function MatchmakingSessionRoom() {
     roomCode: code,
     playerId,
     token,
+    isSpectator,
   });
 
   useEffect(() => {
@@ -74,7 +75,7 @@ export default function MatchmakingSessionRoom() {
             setBoard(<FourInARowGameBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={false} token={token}/>);
             break;
           case 'pair-matching':
-            setBoard(<PMBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={false} token={token}/>);
+            setBoard(<PMBoard playerColor={playerColor} connection={connection} connectionState={connectionState} roomCode={code} playerId={playerId} spectator={isSpectator} token={token}/>);
             break;
               default:
                   setBoard(null);
@@ -412,7 +413,11 @@ export default function MatchmakingSessionRoom() {
       <h2>{gameType.toUpperCase()} Matchmaking Session</h2>
       <p>Player: <strong>{user?.username || playerId}</strong></p>
       <p>
-        Assigned Color: <strong>{playerColor ? (playerColor === "R" ? "Red" : "Yellow") : "Not assigned yet"}</strong>
+        {isSpectator ? (
+          <>Role: <strong>Spectator</strong></>
+        ) : (
+          <>Assigned Color: <strong>{playerColor ? (playerColor === "R" ? "Red" : "Yellow") : "Not assigned yet"}</strong></>
+        )}
       </p>
       
       <p>Connection: <strong style={{

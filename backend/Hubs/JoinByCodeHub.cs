@@ -69,6 +69,51 @@ namespace Hubs
             await Task.Delay(500);
         }
 
+        // Allow joining as a spectator through the same hub (SessionRoom uses this)
+        public async Task JoinAsSpectator(string gameType, string roomCode)
+        {
+            var roomKey = gameType.ToRoomKey(roomCode);
+            if (!RoomService.Rooms.TryGetValue(roomKey, out var room))
+            {
+                await Clients.Caller.SendAsync("SpectatorJoinFailed", "Room does not exist");
+                return;
+            }
+
+            Console.WriteLine($"JoinByCodeHub.JoinAsSpectator called - conn:{Context.ConnectionId} room:{roomKey}");
+
+            // create a spectator id based on connection id
+            var spectatorId = "spec-" + Context.ConnectionId;
+
+            await Groups.AddToGroupAsync(Context.ConnectionId, roomKey);
+            await RoomService.JoinAsSpectator(gameType, roomCode, spectatorId, null, Context.ConnectionId);
+
+            // send initial game state to caller using the same events player clients expect
+            var game = room.Game;
+            switch (game)
+            {
+                case FourInARowGame four:
+                    var moveState = four.GetGameState();
+                    await Clients.Caller.SendAsync("ReceiveMove", moveState);
+                    await Clients.Caller.SendAsync("GameStateUpdate", moveState);
+                    Console.WriteLine("JoinByCodeHub: sent ReceiveMove+GameStateUpdate to spectator");
+                    break;
+                case PairMatching pair:
+                    var boardState = pair.GetGameState();
+                    await Clients.Caller.SendAsync("ReceiveBoard", boardState);
+                    await Clients.Caller.SendAsync("GameStateUpdate", boardState);
+                    Console.WriteLine("JoinByCodeHub: sent ReceiveBoard+GameStateUpdate to spectator");
+                    break;
+                case RockPaperScissors rps:
+                    var rpsState = rps.GetGameStatePublic();
+                    await Clients.Caller.SendAsync("ReceiveRpsState", rpsState);
+                    await Clients.Caller.SendAsync("GameStateUpdate", rpsState);
+                    Console.WriteLine("JoinByCodeHub: sent ReceiveRpsState+GameStateUpdate to spectator");
+                    break;
+            }
+
+            await Clients.Group(roomKey).SendAsync("SpectatorJoined", spectatorId, "");
+        }
+
         public Task<string> CreateRoom(string gameType, bool isMatchmaking)
         {
             return Task.FromResult(RoomService.CreateRoom(gameType, isMatchmaking));

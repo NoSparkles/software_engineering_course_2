@@ -30,6 +30,7 @@ export default function SessionRoom() {
     roomCode: code,
     playerId,
     token,
+    isSpectator,
   });
 
   useEffect(() => {
@@ -39,9 +40,14 @@ export default function SessionRoom() {
         playerId: playerId,
         isMatchmaking: false
       };
-      localStorage.setItem("activeGame", JSON.stringify(activeGameData));
+      // Only record activeGame if we're a player, not a spectator
+      const query = new URLSearchParams(window.location.search);
+      const isSpectatorFlag = query.get('spectator') === 'true';
+      if (!isSpectatorFlag) {
+        localStorage.setItem("activeGame", JSON.stringify(activeGameData));
+      }
       
-      // Clear roomCloseTime when entering a room (fresh start)
+    // Clear roomCloseTime when entering a room
       localStorage.removeItem("roomCloseTime");
       setRoomCloseTime(null);
   }, [code, gameType, playerId]);
@@ -381,7 +387,11 @@ export default function SessionRoom() {
       <h2>{gameType.toUpperCase()} Session</h2>
       <p>Room Code: <strong>{code}</strong></p>
       <p>
-        Assigned Color: <strong>{playerColor ? (playerColor === "R" ? "Red" : "Yellow") : "Not assigned yet"}</strong>
+        {isSpectator ? (
+          <>Role: <strong>Spectator</strong></>
+        ) : (
+          <>Assigned Color: <strong>{playerColor ? (playerColor === "R" ? "Red" : "Yellow") : "Not assigned yet"}</strong></>
+        )}
       </p>
 
       {connectionState === "Disconnected" && (
