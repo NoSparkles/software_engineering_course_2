@@ -930,6 +930,33 @@ namespace Services
             }
         }
 
+        public (string? gameType, string? roomCode, bool isMatchmaking) GetUserCurrentGame(string username)
+        {
+            // Check all rooms to see if this user is currently playing
+            foreach (var roomKvp in Rooms)
+            {
+                var room = roomKvp.Value;
+                var roomKey = roomKvp.Key;
+                
+                // Check if user is in the room's players list
+                var userInRoom = room.RoomPlayers.Any(rp => rp.PlayerId == username || rp.Username == username);
+                
+                if (userInRoom)
+                {
+                    // Extract game type and room code from room key
+                    var parts = roomKey.Split(':');
+                    if (parts.Length == 2)
+                    {
+                        var gameType = parts[0];
+                        var roomCode = parts[1];
+                        return (gameType, roomCode, room.IsMatchMaking);
+                    }
+                }
+            }
+            
+            return (null, null, false);
+        }
+
         public async Task ForceRemovePlayerFromAllRooms(string playerId, IHubCallerClients clients)
         {
             var roomsWithPlayer = Rooms.Where(r =>

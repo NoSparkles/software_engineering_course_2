@@ -33,6 +33,11 @@ export function joinSpectate(gameType, code, spectatorId, username) {
   return connection.invoke('JoinSpectate', gameType, code, spectatorId, username);
 }
 
+export function joinSpectateByUsername(targetUsername, spectatorId, spectatorUsername) {
+  if (!connection) throw new Error('Not connected');
+  return connection.invoke('JoinSpectateByUsername', targetUsername, spectatorId, spectatorUsername);
+}
+
 export function leaveSpectate(gameType, code, spectatorId) {
   if (!connection) return;
   return connection.invoke('LeaveSpectate', gameType, code, spectatorId);

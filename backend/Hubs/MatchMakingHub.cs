@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using Models.InMemoryModels;
 using Extensions;
 using System.Collections.Concurrent;
+using Games;
 
 namespace Hubs
 {
@@ -149,6 +150,50 @@ namespace Hubs
         {
             var result = RoomService.RoomExistsWithMatchmaking(gameType, roomCode);
             return await Task.FromResult(new { exists = result.exists, isMatchmaking = result.isMatchmaking });
+        }
+
+        public async Task JoinAsSpectator(string gameType, string roomCode)
+        {
+            var roomKey = gameType.ToRoomKey(roomCode);
+            if (!RoomService.Rooms.TryGetValue(roomKey, out var room))
+            {
+                await Clients.Caller.SendAsync("SpectatorJoinFailed", "Room does not exist");
+                return;
+            }
+
+            Console.WriteLine($"MatchMakingHub.JoinAsSpectator called - conn:{Context.ConnectionId} room:{roomKey}");
+
+            // create a spectator id based on connection id
+            var spectatorId = "spec-" + Context.ConnectionId;
+
+            await Groups.AddToGroupAsync(Context.ConnectionId, roomKey);
+            await RoomService.JoinAsSpectator(gameType, roomCode, spectatorId, null, Context.ConnectionId);
+
+            // send initial game state to caller using the same events player clients expect
+            var game = room.Game;
+            switch (game)
+            {
+                case FourInARowGame four:
+                    var moveState = four.GetGameState();
+                    await Clients.Caller.SendAsync("ReceiveMove", moveState);
+                    await Clients.Caller.SendAsync("GameStateUpdate", moveState);
+                    Console.WriteLine("MatchMakingHub: sent ReceiveMove+GameStateUpdate to spectator");
+                    break;
+                case PairMatching pair:
+                    var boardState = pair.GetGameState();
+                    await Clients.Caller.SendAsync("ReceiveBoard", boardState);
+                    await Clients.Caller.SendAsync("GameStateUpdate", boardState);
+                    Console.WriteLine("MatchMakingHub: sent ReceiveBoard+GameStateUpdate to spectator");
+                    break;
+                case RockPaperScissors rps:
+                    var rpsState = rps.GetGameStatePublic();
+                    await Clients.Caller.SendAsync("ReceiveRpsState", rpsState);
+                    await Clients.Caller.SendAsync("GameStateUpdate", rpsState);
+                    Console.WriteLine("MatchMakingHub: sent ReceiveRpsState+GameStateUpdate to spectator");
+                    break;
+            }
+
+            await Clients.Group(roomKey).SendAsync("SpectatorJoined", spectatorId, "");
         }
 
         public async Task EndMatchmakingSession(string playerId)

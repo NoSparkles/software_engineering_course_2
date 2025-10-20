@@ -84,6 +84,23 @@ namespace Hubs
             await Clients.Group(roomKey).SendAsync("SpectatorJoined", spectatorId, username ?? "");
         }
 
+        public async Task JoinSpectateByUsername(string targetUsername, string spectatorId, string? spectatorUsername)
+        {
+            // Find the target user's current game
+            var (gameType, roomCode, isMatchmaking) = RoomService.GetUserCurrentGame(targetUsername);
+            
+            if (gameType == null || roomCode == null)
+            {
+                await Clients.Caller.SendAsync("JoinFailed", "User is not currently in a game");
+                return;
+            }
+
+            Console.WriteLine($"SpectatorHub.JoinSpectateByUsername - Target: {targetUsername}, Game: {gameType}, Room: {roomCode}, Spectator: {spectatorId}");
+
+            // Use the existing JoinSpectate method with the found game information
+            await JoinSpectate(gameType, roomCode, spectatorId, spectatorUsername);
+        }
+
         public async Task LeaveSpectate(string gameType, string roomCode, string spectatorId)
         {
             var roomKey = gameType.ToRoomKey(roomCode);
