@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
 using Services;
 using Models.InMemoryModels;
@@ -11,8 +12,8 @@ namespace Hubs
     {
         private readonly RoomService RoomService;
         // Map connectionId -> (roomKey, spectatorId) 
-        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (string roomKey, string spectatorId)> ConnectionRoomMap =
-            new System.Collections.Concurrent.ConcurrentDictionary<string, (string roomKey, string spectatorId)>();
+        private static readonly ConcurrentDictionary<string, (string roomKey, string spectatorId)> ConnectionRoomMap =
+            new ConcurrentDictionary<string, (string roomKey, string spectatorId)>();
 
         public SpectatorHub(RoomService roomService)
         {

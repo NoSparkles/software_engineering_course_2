@@ -163,7 +163,7 @@ const Profile = () => {
           {/* Spectate button - show if user is in a game */}
           {!gameInfoLoading && currentGameInfo?.inGame && (
             <div className="spectate-section">
-              <p>🎮 {profileUser.username} is currently playing {currentGameInfo.gameType.replace('-', ' ')}</p>
+              <p> {profileUser.username} is currently playing {currentGameInfo.gameType.replace('-', ' ')}</p>
               <button 
                 className='spectate-btn' 
                 onClick={handleSpectate}
