@@ -1,20 +1,42 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Security.Claims;
+using System.IO;
 using Microsoft.EntityFrameworkCore;
 using Models;
 using Data;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Microsoft.VisualBasic;
 
 namespace Services
 {
     public class UserService
     {
-        static public byte[] KEY = Encoding.ASCII.GetBytes("hc328fh283h23d89h32d3g2hd7820hd8237h238d7h27f832hf2o783hfo782g7832fg7o28gf7238o");
-        private JwtSecurityTokenHandler TokenHandler = new JwtSecurityTokenHandler();
+    static public readonly byte[] KEY;
+        static UserService()
+        {
+            try
+            {
+                var baseDir = AppContext.BaseDirectory ?? Directory.GetCurrentDirectory();
+                var path = Path.Combine(baseDir, "jwt.txt");
+
+                if (!File.Exists(path))
+                    throw new InvalidOperationException($"JWT key file not found. Place 'jwt.txt' in the app base directory. Expected path: {path}");
+
+                using var fs = File.OpenRead(path);
+                using var sr = new StreamReader(fs);
+                var content = sr.ReadToEnd()?.Trim();
+                if (string.IsNullOrEmpty(content))
+                    throw new InvalidOperationException($"JWT key file is empty: {path}");
+
+                KEY = Encoding.ASCII.GetBytes(content);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Failed to load JWT key file: " + ex.Message, ex);
+            }
+        }
+    private static readonly JwtSecurityTokenHandler TokenHandler = new JwtSecurityTokenHandler();
         private readonly GameDbContext _context;
 
         public UserService(GameDbContext context)
