@@ -7,15 +7,20 @@ using Models.InMemoryModels;
 
 namespace Services
 {
+    using Microsoft.AspNetCore.SignalR;
+    using Hubs;
+
     public class RoomService
     {
+        private readonly IHubContext<SpectatorHub>? SpectatorHubContext;
         public ConcurrentDictionary<string, Room> Rooms { get; set; } // roomKey -> Room
         public ConcurrentDictionary<string, RoomUser> CodeRoomUsers { get; set; } // playerId -> RoomUser
         public ConcurrentDictionary<string, RoomUser> MatchMakingRoomUsers { get; set; }
         public ConcurrentDictionary<string, string> ActiveMatchmakingSessions { get; set; } // playerId -> roomKey
 
-        public RoomService()
+        public RoomService(IHubContext<SpectatorHub> spectatorHubContext)
         {
+            SpectatorHubContext = spectatorHubContext;
             Rooms = new ConcurrentDictionary<string, Room>();
             CodeRoomUsers = new ConcurrentDictionary<string, RoomUser>();
             MatchMakingRoomUsers = new ConcurrentDictionary<string, RoomUser>();
@@ -153,16 +158,28 @@ namespace Services
                     }
                 }
                 await clients.Client(connectionId).SendAsync("SetPlayerColor", playerIdToColor);
+                if (SpectatorHubContext != null)
+                    await SpectatorHubContext.Clients.Group(roomKey).SendAsync("SetPlayerColor", playerIdToColor);
                 switch (game)
                 {
                     case FourInARowGame fourGame:
-                        await clients.Client(connectionId).SendAsync("ReceiveMove", fourGame.GetGameState());
+                        var moveState = fourGame.GetGameState();
+                        await clients.Client(connectionId).SendAsync("ReceiveMove", moveState);
+                        // also notify spectators
+                        if (SpectatorHubContext != null)
+                            await SpectatorHubContext.Clients.Group(roomKey).SendAsync("GameStateUpdate", moveState);
                         break;
                     case PairMatching pairGame:
-                        await clients.Client(connectionId).SendAsync("ReceiveBoard", pairGame.GetGameState());
+                        var boardState = pairGame.GetGameState();
+                        await clients.Client(connectionId).SendAsync("ReceiveBoard", boardState);
+                        if (SpectatorHubContext != null)
+                            await SpectatorHubContext.Clients.Group(roomKey).SendAsync("GameStateUpdate", boardState);
                         break;
                     case RockPaperScissors rpsGame:
-                        await clients.Client(connectionId).SendAsync("ReceiveRpsState", rpsGame.GetGameStatePublic());
+                        var rpsState = rpsGame.GetGameStatePublic();
+                        await clients.Client(connectionId).SendAsync("ReceiveRpsState", rpsState);
+                        if (SpectatorHubContext != null)
+                            await SpectatorHubContext.Clients.Group(roomKey).SendAsync("GameStateUpdate", rpsState);
                         break;
                 }
             }
@@ -208,6 +225,8 @@ namespace Services
                 
                 await clients.Group(roomKey).SendAsync("StartGame", roomCode);
                 await clients.Group(roomKey).SendAsync("SetPlayerColor", playerIdToColor);
+                if (SpectatorHubContext != null)
+                    await SpectatorHubContext.Clients.Group(roomKey).SendAsync("SetPlayerColor", playerIdToColor);
             }
             else if (room.GameStarted)
             {
@@ -221,16 +240,27 @@ namespace Services
                     }
                 }
                 await clients.Group(roomKey).SendAsync("SetPlayerColor", playerIdToColor);
+                if (SpectatorHubContext != null)
+                    await SpectatorHubContext.Clients.Group(roomKey).SendAsync("SetPlayerColor", playerIdToColor);
                 switch (game)
                 {
                     case FourInARowGame fourGame:
-                        await clients.Group(roomKey).SendAsync("ReceiveMove", fourGame.GetGameState());
+                        var moveState2 = fourGame.GetGameState();
+                        await clients.Group(roomKey).SendAsync("ReceiveMove", moveState2);
+                        if (SpectatorHubContext != null)
+                            await SpectatorHubContext.Clients.Group(roomKey).SendAsync("GameStateUpdate", moveState2);
                         break;
                     case PairMatching pairGame:
-                        await clients.Group(roomKey).SendAsync("ReceiveBoard", pairGame.GetGameState());
+                        var boardState2 = pairGame.GetGameState();
+                        await clients.Group(roomKey).SendAsync("ReceiveBoard", boardState2);
+                        if (SpectatorHubContext != null)
+                            await SpectatorHubContext.Clients.Group(roomKey).SendAsync("GameStateUpdate", boardState2);
                         break;
                     case RockPaperScissors rpsGame:
-                        await clients.Group(roomKey).SendAsync("ReceiveRpsState", rpsGame.GetGameStatePublic());
+                        var rpsState2 = rpsGame.GetGameStatePublic();
+                        await clients.Group(roomKey).SendAsync("ReceiveRpsState", rpsState2);
+                        if (SpectatorHubContext != null)
+                            await SpectatorHubContext.Clients.Group(roomKey).SendAsync("GameStateUpdate", rpsState2);
                         break;
                 }
             }
@@ -302,16 +332,27 @@ namespace Services
                     }
                 }
                 await clients.Client(connectionId).SendAsync("SetPlayerColor", playerIdToColor);
+                if (SpectatorHubContext != null)
+                    await SpectatorHubContext.Clients.Group(roomKey).SendAsync("SetPlayerColor", playerIdToColor);
                 switch (game)
                 {
                     case FourInARowGame fourGame:
-                        await clients.Client(connectionId).SendAsync("ReceiveMove", fourGame.GetGameState());
+                        var moveState3 = fourGame.GetGameState();
+                        await clients.Client(connectionId).SendAsync("ReceiveMove", moveState3);
+                        if (SpectatorHubContext != null)
+                            await SpectatorHubContext.Clients.Group(roomKey).SendAsync("GameStateUpdate", moveState3);
                         break;
                     case PairMatching pairGame:
-                        await clients.Client(connectionId).SendAsync("ReceiveBoard", pairGame.GetGameState());
+                        var boardState3 = pairGame.GetGameState();
+                        await clients.Client(connectionId).SendAsync("ReceiveBoard", boardState3);
+                        if (SpectatorHubContext != null)
+                            await SpectatorHubContext.Clients.Group(roomKey).SendAsync("GameStateUpdate", boardState3);
                         break;
                     case RockPaperScissors rpsGame:
-                        await clients.Client(connectionId).SendAsync("ReceiveRpsState", rpsGame.GetGameStatePublic());
+                        var rpsState3 = rpsGame.GetGameStatePublic();
+                        await clients.Client(connectionId).SendAsync("ReceiveRpsState", rpsState3);
+                        if (SpectatorHubContext != null)
+                            await SpectatorHubContext.Clients.Group(roomKey).SendAsync("GameStateUpdate", rpsState3);
                         break;
                 }
             }
@@ -366,6 +407,8 @@ namespace Services
                 
                 await clients.Group(roomKey).SendAsync("StartGame", roomCode);
                 await clients.Group(roomKey).SendAsync("SetPlayerColor", playerIdToColor);
+                if (SpectatorHubContext != null)
+                    await SpectatorHubContext.Clients.Group(roomKey).SendAsync("SetPlayerColor", playerIdToColor);
             }
             else if (room.GameStarted)
             {
@@ -382,16 +425,27 @@ namespace Services
                     }
                 }
                 await clients.Group(roomKey).SendAsync("SetPlayerColor", playerIdToColor);
+                if (SpectatorHubContext != null)
+                    await SpectatorHubContext.Clients.Group(roomKey).SendAsync("SetPlayerColor", playerIdToColor);
                 switch (game)
                 {
                     case FourInARowGame fourGame:
-                        await clients.Group(roomKey).SendAsync("ReceiveMove", fourGame.GetGameState());
+                        var moveState4 = fourGame.GetGameState();
+                        await clients.Group(roomKey).SendAsync("ReceiveMove", moveState4);
+                        if (SpectatorHubContext != null)
+                            await SpectatorHubContext.Clients.Group(roomKey).SendAsync("GameStateUpdate", moveState4);
                         break;
                     case PairMatching pairGame:
-                        await clients.Group(roomKey).SendAsync("ReceiveBoard", pairGame.GetGameState());
+                        var boardState4 = pairGame.GetGameState();
+                        await clients.Group(roomKey).SendAsync("ReceiveBoard", boardState4);
+                        if (SpectatorHubContext != null)
+                            await SpectatorHubContext.Clients.Group(roomKey).SendAsync("GameStateUpdate", boardState4);
                         break;
                     case RockPaperScissors rpsGame:
-                        await clients.Group(roomKey).SendAsync("ReceiveRpsState", rpsGame.GetGameStatePublic());
+                        var rpsState4 = rpsGame.GetGameStatePublic();
+                        await clients.Group(roomKey).SendAsync("ReceiveRpsState", rpsState4);
+                        if (SpectatorHubContext != null)
+                            await SpectatorHubContext.Clients.Group(roomKey).SendAsync("GameStateUpdate", rpsState4);
                         break;
                 }
             }
@@ -406,8 +460,28 @@ namespace Services
                 Username = user?.Username,
                 User = user,
             };
-            // TODO: Implement spectator logic
-            await Task.CompletedTask; // Suppress async warning
+            // Add spectator to room's spectator list if room exists
+            if (!Rooms.TryGetValue(roomKey, out var room))
+            {
+                Console.WriteLine($"JoinAsSpectator failed: Room {roomKey} does not exist");
+                return;
+            }
+
+            // Avoid duplicate spectator entries
+            lock (room.RoomSpectators)
+            {
+                var exists = room.RoomSpectators.Any(s => s.PlayerId == playerId);
+                if (!exists)
+                {
+                    room.RoomSpectators.Add(roomUser);
+                }
+            }
+
+
+            Console.WriteLine($"Spectator {playerId} joined room {roomKey}");
+
+            // No SignalR Clients reference here - hub will manage group/join notifications
+            await Task.CompletedTask;
         }
 
         public async Task HandlePlayerDisconnect(string gameType, string roomCode, string playerId, IHubCallerClients clients)
@@ -643,21 +717,43 @@ namespace Services
         {
             if (room.RoomCloseTime != null || room.RoomTimerCancellation != null)
             {
-                room.RoomCloseTime = null;
-                room.RoomTimerCancellation?.Cancel();
-                room.RoomTimerCancellation = null;
+                CancellationTokenSource? cts = null;
+                lock (room)
+                {
+                    room.RoomCloseTime = null;
+                    cts = room.RoomTimerCancellation;
+                    room.RoomTimerCancellation = null;
+                }
+                try
+                {
+                    cts?.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // already disposed - ignore
+                }
             }
             await Task.CompletedTask; // Suppress async warning
         }
 
         public Task StartRoomTimer(string roomKey, Room room, IHubCallerClients clients, string reason)
         {
-            // Cancel any existing timer
-            room.RoomTimerCancellation?.Cancel();
-            
+            // Cancel any existing timer safely
+            CancellationTokenSource? existing = null;
+            lock (room)
+            {
+                existing = room.RoomTimerCancellation;
+                room.RoomTimerCancellation = null;
+            }
+            try { existing?.Cancel(); } catch (ObjectDisposedException) { }
+
             // Set new timer
-            room.RoomCloseTime = DateTime.UtcNow.AddSeconds(30);
-            room.RoomTimerCancellation = new CancellationTokenSource();
+            var newCts = new System.Threading.CancellationTokenSource();
+            lock (room)
+            {
+                room.RoomCloseTime = DateTime.UtcNow.AddSeconds(30);
+                room.RoomTimerCancellation = newCts;
+            }
             
             Console.WriteLine($"RoomService: Starting 30-second timer for room {roomKey} - {reason}");
             Console.WriteLine($"RoomService: Room {roomKey} has {room.RoomPlayers.Count} players and {room.DisconnectedPlayers.Count} disconnected players");
@@ -667,7 +763,7 @@ namespace Services
             {
                 try
                 {
-                    await Task.Delay(30000, room.RoomTimerCancellation.Token);
+                    await Task.Delay(30000, newCts.Token);
 
                     // Re-check room state when timer expires
                     if (!Rooms.TryGetValue(roomKey, out Room? currentRoom) || currentRoom.RoomCloseTime == null)
@@ -680,9 +776,13 @@ namespace Services
                     if (currentRoom.DisconnectedPlayers.Count == 0)
                     {
                         Console.WriteLine($"RoomService: Timer expired but all players are connected in {roomKey}, NOT closing room");
-                        currentRoom.RoomCloseTime = null;
-                        currentRoom.RoomTimerCancellation?.Cancel();
-                        currentRoom.RoomTimerCancellation = null;
+                        lock (currentRoom)
+                        {
+                            currentRoom.RoomCloseTime = null;
+                            var ctsLocal = currentRoom.RoomTimerCancellation;
+                            currentRoom.RoomTimerCancellation = null;
+                            try { ctsLocal?.Cancel(); } catch (ObjectDisposedException) { }
+                        }
                         await clients.Group(roomKey).SendAsync("PlayerReconnected", null, "All players reconnected, timer cancelled.");
                         return;
                     }
@@ -691,14 +791,17 @@ namespace Services
                     if (currentRoom.RoomPlayers.Count >= 2)
                     {
                         Console.WriteLine($"RoomService: Timer expired but room {roomKey} has enough players ({currentRoom.RoomPlayers.Count}), NOT closing room");
-                        currentRoom.RoomCloseTime = null;
-                        currentRoom.RoomTimerCancellation?.Cancel();
-                        currentRoom.RoomTimerCancellation = null;
+                        lock (currentRoom)
+                        {
+                            currentRoom.RoomCloseTime = null;
+                            var ctsLocal2 = currentRoom.RoomTimerCancellation;
+                            currentRoom.RoomTimerCancellation = null;
+                            try { ctsLocal2?.Cancel(); } catch (ObjectDisposedException) { }
+                        }
                         await clients.Group(roomKey).SendAsync("PlayerReconnected", null, "Room has enough players, timer cancelled.");
                         return;
                     }
 
-                    // Timer expired and room should be closed
                     Console.WriteLine($"RoomService: 30-second timer expired for room {roomKey}, closing room");
                     await CloseRoomAndKickAllPlayers(roomKey, clients, $"Room closed - {reason} and timer expired");
                 }
@@ -706,7 +809,7 @@ namespace Services
                 {
                     Console.WriteLine($"Timer for room {roomKey} was cancelled");
                 }
-            }, room.RoomTimerCancellation.Token);
+            }, newCts.Token);
             
             return Task.CompletedTask;
         }
@@ -825,6 +928,33 @@ namespace Services
             {
                 ActiveMatchmakingSessions.TryRemove(playerId, out _);
             }
+        }
+
+        public (string? gameType, string? roomCode, bool isMatchmaking) GetUserCurrentGame(string username)
+        {
+            // Check all rooms to see if this user is currently playing
+            foreach (var roomKvp in Rooms)
+            {
+                var room = roomKvp.Value;
+                var roomKey = roomKvp.Key;
+                
+                // Check if user is in the room's players list
+                var userInRoom = room.RoomPlayers.Any(rp => rp.PlayerId == username || rp.Username == username);
+                
+                if (userInRoom)
+                {
+                    // Extract game type and room code from room key
+                    var parts = roomKey.Split(':');
+                    if (parts.Length == 2)
+                    {
+                        var gameType = parts[0];
+                        var roomCode = parts[1];
+                        return (gameType, roomCode, room.IsMatchMaking);
+                    }
+                }
+            }
+            
+            return (null, null, false);
         }
 
         public async Task ForceRemovePlayerFromAllRooms(string playerId, IHubCallerClients clients)

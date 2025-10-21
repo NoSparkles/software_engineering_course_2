@@ -322,7 +322,10 @@ export function ReturnToGameBanner() {
   if (!showBanner || !gameInfo || roomCloseTime === null) return null;
 
   const handleReturnToGame = () => {
-    const path = `/${gameInfo.gameType}/${gameInfo.isMatchmaking ? 'matchmaking-session' : 'session'}/${gameInfo.code}`;
+    let path = `/${gameInfo.gameType}/${gameInfo.isMatchmaking ? 'matchmaking-session' : 'session'}/${gameInfo.code}`;
+    if (gameInfo.isSpectator) {
+      path += '?spectator=true';
+    }
     setRoomCloseTime(null);
     setShowBanner(false);
     setShouldShowTimer(false);

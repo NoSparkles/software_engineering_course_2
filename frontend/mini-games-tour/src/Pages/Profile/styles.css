@@ -17,7 +17,9 @@
 .add-friend-btn,
 .remove-friend-btn,
 .accept-friend-btn,
-.decline-friend-btn {
+.decline-friend-btn,
+.cancel-request-btn,
+.spectate-btn {
   padding: 10px 20px;
   margin: 5px;
   border-radius: 6px;
@@ -45,6 +47,35 @@
 .decline-friend-btn {
   background-color: #ff9800;
   color: white;
+}
+
+.cancel-request-btn {
+  background-color: #6c757d;
+  color: white;
+}
+
+.spectate-btn {
+  background-color: #6f42c1;
+  color: white;
+}
+
+.spectate-btn:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+.spectate-section {
+  background-color: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 15px 0;
+}
+
+.spectate-section p {
+  margin: 0 0 10px 0;
+  color: #58a6ff;
+  font-weight: bold;
 }
 
 .friends-container {

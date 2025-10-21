@@ -86,6 +86,7 @@ app.UseEndpoints(endpoints =>
     // _ = endpoints.MapHub<GameHub>("/gamehub");
     _ = endpoints.MapHub<JoinByCodeHub>("/JoinByCodeHub");
     _ = endpoints.MapHub<MatchMakingHub>("/MatchMakingHub");
+        _ = endpoints.MapHub<SpectatorHub>("/hubs/spectator");
     _ = endpoints.MapControllers();
 });
 

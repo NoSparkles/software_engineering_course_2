@@ -12,10 +12,12 @@ namespace Controllers
     public class UserController : ControllerBase
     {
         private readonly UserService _userService;
+        private readonly RoomService _roomService;
 
-        public UserController(UserService userService)
+        public UserController(UserService userService, RoomService roomService)
         {
             _userService = userService;
+            _roomService = roomService;
         }
 
         [Authorize]
@@ -193,6 +195,26 @@ namespace Controllers
         {
             var users = await _userService.GetAllUsersAsync();
             return Ok(users);
+        }
+
+        // GET: User/{username}/current-game
+        [HttpGet("{username}/current-game")]
+        public ActionResult<object> GetUserCurrentGame(string username)
+        {
+            var (gameType, roomCode, isMatchmaking) = _roomService.GetUserCurrentGame(username);
+            
+            if (gameType == null || roomCode == null)
+            {
+                return Ok(new { inGame = false });
+            }
+            
+            return Ok(new 
+            { 
+                inGame = true, 
+                gameType = gameType, 
+                roomCode = roomCode, 
+                isMatchmaking = isMatchmaking 
+            });
         }
     }
 
