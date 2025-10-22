@@ -85,7 +85,7 @@ namespace Hubs
             var spectatorId = "spec-" + Context.ConnectionId;
 
             await Groups.AddToGroupAsync(Context.ConnectionId, roomKey);
-            await RoomService.JoinAsSpectator(gameType, roomCode, spectatorId, null, Context.ConnectionId);
+            await RoomService.JoinAsSpectator(gameType: gameType, roomCode: roomCode, playerId: spectatorId);
 
             // send initial game state to caller using the same events player clients expect
             var game = room.Game;

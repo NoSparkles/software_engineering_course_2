@@ -451,7 +451,7 @@ namespace Services
             }
         }
 
-        public async Task JoinAsSpectator(string gameType, string roomCode, string playerId, User? user, string connectionId)
+        public async Task JoinAsSpectator(string gameType, string roomCode, string playerId, User? user = null)
         {
             var roomKey = gameType.ToRoomKey(roomCode);
             var roomUser = new RoomUser

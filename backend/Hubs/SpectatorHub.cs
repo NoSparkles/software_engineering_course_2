@@ -59,7 +59,7 @@ namespace Hubs
 
             await Groups.AddToGroupAsync(Context.ConnectionId, roomKey);
             // register via RoomService to keep consistent state
-            await RoomService.JoinAsSpectator(gameType, roomCode, spectatorId, null, Context.ConnectionId);
+            await RoomService.JoinAsSpectator(gameType, roomCode, spectatorId, null);
 
             ConnectionRoomMap[Context.ConnectionId] = (roomKey, spectatorId);
 
