@@ -2,6 +2,7 @@
 using Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -9,33 +10,16 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace backend.Migrations
 {
     [DbContext(typeof(GameDbContext))]
-    partial class GameDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251023193526_UpdateInviteTrackin")]
+    partial class UpdateInviteTrackin
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.9");
 
-            modelBuilder.Entity("Models.FromInvitationToGame", b =>
-                {
-                    b.Property<string>("RoomKey")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ToUsername")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Username")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("RoomKey");
-
-                    b.HasIndex("Username");
-
-                    b.ToTable("FromInvitationToGame");
-                });
-
-            modelBuilder.Entity("Models.ToInvitationToGame", b =>
+            modelBuilder.Entity("Models.InvitationToGame", b =>
                 {
                     b.Property<string>("RoomKey")
                         .HasColumnType("TEXT");
@@ -47,11 +31,16 @@ namespace backend.Migrations
                     b.Property<string>("Username")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Username1")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("RoomKey");
 
                     b.HasIndex("Username");
 
-                    b.ToTable("ToInvitationToGame");
+                    b.HasIndex("Username1");
+
+                    b.ToTable("InvitationToGame");
                 });
 
             modelBuilder.Entity("Models.User", b =>
@@ -101,18 +90,15 @@ namespace backend.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Models.FromInvitationToGame", b =>
+            modelBuilder.Entity("Models.InvitationToGame", b =>
                 {
                     b.HasOne("Models.User", null)
                         .WithMany("IncomingInviteToGameRequests")
                         .HasForeignKey("Username");
-                });
 
-            modelBuilder.Entity("Models.ToInvitationToGame", b =>
-                {
                     b.HasOne("Models.User", null)
                         .WithMany("OutcomingInviteToGameRequests")
-                        .HasForeignKey("Username");
+                        .HasForeignKey("Username1");
                 });
 
             modelBuilder.Entity("Models.User", b =>

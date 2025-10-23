@@ -87,16 +87,17 @@ const useUserDatabase = () => {
     return result;
   }
 
-   const removeInviteFriendToGame = async (fromUsername, toUsername) => {
-      const result = await fetchData(
-        `http://localhost:5236/User/${toUsername}/remove-invite-friend-to-game/${fromUsername}`,
-        {
-          method: 'PUT',
-        },
-        true
-      );
-      return result;
-    };
+  const removeInviteFriendToGame = async (username, to, gameType, code) => {
+    const result = await fetchData(
+      `http://localhost:5236/User/${username}/remove-invite-friend-to-game`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ username: to, gameType, code }),
+      },
+      true
+    );
+    return result;
+  };
 
 
   return {

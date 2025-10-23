@@ -229,58 +229,65 @@ namespace Services
             return true;
         }
 
+        // fromUser in the next 3 methods is the user who sent the invitation
         public async Task<bool> InviteFriendToGame(string from, string to, string gameType, string code)
         {
             var fromUser = await _context.Users.FindAsync(from);
             if (fromUser is null || !fromUser.Friends.Contains(to))
-            {
                 return false;
-            }
 
             var toUser = await _context.Users.FindAsync(to);
             if (toUser is null)
-            {
                 return false;
-            }
 
-            var invitation = new InvitationToGame(fromUser.Username, gameType.ToRoomKey(code));
-            toUser.IncomingInviteToGameRequests.Add(invitation);
+            var roomKey = gameType.ToRoomKey(code);
+            var fromInvitation = new FromInvitationToGame(fromUser.Username, roomKey);
+            var toInvitation = new ToInvitationToGame(toUser.Username, roomKey);
+
+            fromUser.OutcomingInviteToGameRequests.Add(toInvitation);
+            toUser.IncomingInviteToGameRequests.Add(fromInvitation);
 
             await _context.SaveChangesAsync();
             return true;
         }
 
-        public async Task<bool> AcceptInviteFriendToGame(string to, string from, string gameType, string code)
+        public async Task<bool> AcceptInviteFriendToGame(string from, string to, string gameType, string code)
         {
-            var user = await _context.Users.FindAsync(from);
-            var invitation = new InvitationToGame(to, gameType.ToRoomKey(code));
-            if (user is null || !user.IncomingInviteToGameRequests.Contains(invitation))
+            var fromUser = await _context.Users.FindAsync(from);
+            var fromInvitation = new FromInvitationToGame(from, gameType.ToRoomKey(code));
+            var toUser = await _context.Users.FindAsync(to);
+            var toInvitation = new ToInvitationToGame(to, gameType.ToRoomKey(code));
+            if (fromUser is null || !fromUser.IncomingInviteToGameRequests.Contains(fromInvitation) || toUser is null || !toUser.OutcomingInviteToGameRequests.Contains(toInvitation))
             {
                 return false;
             }
-            user.IncomingInviteToGameRequests.Remove(invitation);
-
+            toUser.IncomingInviteToGameRequests.Remove(fromInvitation);
+            fromUser.OutcomingInviteToGameRequests.Remove(toInvitation);
+            
             await _context.SaveChangesAsync();
             return true;
         }
 
-        public async Task<bool> RemoveInviteFriendToGame(string fromUsername, string toUsername)
+        public async Task<bool> RemoveInviteFriendToGame(string from, string to, string gameType, string code)
         {
-            var toUser = await _context.Users.FindAsync(toUsername);
-            if (toUser is null)
+            var toUser = await _context.Users.FindAsync(to);
+            var fromUser = await _context.Users.FindAsync(from);
+            if (toUser is null || fromUser is null)
             {
                 return false;
             }
 
-            var invitation = toUser.IncomingInviteToGameRequests
-                .FirstOrDefault(inv => inv.FromUsername == fromUsername);
+            var toInvitation = new ToInvitationToGame(to, gameType.ToRoomKey(code));
+            var fromInvitation = new FromInvitationToGame(from, gameType.ToRoomKey(code));
 
-            if (invitation is null)
+            if (toInvitation is null || fromInvitation is null)
             {
                 return false;
             }
 
-            toUser.IncomingInviteToGameRequests.Remove(invitation);
+            toUser.IncomingInviteToGameRequests.Remove(fromInvitation);
+            fromUser.OutcomingInviteToGameRequests.Remove(toInvitation);
+
             await _context.SaveChangesAsync();
             return true;
         }

@@ -4,6 +4,7 @@ import { usePlayerId } from '../../Utils/usePlayerId';
 import { useSignalRService } from '../../Utils/useSignalRService';
 import { useAuth } from '../../Utils/AuthProvider'
 import useUserDatabase from '../../Utils/useUserDatabase';
+import useRoomDatabase from '../../Utils/useRoomDatabase';
 
 export default function WaitingRoom() {
   const { gameType, code } = useParams();
@@ -142,7 +143,7 @@ export default function WaitingRoom() {
   console.log(user)
 
   const handleInviteFriendButton = async (friend) => {
-    const res = await inviteFriendToGame(friend)
+    const res = await inviteFriendToGame(user.username, friend, gameType, code)
     if (res) {
       setSentInvite(true)
     }

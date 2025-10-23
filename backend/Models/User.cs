@@ -15,8 +15,8 @@ namespace Models
         public List<string> Friends { get; set; } = new List<string>();
         public List<string> IncomingFriendRequests { get; set; } = new List<string>();
         public List<string> OutgoingFriendRequests { get; set; } = new List<string>();
-
-        public HashSet<InvitationToGame> IncomingInviteToGameRequests { get; set; } = new HashSet<InvitationToGame>();
+        public HashSet<ToInvitationToGame> OutcomingInviteToGameRequests { get; set; } = new HashSet<ToInvitationToGame>();
+        public HashSet<FromInvitationToGame> IncomingInviteToGameRequests { get; set; } = new HashSet<FromInvitationToGame>();
 
         public int RockPaperScissorsMMR { get; set; } = 1000;
         public int FourInARowMMR { get; set; } = 1000;

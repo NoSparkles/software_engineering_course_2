@@ -201,10 +201,11 @@ namespace Controllers
             return Ok(success);
         }
 
-        [HttpPut("{toUsername}/remove-invite-friend-to-game/{fromUsername}")]
-        public async Task<ActionResult> RemoveInviteFriendToGame(string toUsername, string fromUsername)
+        [HttpPut("{username}/remove-invite-friend-to-game")]
+        public async Task<ActionResult> RemoveInviteFriendToGame(string username, [FromBody] InvitationDto invitation)
         {
-            var success = await _userService.RemoveInviteFriendToGame(fromUsername, toUsername);
+            Console.WriteLine(invitation.ToString());
+            var success = await _userService.RemoveInviteFriendToGame(username, invitation.username, invitation.gameType, invitation.code);
             if (!success)
             {
                 return NotFound("Invitation not found or user missing.");
