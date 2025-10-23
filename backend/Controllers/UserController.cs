@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Controllers.Dtos;
 using Models;
 using Services;
+using System.Text.Json;
 
 namespace Controllers
 {
@@ -182,7 +183,16 @@ namespace Controllers
         [HttpPut("{username}/invite-friend-to-game")]
         public async Task<ActionResult> InviteFriendToGame(string username, [FromBody] InvitationDto invitation)
         {
-            var success = await _userService.InviteFriendToGame(username, invitation.username, invitation.gameType, invitation.code);
+            for (int i = 0; i < 10; i++)
+            {
+                Console.WriteLine();
+            }
+            Console.WriteLine(invitation.Username);
+            Console.WriteLine(invitation.GameType);
+            Console.WriteLine(invitation.Code);
+
+            var success = await _userService.InviteFriendToGame(username, invitation.Username, invitation.GameType, invitation.Code);
+
             if (!success)
             {
                 return NotFound("User or friend not found.");
@@ -190,10 +200,11 @@ namespace Controllers
             return Ok(success);
         }
 
+
         [HttpPut("{username}/accept-invite-friend-to-game")]
         public async Task<ActionResult> AcceptInviteFriendToGame(string username, [FromBody] InvitationDto invitation)
         {
-            var success = await _userService.AcceptInviteFriendToGame(username, invitation.username, invitation.gameType, invitation.code);
+            var success = await _userService.AcceptInviteFriendToGame(username, invitation.Username, invitation.GameType, invitation.Code);
             if (!success)
             {
                 return NotFound("User or invitation not found.");
@@ -205,7 +216,7 @@ namespace Controllers
         public async Task<ActionResult> RemoveInviteFriendToGame(string username, [FromBody] InvitationDto invitation)
         {
             Console.WriteLine(invitation.ToString());
-            var success = await _userService.RemoveInviteFriendToGame(username, invitation.username, invitation.gameType, invitation.code);
+            var success = await _userService.RemoveInviteFriendToGame(username, invitation.Username, invitation.GameType, invitation.Code);
             if (!success)
             {
                 return NotFound("Invitation not found or user missing.");

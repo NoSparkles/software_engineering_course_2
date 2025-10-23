@@ -5,6 +5,7 @@ namespace Models
     public class ToInvitationToGame : IEquatable<ToInvitationToGame>
     {
         [Key]
+        public int Id { get; set; }
         public string RoomKey { get; set; }
         public string FromUsername { get; set; }
 

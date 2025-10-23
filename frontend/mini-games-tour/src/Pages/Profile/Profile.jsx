@@ -146,6 +146,12 @@ const Profile = () => {
     }
   }
 
+  console.log(user)
+  const handleJoinInvite = async (invite) => {
+    console.log('Join invite clicked:', invite);
+    // TODO: Implement navigation or game join logic
+  };
+
   if (loading) return <div className="profile">Loading...</div>
 
   const isFriend = profileUser.friends?.includes(viewer)
@@ -225,6 +231,22 @@ const Profile = () => {
               </button>
               <button className='decline-friend-btn' onClick={() => handleDeclineRequest(requester)}>
                 Decline
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {isOwnProfile && profileUser.incomingInviteToGameRequests?.length > 0 && (
+        <div className='incoming-invites'>
+          <h2>Incoming Game Invites</h2>
+          {profileUser.incomingInviteToGameRequests.map((invite, i) => (
+            <div key={i} className='game-invite'>
+              <span className='invite-info'>
+                From <strong>{invite.fromUsername}</strong> — Room: <code>{invite.roomKey}</code>
+              </span>
+              <button className='join-invite-btn' onClick={() => handleJoinInvite(invite)}>
+                Join
               </button>
             </div>
           ))}

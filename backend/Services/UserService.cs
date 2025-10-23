@@ -234,11 +234,15 @@ namespace Services
         {
             var fromUser = await _context.Users.FindAsync(from);
             if (fromUser is null || !fromUser.Friends.Contains(to))
+            {
                 return false;
+            }
 
             var toUser = await _context.Users.FindAsync(to);
             if (toUser is null)
+            {
                 return false;
+            }
 
             var roomKey = gameType.ToRoomKey(code);
             var fromInvitation = new FromInvitationToGame(fromUser.Username, roomKey);

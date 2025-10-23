@@ -41,6 +41,34 @@ namespace Models.InMemoryModels
         {
             RoomTimerCancellation?.Cancel();
             RoomTimerCancellation?.Dispose();
+
+            foreach (var player in RoomPlayers)
+            {
+                var outgoing = player.User?.OutcomingInviteToGameRequests
+                    .Where(inv => inv.RoomKey == Code)
+                    .ToList();
+
+                var incoming = player.User?.IncomingInviteToGameRequests
+                    .Where(inv => inv.RoomKey == Code)
+                    .ToList();
+
+                if (outgoing is not null)
+                {
+                    foreach (var invite in outgoing)
+                    {
+                        player.User?.OutcomingInviteToGameRequests.Remove(invite);
+                    }
+                }
+                
+                if (incoming is not null)
+                {
+                    foreach (var invite in incoming)
+                    {
+                        player.User?.IncomingInviteToGameRequests.Remove(invite);
+                    }                    
+                }
+
+            }
         }
     }
 }

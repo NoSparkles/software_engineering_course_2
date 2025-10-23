@@ -63,23 +63,31 @@ const useUserDatabase = () => {
     return result;
   };
 
-  const inviteFriendToGame = async (username, to, gameType, code) => {
-    const result = await fetchData(
-      `http://localhost:5236/User/${username}/invite-friend-to-game`,
-      {
-        method: 'PUT',
-        body: JSON.stringify({username: to, gameType, code}),
-      },
-      true
-    );
-    return result;
-  }
+  const inviteFriendToGame = async (Username, To, GameType, Code) => {
+    console.log(Username, To, GameType, Code)
+  const result = await fetchData(
+    `http://localhost:5236/User/${Username}/invite-friend-to-game`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        Username: To,
+        GameType,
+        Code
+      }),
+    },
+    true
+  );
+  return result;
+};
+
 
   const acceptInviteFriendToGame = async (username, to, gameType, code) => {
     const result = await fetchData(
       `http://localhost:5236/User/${username}/accept-invite-friend-to-game`,
       {
         method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({username: to, gameType, code}),
       },
       true
@@ -92,6 +100,7 @@ const useUserDatabase = () => {
       `http://localhost:5236/User/${username}/remove-invite-friend-to-game`,
       {
         method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: to, gameType, code }),
       },
       true

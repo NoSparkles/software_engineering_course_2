@@ -4,7 +4,6 @@ import { usePlayerId } from '../../Utils/usePlayerId';
 import { useSignalRService } from '../../Utils/useSignalRService';
 import { useAuth } from '../../Utils/AuthProvider'
 import useUserDatabase from '../../Utils/useUserDatabase';
-import useRoomDatabase from '../../Utils/useRoomDatabase';
 
 export default function WaitingRoom() {
   const { gameType, code } = useParams();
