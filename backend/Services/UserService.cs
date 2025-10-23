@@ -7,12 +7,13 @@ using Models;
 using Data;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using Extensions;
 
 namespace Services
 {
     public class UserService
     {
-    static public readonly byte[] KEY;
+        static public readonly byte[] KEY;
         static UserService()
         {
             try
@@ -36,7 +37,7 @@ namespace Services
                 throw new InvalidOperationException("Failed to load JWT key file: " + ex.Message, ex);
             }
         }
-    private static readonly JwtSecurityTokenHandler TokenHandler = new JwtSecurityTokenHandler();
+        private static readonly JwtSecurityTokenHandler TokenHandler = new JwtSecurityTokenHandler();
         private readonly GameDbContext _context;
 
         public UserService(GameDbContext context)
@@ -127,88 +128,87 @@ namespace Services
         }
 
        // Send a friend request or accept if target already requested
-    public async Task<bool> SendFriendRequestAsync(string username, string targetUsername)
-    {
-        if (username == targetUsername)
-            return false; // can't friend yourself
-
-        var user = await _context.Users.FindAsync(username);
-        var target = await _context.Users.FindAsync(targetUsername);
-
-        if (user == null || target == null)
-            return false;
-
-        // Already friends
-        if (user.Friends.Contains(targetUsername))
-            return false;
-
-        // If target already sent a request to user => accept it
-        if (user.IncomingFriendRequests.Contains(targetUsername))
+        public async Task<bool> SendFriendRequestAsync(string username, string targetUsername)
         {
-            user.IncomingFriendRequests.Remove(targetUsername);
-            target.OutgoingFriendRequests.Remove(username);
+            if (username == targetUsername)
+                return false; // can't friend yourself
 
-            user.Friends.Add(targetUsername);
-            target.Friends.Add(username);
+            var user = await _context.Users.FindAsync(username);
+            var target = await _context.Users.FindAsync(targetUsername);
+
+            if (user == null || target == null)
+                return false;
+
+            // Already friends
+            if (user.Friends.Contains(targetUsername))
+                return false;
+
+            // If target already sent a request to user => accept it
+            if (user.IncomingFriendRequests.Contains(targetUsername))
+            {
+                user.IncomingFriendRequests.Remove(targetUsername);
+                target.OutgoingFriendRequests.Remove(username);
+
+                user.Friends.Add(targetUsername);
+                target.Friends.Add(username);
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+
+            // Otherwise, send a request
+            if (!user.OutgoingFriendRequests.Contains(targetUsername) &&
+                !target.IncomingFriendRequests.Contains(username))
+            {
+                user.OutgoingFriendRequests.Add(targetUsername);
+                target.IncomingFriendRequests.Add(username);
+
+                await _context.SaveChangesAsync();
+            }
+
+            return true;
+        }
+
+        // Accept a friend request
+        public async Task<bool> AcceptFriendRequestAsync(string username, string requesterUsername)
+        {
+            var user = await _context.Users.FindAsync(username);
+            var requester = await _context.Users.FindAsync(requesterUsername);
+
+            if (user == null || requester == null)
+                return false;
+
+            if (!user.IncomingFriendRequests.Contains(requesterUsername))
+                return false; // no request to accept
+
+            user.IncomingFriendRequests.Remove(requesterUsername);
+            requester.OutgoingFriendRequests.Remove(username);
+
+            user.Friends.Add(requesterUsername);
+            requester.Friends.Add(username);
 
             await _context.SaveChangesAsync();
             return true;
         }
 
-        // Otherwise, send a request
-        if (!user.OutgoingFriendRequests.Contains(targetUsername) &&
-            !target.IncomingFriendRequests.Contains(username))
+        // Reject a friend request
+        public async Task<bool> RejectFriendRequestAsync(string username, string requesterUsername)
         {
-            user.OutgoingFriendRequests.Add(targetUsername);
-            target.IncomingFriendRequests.Add(username);
+            var user = await _context.Users.FindAsync(username);
+            var requester = await _context.Users.FindAsync(requesterUsername);
+
+            if (user == null || requester == null)
+                return false;
+
+            if (!user.IncomingFriendRequests.Contains(requesterUsername))
+                return false;
+
+            user.IncomingFriendRequests.Remove(requesterUsername);
+            requester.OutgoingFriendRequests.Remove(username);
 
             await _context.SaveChangesAsync();
+            return true;
         }
-
-        return true;
-    }
-
-    // Accept a friend request
-    public async Task<bool> AcceptFriendRequestAsync(string username, string requesterUsername)
-    {
-        var user = await _context.Users.FindAsync(username);
-        var requester = await _context.Users.FindAsync(requesterUsername);
-
-        if (user == null || requester == null)
-            return false;
-
-        if (!user.IncomingFriendRequests.Contains(requesterUsername))
-            return false; // no request to accept
-
-        user.IncomingFriendRequests.Remove(requesterUsername);
-        requester.OutgoingFriendRequests.Remove(username);
-
-        user.Friends.Add(requesterUsername);
-        requester.Friends.Add(username);
-
-        await _context.SaveChangesAsync();
-        return true;
-    }
-
-    // Reject a friend request
-    public async Task<bool> RejectFriendRequestAsync(string username, string requesterUsername)
-    {
-        var user = await _context.Users.FindAsync(username);
-        var requester = await _context.Users.FindAsync(requesterUsername);
-
-        if (user == null || requester == null)
-            return false;
-
-        if (!user.IncomingFriendRequests.Contains(requesterUsername))
-            return false;
-
-        user.IncomingFriendRequests.Remove(requesterUsername);
-        requester.OutgoingFriendRequests.Remove(username);
-
-        await _context.SaveChangesAsync();
-        return true;
-    }
-
 
         // Remove a friend (mutual)
         public async Task<bool> RemoveFriendAsync(string username, string friendUsername)
@@ -229,6 +229,61 @@ namespace Services
             return true;
         }
 
+        public async Task<bool> InviteFriendToGame(string from, string to, string gameType, string code)
+        {
+            var fromUser = await _context.Users.FindAsync(from);
+            if (fromUser is null || !fromUser.Friends.Contains(to))
+            {
+                return false;
+            }
+
+            var toUser = await _context.Users.FindAsync(to);
+            if (toUser is null)
+            {
+                return false;
+            }
+
+            var invitation = new InvitationToGame(fromUser.Username, gameType.ToRoomKey(code));
+            toUser.IncomingInviteToGameRequests.Add(invitation);
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> AcceptInviteFriendToGame(string to, string from, string gameType, string code)
+        {
+            var user = await _context.Users.FindAsync(from);
+            var invitation = new InvitationToGame(to, gameType.ToRoomKey(code));
+            if (user is null || !user.IncomingInviteToGameRequests.Contains(invitation))
+            {
+                return false;
+            }
+            user.IncomingInviteToGameRequests.Remove(invitation);
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> RemoveInviteFriendToGame(string fromUsername, string toUsername)
+        {
+            var toUser = await _context.Users.FindAsync(toUsername);
+            if (toUser is null)
+            {
+                return false;
+            }
+
+            var invitation = toUser.IncomingInviteToGameRequests
+                .FirstOrDefault(inv => inv.FromUsername == fromUsername);
+
+            if (invitation is null)
+            {
+                return false;
+            }
+
+            toUser.IncomingInviteToGameRequests.Remove(invitation);
+            await _context.SaveChangesAsync();
+            return true;
+        }
 
         // Update MMR
         public async Task<bool> UpdateMMRAsync(string username, Dictionary<string, int> mmrUpdates)

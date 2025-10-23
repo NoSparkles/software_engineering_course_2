@@ -16,6 +16,8 @@ namespace Models
         public List<string> IncomingFriendRequests { get; set; } = new List<string>();
         public List<string> OutgoingFriendRequests { get; set; } = new List<string>();
 
+        public HashSet<InvitationToGame> IncomingInviteToGameRequests { get; set; } = new HashSet<InvitationToGame>();
+
         public int RockPaperScissorsMMR { get; set; } = 1000;
         public int FourInARowMMR { get; set; } = 1000;
         public int PairMatchingMMR { get; set; } = 1000;
@@ -24,7 +26,6 @@ namespace Models
         public int FourInARowWinStreak { get; set; } = 0;
         public int PairMatchingWinStreak { get; set; } = 0;
 
-    
         public bool Equals(User? other)
         {
             if (other == null) return false;

@@ -3,13 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { usePlayerId } from '../../Utils/usePlayerId';
 import { useSignalRService } from '../../Utils/useSignalRService';
 import { useAuth } from '../../Utils/AuthProvider'
+import useUserDatabase from '../../Utils/useUserDatabase';
 
 export default function WaitingRoom() {
   const { gameType, code } = useParams();
   const navigate = useNavigate();
   const playerId = usePlayerId();
   const { user, token } = useAuth()
-  const [playerColor, setPlayerColor] = useState(null); 
+  const [playerColor, setPlayerColor] = useState(null);
+  const [sentInvite, setSentInvite] = useState(false)
+  const { inviteFriendToGame } = useUserDatabase()
   
   const { connection, connectionState, reconnected } = useSignalRService({
     hubUrl: "http://localhost:5236/joinByCodeHub",
@@ -136,12 +139,39 @@ export default function WaitingRoom() {
       };
     }
   }, [connection, connectionState, playerId, gameType, code, navigate, token]);
+  console.log(user)
+
+  const handleInviteFriendButton = async (friend) => {
+    const res = await inviteFriendToGame(friend)
+    if (res) {
+      setSentInvite(true)
+    }
+  }
 
   return (
     <div className="waiting-room">
       <h1>Waiting Room</h1>
       <h2 className="status-message">Game: {gameType.toUpperCase()}</h2>
       <p>Room Code: {code}</p>
+      {
+        user && (
+          <>
+          {!sentInvite && (
+            <div className="invite-friends-waiting">
+                {user.friends.map((friend, i) => (
+                  <div className='invite-friend-box' key={i}>
+                    <span>{friend}</span>
+                    <button onClick={() => handleInviteFriendButton(friend)}>Invite</button>
+                  </div>
+                ))}
+            </div>
+          )}
+          {sentInvite && (
+            <span>Invite Was Sent!</span>
+          )}
+          </>
+        )
+      }
     </div>
   );
 }

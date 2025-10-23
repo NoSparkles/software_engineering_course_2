@@ -1,7 +1,7 @@
-using System.Collections.Generic;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Controllers.Dtos;
 using Models;
 using Services;
 
@@ -179,6 +179,39 @@ namespace Controllers
             return Ok(updatedUser?.Friends);
         }
 
+        [HttpPut("{username}/invite-friend-to-game")]
+        public async Task<ActionResult> InviteFriendToGame(string username, [FromBody] InvitationDto invitation)
+        {
+            var success = await _userService.InviteFriendToGame(username, invitation.username, invitation.gameType, invitation.code);
+            if (!success)
+            {
+                return NotFound("User or friend not found.");
+            }
+            return Ok(success);
+        }
+
+        [HttpPut("{username}/accept-invite-friend-to-game")]
+        public async Task<ActionResult> AcceptInviteFriendToGame(string username, [FromBody] InvitationDto invitation)
+        {
+            var success = await _userService.AcceptInviteFriendToGame(username, invitation.username, invitation.gameType, invitation.code);
+            if (!success)
+            {
+                return NotFound("User or invitation not found.");
+            }
+            return Ok(success);
+        }
+
+        [HttpPut("{toUsername}/remove-invite-friend-to-game/{fromUsername}")]
+        public async Task<ActionResult> RemoveInviteFriendToGame(string toUsername, string fromUsername)
+        {
+            var success = await _userService.RemoveInviteFriendToGame(fromUsername, toUsername);
+            if (!success)
+            {
+                return NotFound("Invitation not found or user missing.");
+            }
+            return Ok(success);
+        }
+
         [HttpPut("{username}/update-mmr")]
         public async Task<ActionResult> UpdateMMR(string username, [FromBody] Dictionary<string, int> mmrUpdates)
         {
@@ -216,17 +249,5 @@ namespace Controllers
                 isMatchmaking = isMatchmaking 
             });
         }
-    }
-
-    public record class RegisterDto
-    {
-        public string Username { get; set; } = null!;
-        public string Password { get; set; } = null!;
-    }
-
-    public record class LoginDto
-    {
-        public string Username { get; set; } = null!;
-        public string Password { get; set; } = null!;
     }
 }
