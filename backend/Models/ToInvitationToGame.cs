@@ -2,12 +2,13 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Models
 {
+    // Owned entity: no [Key] or navigation properties needed
     public class ToInvitationToGame : IEquatable<ToInvitationToGame>
     {
-        [Key]
-        public int Id { get; set; }
-        public string RoomKey { get; set; }
-        public string FromUsername { get; set; }
+        public string RoomKey { get; set; } = null!;
+        public string FromUsername { get; set; } = null!;
+
+        public ToInvitationToGame() { }
 
         public ToInvitationToGame(string fromUsername, string roomKey)
         {

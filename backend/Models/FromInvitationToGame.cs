@@ -2,25 +2,26 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Models
 {
-    public class FromInvitationToGame : IEquatable<FromInvitationToGame>
+    // Owned entity: no [Key] or navigation properties needed
+    public class FromInvitationToGame : IEquatable<ToInvitationToGame>
     {
-        [Key]
-        public int Id { get; set; }
-        public string RoomKey { get; set; }
-        public string ToUsername { get; set; }
+        public string RoomKey { get; set; } = null!;
+        public string FromUsername { get; set; } = null!;
 
-        public FromInvitationToGame(string toUsername, string roomKey)
+        public FromInvitationToGame() { }
+
+        public FromInvitationToGame(string fromUsername, string roomKey)
         {
-            ToUsername = toUsername ?? throw new ArgumentNullException(nameof(toUsername));
+            FromUsername = fromUsername ?? throw new ArgumentNullException(nameof(fromUsername));
             RoomKey = roomKey ?? throw new ArgumentNullException(nameof(roomKey));
         }
 
-        public bool Equals(FromInvitationToGame? other) =>
+        public bool Equals(ToInvitationToGame? other) =>
             other is not null &&
-            ToUsername == other.ToUsername &&
+            FromUsername == other.FromUsername &&
             RoomKey == other.RoomKey;
 
-        public override bool Equals(object? obj) => Equals(obj as FromInvitationToGame);
-        public override int GetHashCode() => HashCode.Combine(ToUsername, RoomKey);
+        public override bool Equals(object? obj) => Equals(obj as ToInvitationToGame);
+        public override int GetHashCode() => HashCode.Combine(FromUsername, RoomKey);
     }
 }
