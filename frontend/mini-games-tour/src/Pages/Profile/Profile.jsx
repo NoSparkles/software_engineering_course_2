@@ -163,9 +163,6 @@ const Profile = () => {
     console.log("exists:", exists);
 
     if (!exists) {
-      console.log(invite);
-      console.log(sender, receiver, gameType, code);
-
       // receiver in URL, sender in body
       const res = await removeInviteFriendToGame(receiver, sender, gameType, code);
       setUser((prev) => {
@@ -180,7 +177,10 @@ const Profile = () => {
       setTimeout(() => {
         setShowRoomExpired(false)
       }, 2000);
+      return
     }
+    const res = await removeInviteFriendToGame(receiver, sender, gameType, code)
+    navigate(`/${gameType}/waiting/${code}`);
   };
 
   useEffect(() => {

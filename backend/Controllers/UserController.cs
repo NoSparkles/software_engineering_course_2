@@ -197,23 +197,6 @@ namespace Controllers
             return Ok(success);
         }
 
-        [HttpPut("{username}/accept-invite-friend-to-game")]
-        public async Task<ActionResult> AcceptInviteFriendToGame(string username, [FromBody] InvitationDto invitation)
-        {
-            // username = receiver
-            // invitation.Username = sender
-            var success = await _userService.AcceptInviteFriendToGame(
-                invitation.Username,   // from (sender)
-                username,              // to (receiver)
-                invitation.GameType,
-                invitation.Code);
-
-            if (!success)
-                return NotFound("User or invitation not found.");
-
-            return Ok(success);
-        }
-
         [HttpPut("{username}/remove-invite-friend-to-game")]
         public async Task<ActionResult> RemoveInviteFriendToGame(string username, [FromBody] InvitationDto invitation)
         {

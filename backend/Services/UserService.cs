@@ -250,28 +250,6 @@ namespace Services
             return true;
         }
 
-        public async Task<bool> AcceptInviteFriendToGame(string from, string to, string gameType, string code)
-        {
-            var fromUser = await _context.Users.FindAsync(from);
-            var toUser = await _context.Users.FindAsync(to);
-            if (fromUser is null || toUser is null)
-                return false;
-
-            var roomKey = gameType.ToRoomKey(code);
-            var fromInvitation = new FromInvitationToGame(to, roomKey); // receiver's perspective
-            var toInvitation = new ToInvitationToGame(from, roomKey);   // sender's perspective
-
-            if (!toUser.IncomingInviteToGameRequests.Contains(fromInvitation) ||
-                !fromUser.OutcomingInviteToGameRequests.Contains(toInvitation))
-                return false;
-
-            toUser.IncomingInviteToGameRequests.Remove(fromInvitation);
-            fromUser.OutcomingInviteToGameRequests.Remove(toInvitation);
-
-            await _context.SaveChangesAsync();
-            return true;
-        }
-
         public async Task<bool> RemoveInviteFriendToGame(string from, string to, string gameType, string code)
         {
             var fromUser = await _context.Users.FindAsync(from);
