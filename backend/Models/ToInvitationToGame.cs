@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace Models
 {
     // Owned entity: no [Key] or navigation properties needed

@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Services;
 using Models.InMemoryModels;
-using Models; // PATCH: Add this if RoomUser is defined in Models namespace
-using System.Linq;
 
 namespace Controllers
 {
