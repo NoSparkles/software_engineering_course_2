@@ -29,7 +29,7 @@ const Profile = () => {
   const { fetchData } = useFetch()
   const { roomExists } = useRoomDatabase()
   const { removeInviteFriendToGame, acceptInviteFriendToGame } = useUserDatabase()
-  const [invitesToGame, setInvitesToGame] = useState(user?.IncomingInviteToGameRequests || []);
+  const [incomingInviteToGameRequests, setIncomingInviteToGameRequests] = useState(user?.IncomingInviteToGameRequests || []);
   const [showRoomExpired, setShowRoomExpired] = useState(false)
 
   const viewer = user?.username
@@ -184,7 +184,7 @@ const Profile = () => {
   };
 
   useEffect(() => {
-    setInvitesToGame(user?.incomingInviteToGameRequests || [])
+    setIncomingInviteToGameRequests(user?.incomingInviteToGameRequests || [])
   }, [user])
 
   if (loading) return <div className="profile">Loading...</div>
@@ -276,10 +276,10 @@ const Profile = () => {
         showRoomExpired && <Popup className='room-expired-popup'>Room expired</Popup>
       }
 
-      {isOwnProfile && profileUser.incomingInviteToGameRequests?.length > 0 && (
+      {isOwnProfile && incomingInviteToGameRequests?.length > 0 && (
         <div className='incoming-invites'>
           <h2>Incoming Game Invites</h2>
-          {invitesToGame.map((invite, i) => {
+          {incomingInviteToGameRequests.map((invite, i) => {
             const gameType = invite.roomKey?.split(':')[0]; // Extract game type
             return (
               <div key={i} className='game-invite'>

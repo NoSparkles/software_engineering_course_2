@@ -151,3 +151,31 @@ button:hover {
   max-width: 400px;
   text-align: center;
 }
+
+.notifications-banner {
+  position: fixed;
+  top: 80px;
+  left: 20px;
+  width: 250px;
+  background-color: #1e1e2f;
+  color: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0px 0px 10px rgba(0,0,0,0.3);
+  z-index: 1000;
+}
+
+.notifications-banner h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.1rem;
+}
+
+.notifications-banner p {
+  margin: 5px 0;
+}
+
+.notifications-banner a {
+  color: #00bfff;
+  text-decoration: underline;
+  font-size: 0.9rem;
+}
