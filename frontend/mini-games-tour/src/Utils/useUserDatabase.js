@@ -118,6 +118,20 @@ const useUserDatabase = () => {
     return result;
   };
 
+  // Remove expired invitations
+  const removeExpiredInvites = async (username) => {
+    const result = await fetchData(
+      `http://localhost:5236/User/${username}/remove-expired-invitations`, // new endpoint
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      },
+      true
+    );
+    return result;
+  };
+
+
   const searchUsers = async (query) => {
     if (!query || query.trim() === '') return [];
 
@@ -136,7 +150,8 @@ const useUserDatabase = () => {
     removeFriend,
     inviteFriendToGame,
     acceptInviteFriendToGame,
-    removeInviteFriendToGame
+    removeInviteFriendToGame,
+    removeExpiredInvites,
   };
 };
 
