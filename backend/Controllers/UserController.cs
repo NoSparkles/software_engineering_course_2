@@ -61,6 +61,18 @@ namespace Controllers
             return Ok(user);
         }
 
+        // GET /User/search?query=someText
+        [HttpGet("search")]
+        public async Task<ActionResult<List<User>>> SearchUsers([FromQuery] string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return BadRequest("Query cannot be empty.");
+
+            var users = await _userService.SearchUsersAsync(query);
+            return Ok(users);
+        }
+
+
         // POST: /User/register
         [HttpPost("register")]
         public async Task<ActionResult<User>> Register([FromBody] RegisterDto registerDto)

@@ -52,6 +52,17 @@ namespace Services
             return await _context.Users.FindAsync(username);
         }
 
+        public async Task<List<User>> SearchUsersAsync(string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return new List<User>();
+
+            // Case-insensitive search
+            return await _context.Users
+                .Where(u => u.Username.ToLower().Contains(query.ToLower()))
+                .ToListAsync();
+        }
+
         // Register a new user with username and password only
         public async Task<bool> RegisterUserAsync(string username, string password)
         {
