@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace Models
 {
     // Owned entity: no [Key] or navigation properties needed
-    public class FromInvitationToGame : IEquatable<ToInvitationToGame>
+    public class FromInvitationToGame : IEquatable<FromInvitationToGame>
     {
         public string RoomKey { get; set; } = null!;
         public string FromUsername { get; set; } = null!;
@@ -16,12 +16,12 @@ namespace Models
             RoomKey = roomKey ?? throw new ArgumentNullException(nameof(roomKey));
         }
 
-        public bool Equals(ToInvitationToGame? other) =>
+        public bool Equals(FromInvitationToGame? other) =>
             other is not null &&
             FromUsername == other.FromUsername &&
             RoomKey == other.RoomKey;
 
-        public override bool Equals(object? obj) => Equals(obj as ToInvitationToGame);
+        public override bool Equals(object? obj) => Equals(obj as FromInvitationToGame);
         public override int GetHashCode() => HashCode.Combine(FromUsername, RoomKey);
     }
 }

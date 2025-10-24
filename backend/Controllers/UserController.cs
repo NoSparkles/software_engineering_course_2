@@ -183,46 +183,67 @@ namespace Controllers
         [HttpPut("{username}/invite-friend-to-game")]
         public async Task<ActionResult> InviteFriendToGame(string username, [FromBody] InvitationDto invitation)
         {
-            for (int i = 0; i < 10; i++)
-            {
-                Console.WriteLine();
-            }
-            Console.WriteLine(invitation.Username);
-            Console.WriteLine(invitation.GameType);
-            Console.WriteLine(invitation.Code);
-
-            var success = await _userService.InviteFriendToGame(username, invitation.Username, invitation.GameType, invitation.Code);
+            // username = receiver
+            // invitation.Username = sender
+            var success = await _userService.InviteFriendToGame(
+                invitation.Username,   // from (sender)
+                username,              // to (receiver)
+                invitation.GameType,
+                invitation.Code);
 
             if (!success)
-            {
                 return NotFound("User or friend not found.");
-            }
+
             return Ok(success);
         }
-
 
         [HttpPut("{username}/accept-invite-friend-to-game")]
         public async Task<ActionResult> AcceptInviteFriendToGame(string username, [FromBody] InvitationDto invitation)
         {
-            var success = await _userService.AcceptInviteFriendToGame(username, invitation.Username, invitation.GameType, invitation.Code);
+            // username = receiver
+            // invitation.Username = sender
+            var success = await _userService.AcceptInviteFriendToGame(
+                invitation.Username,   // from (sender)
+                username,              // to (receiver)
+                invitation.GameType,
+                invitation.Code);
+
             if (!success)
-            {
                 return NotFound("User or invitation not found.");
-            }
+
             return Ok(success);
         }
 
         [HttpPut("{username}/remove-invite-friend-to-game")]
         public async Task<ActionResult> RemoveInviteFriendToGame(string username, [FromBody] InvitationDto invitation)
         {
-            Console.WriteLine(invitation.ToString());
-            var success = await _userService.RemoveInviteFriendToGame(username, invitation.Username, invitation.GameType, invitation.Code);
+            // username = receiver
+            // invitation.Username = sender
+            var success = await _userService.RemoveInviteFriendToGame(
+                invitation.Username,   // from (sender)
+                username,              // to (receiver)
+                invitation.GameType,
+                invitation.Code);
+
             if (!success)
-            {
                 return NotFound("Invitation not found or user missing.");
-            }
+
             return Ok(success);
         }
+
+        [HttpDelete("{username}/clear-all-invites")]
+        public async Task<ActionResult> ClearAllInvites(string username)
+        {
+            var success = await _userService.ClearAllInvitesAsync(username);
+            if (!success)
+            {
+                return NotFound("User not found or no invites to clear.");
+            }
+
+            return Ok("All incoming and outgoing game invites cleared successfully.");
+        }
+
+
 
         [HttpPut("{username}/update-mmr")]
         public async Task<ActionResult> UpdateMMR(string username, [FromBody] Dictionary<string, int> mmrUpdates)

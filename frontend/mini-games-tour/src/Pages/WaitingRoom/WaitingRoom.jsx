@@ -141,12 +141,18 @@ export default function WaitingRoom() {
   }, [connection, connectionState, playerId, gameType, code, navigate, token]);
   console.log(user)
 
-  const handleInviteFriendButton = async (friend) => {
-    const res = await inviteFriendToGame(user.username, friend, gameType, code)
+  const handleInviteFriendButton = async (friendUsername) => {
+    const res = await inviteFriendToGame(
+      user.username,     // sender (you)
+      friendUsername,    // receiver
+      gameType,
+      code
+    );
+
     if (res) {
-      setSentInvite(true)
+      setSentInvite(true);
     }
-  }
+  };
 
   return (
     <div className="waiting-room">

@@ -114,3 +114,7 @@
   font-weight: bold;
   color: #ffcc00;
 }
+
+.room-expired-popup .popup-body{
+  background-color: red;
+}

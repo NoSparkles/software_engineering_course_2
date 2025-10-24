@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react'
 import { useAuth } from '../../Utils/AuthProvider'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import useUserDatabase from '../../Utils/useUserDatabase'
+import useRoomDatabase from '../../Utils/useRoomDatabase'
 import useFetch from '../../Utils/useFetch'
+import Popup from '../../Components/Popup'
 import { connectSpectator, joinSpectateByUsername, leaveSpectate, disconnectSpectator } from '../../Services/spectatorService'
 import './styles.css'
 
@@ -15,7 +17,7 @@ const Profile = () => {
     removeFriend
   } = useUserDatabase()
 
-  const { user, refreshUser } = useAuth()
+  const { user, refreshUser, setUser } = useAuth()
   const { username } = useParams()
   const navigate = useNavigate()
   const [profileUser, setProfileUser] = useState(undefined)
@@ -25,6 +27,10 @@ const Profile = () => {
   const [spectatorStatus, setSpectatorStatus] = useState('none')
   const [spectatorError, setSpectatorError] = useState(null)
   const { fetchData } = useFetch()
+  const { roomExists } = useRoomDatabase()
+  const { removeInviteFriendToGame, acceptInviteFriendToGame } = useUserDatabase()
+  const [invitesToGame, setInvitesToGame] = useState(user?.IncomingInviteToGameRequests || []);
+  const [showRoomExpired, setShowRoomExpired] = useState(false)
 
   const viewer = user?.username
 
@@ -146,11 +152,40 @@ const Profile = () => {
     }
   }
 
-  console.log(user)
   const handleJoinInvite = async (invite) => {
     console.log('Join invite clicked:', invite);
-    // TODO: Implement navigation or game join logic
+
+    const sender = invite.fromUsername; // The one who sent the invite
+    const receiver = user.username;     // The one who is currently logged in (you)
+    const [gameType, code] = invite.roomKey?.split(':');
+
+    const exists = await roomExists(gameType, code);
+    console.log("exists:", exists);
+
+    if (!exists) {
+      console.log(invite);
+      console.log(sender, receiver, gameType, code);
+
+      // receiver in URL, sender in body
+      const res = await removeInviteFriendToGame(receiver, sender, gameType, code);
+      setUser((prev) => {
+        return {
+          ...prev,
+          incomingInviteToGameRequests: prev.incomingInviteToGameRequests.filter(
+            i => !(i.fromUsername === sender && i.roomKey === invite.roomKey)
+          ),
+        }
+      })
+      setShowRoomExpired(true)
+      setTimeout(() => {
+        setShowRoomExpired(false)
+      }, 2000);
+    }
   };
+
+  useEffect(() => {
+    setInvitesToGame(user?.incomingInviteToGameRequests || [])
+  }, [user])
 
   if (loading) return <div className="profile">Loading...</div>
 
@@ -237,19 +272,26 @@ const Profile = () => {
         </div>
       )}
 
+      {
+        showRoomExpired && <Popup className='room-expired-popup'>Room expired</Popup>
+      }
+
       {isOwnProfile && profileUser.incomingInviteToGameRequests?.length > 0 && (
         <div className='incoming-invites'>
           <h2>Incoming Game Invites</h2>
-          {profileUser.incomingInviteToGameRequests.map((invite, i) => (
-            <div key={i} className='game-invite'>
-              <span className='invite-info'>
-                From <strong>{invite.fromUsername}</strong> — Room: <code>{invite.roomKey}</code>
-              </span>
-              <button className='join-invite-btn' onClick={() => handleJoinInvite(invite)}>
-                Join
-              </button>
-            </div>
-          ))}
+          {invitesToGame.map((invite, i) => {
+            const gameType = invite.roomKey?.split(':')[0]; // Extract game type
+            return (
+              <div key={i} className='game-invite'>
+                <span className='invite-info'>
+                  <span>{invite.fromUsername}</span> invites you to play <span>{gameType}</span>
+                </span>
+                <button className='join-invite-btn' onClick={() => handleJoinInvite(invite)}>
+                  Join
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
 

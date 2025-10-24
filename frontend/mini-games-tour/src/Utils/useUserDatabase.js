@@ -63,17 +63,18 @@ const useUserDatabase = () => {
     return result;
   };
 
-  const inviteFriendToGame = async (Username, To, GameType, Code) => {
-    console.log(Username, To, GameType, Code)
+// Send an invitation
+const inviteFriendToGame = async (senderUsername, receiverUsername, gameType, code) => {
+  console.log(senderUsername, receiverUsername, gameType, code);
   const result = await fetchData(
-    `http://localhost:5236/User/${Username}/invite-friend-to-game`,
+    `http://localhost:5236/User/${receiverUsername}/invite-friend-to-game`, // receiver in URL
     {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        Username: To,
-        GameType,
-        Code
+        username: senderUsername, // sender in body
+        gameType,
+        code,
       }),
     },
     true
@@ -81,33 +82,41 @@ const useUserDatabase = () => {
   return result;
 };
 
+// Accept an invitation
+const acceptInviteFriendToGame = async (receiverUsername, senderUsername, gameType, code) => {
+  const result = await fetchData(
+    `http://localhost:5236/User/${receiverUsername}/accept-invite-friend-to-game`, // receiver in URL
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: senderUsername, // sender in body
+        gameType,
+        code,
+      }),
+    },
+    true
+  );
+  return result;
+};
 
-  const acceptInviteFriendToGame = async (username, to, gameType, code) => {
-    const result = await fetchData(
-      `http://localhost:5236/User/${username}/accept-invite-friend-to-game`,
-      {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({username: to, gameType, code}),
-      },
-      true
-    );
-    return result;
-  }
-
-  const removeInviteFriendToGame = async (username, to, gameType, code) => {
-    const result = await fetchData(
-      `http://localhost:5236/User/${username}/remove-invite-friend-to-game`,
-      {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: to, gameType, code }),
-      },
-      true
-    );
-    return result;
-  };
-
+// Remove an invitation
+const removeInviteFriendToGame = async (receiverUsername, senderUsername, gameType, code) => {
+  const result = await fetchData(
+    `http://localhost:5236/User/${receiverUsername}/remove-invite-friend-to-game`, // receiver in URL
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: senderUsername, // sender in body
+        gameType,
+        code,
+      }),
+    },
+    true
+  );
+  return result;
+};
 
   return {
     getUsers,
