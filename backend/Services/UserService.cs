@@ -292,6 +292,85 @@ namespace Services
             return true;
         }
 
+        public async Task<User?> RemoveInviteFriendToGameExpired(string username, RoomService roomService)
+        {
+            var user = await _context.Users
+                .Include(u => u.IncomingInviteToGameRequests)
+                .Include(u => u.OutcomingInviteToGameRequests)
+                .FirstOrDefaultAsync(u => u.Username == username);
+
+            if (user is null)
+                return null;
+
+            var removedAny = false;
+
+            // Handle incoming invitations
+            var expiredIncoming = user.IncomingInviteToGameRequests
+                .Where(inv => !RoomExistsInMemory(inv.RoomKey, roomService))
+                .ToList();
+
+            
+
+            foreach (var inv in expiredIncoming)
+            {
+                user.IncomingInviteToGameRequests.Remove(inv);
+                removedAny = true;
+
+                var sender = await _context.Users
+                    .Include(u => u.OutcomingInviteToGameRequests)
+                    .FirstOrDefaultAsync(u => u.Username == inv.FromUsername);
+
+                if (sender is not null)
+                {
+                    var match = sender.OutcomingInviteToGameRequests
+                        .FirstOrDefault(o => o.RoomKey == inv.RoomKey && o.ToUsername == username);
+
+                    if (match is not null)
+                        sender.OutcomingInviteToGameRequests.Remove(match);
+                }
+            }
+
+            // Handle outcoming invitations
+            var expiredOutcoming = user.OutcomingInviteToGameRequests
+                .Where(inv => !RoomExistsInMemory(inv.RoomKey, roomService))
+                .ToList();
+
+            foreach (var inv in expiredOutcoming)
+            {
+                user.OutcomingInviteToGameRequests.Remove(inv);
+                removedAny = true;
+
+                var receiver = await _context.Users
+                    .Include(u => u.IncomingInviteToGameRequests)
+                    .FirstOrDefaultAsync(u => u.Username == inv.ToUsername);
+
+                if (receiver is not null)
+                {
+                    var match = receiver.IncomingInviteToGameRequests
+                        .FirstOrDefault(i => i.RoomKey == inv.RoomKey && i.FromUsername == username);
+
+                    if (match is not null)
+                        receiver.IncomingInviteToGameRequests.Remove(match);
+                }
+            }
+
+            if (removedAny)
+                await _context.SaveChangesAsync();
+
+            return user;
+        }
+    
+        private bool RoomExistsInMemory(string roomKey, RoomService roomService)
+        {
+            var parts = roomKey.Split(':');
+            if (parts.Length != 2) return false;
+
+            var gameType = parts[0];
+            var code = parts[1];
+
+            return roomService.RoomExists(gameType, code);
+        }
+
         public async Task<bool> ClearAllInvitesAsync(string username)
         {
             var user = await _context.Users.FindAsync(username);

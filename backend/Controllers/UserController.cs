@@ -5,6 +5,7 @@ using Controllers.Dtos;
 using Models;
 using Services;
 using System.Text.Json;
+using Models.InMemoryModels;
 
 namespace Controllers
 {
@@ -238,7 +239,16 @@ namespace Controllers
             return Ok("All incoming and outgoing game invites cleared successfully.");
         }
 
+        [HttpPost("{username}/remove-expired-invitations")]
+        public async Task<IActionResult> RemoveExpiredInvitations(string username)
+        {
+            var updatedUser = await _userService.RemoveInviteFriendToGameExpired(username, _roomService);
 
+            if (updatedUser == null)
+                return NotFound(new { message = "User not found" });
+
+            return Ok(updatedUser);
+        }
 
         [HttpPut("{username}/update-mmr")]
         public async Task<ActionResult> UpdateMMR(string username, [FromBody] Dictionary<string, int> mmrUpdates)

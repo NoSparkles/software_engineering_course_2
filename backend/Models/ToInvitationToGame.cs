@@ -6,22 +6,22 @@ namespace Models
     public class ToInvitationToGame : IEquatable<ToInvitationToGame>
     {
         public string RoomKey { get; set; } = null!;
-        public string FromUsername { get; set; } = null!;
+        public string ToUsername { get; set; } = null!;
 
         public ToInvitationToGame() { }
 
-        public ToInvitationToGame(string fromUsername, string roomKey)
+        public ToInvitationToGame(string toUsername, string roomKey)
         {
-            FromUsername = fromUsername ?? throw new ArgumentNullException(nameof(fromUsername));
+            ToUsername = toUsername ?? throw new ArgumentNullException(nameof(toUsername));
             RoomKey = roomKey ?? throw new ArgumentNullException(nameof(roomKey));
         }
 
         public bool Equals(ToInvitationToGame? other) =>
             other is not null &&
-            FromUsername == other.FromUsername &&
+            ToUsername == other.ToUsername &&
             RoomKey == other.RoomKey;
 
         public override bool Equals(object? obj) => Equals(obj as ToInvitationToGame);
-        public override int GetHashCode() => HashCode.Combine(FromUsername, RoomKey);
+        public override int GetHashCode() => HashCode.Combine(ToUsername, RoomKey);
     }
 }
