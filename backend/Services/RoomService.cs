@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using Games;
 using Extensions;
-using Microsoft.AspNetCore.SignalR;
 using Models;
 using Models.InMemoryModels;
 

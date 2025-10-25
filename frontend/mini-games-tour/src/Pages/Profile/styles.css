@@ -6,6 +6,8 @@
   padding-top: 104px;
   font-family: Arial, sans-serif;
   text-align: center;
+  box-sizing: border-box;
+  overflow-y: auto;
 }
 
 .profile h1 {
@@ -29,40 +31,13 @@
   font-size: 16px;
 }
 
-.add-friend-btn {
-  background-color: #007bff;
-  color: white;
-}
-
-.remove-friend-btn {
-  background-color: #dc3545;
-  color: white;
-}
-
-.accept-friend-btn {
-  background-color: #28a745;
-  color: white;
-}
-
-.decline-friend-btn {
-  background-color: #ff9800;
-  color: white;
-}
-
-.cancel-request-btn {
-  background-color: #6c757d;
-  color: white;
-}
-
-.spectate-btn {
-  background-color: #6f42c1;
-  color: white;
-}
-
-.spectate-btn:disabled {
-  background-color: #6c757d;
-  cursor: not-allowed;
-}
+.add-friend-btn { background-color: #007bff; color: white; }
+.remove-friend-btn { background-color: #dc3545; color: white; }
+.accept-friend-btn { background-color: #28a745; color: white; }
+.decline-friend-btn { background-color: #ff9800; color: white; }
+.cancel-request-btn { background-color: #6c757d; color: white; }
+.spectate-btn { background-color: #6f42c1; color: white; }
+.spectate-btn:disabled { background-color: #6c757d; cursor: not-allowed; }
 
 .spectate-section {
   background-color: #161b22;
@@ -109,8 +84,54 @@
   margin-top: 5px;
 }
 
+.friend-requests,
+.incoming-requests,
+.incoming-invites {
+  max-height: 300px;      /* limit height */
+  overflow-y: auto;       /* make scrollable */
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+}
+
 .friend-requests p {
   margin: 5px 0;
   font-weight: bold;
   color: #ffcc00;
+}
+
+.game-invite,
+.friend-request {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.room-expired-popup .popup-body {
+  background-color: red;
+}
+
+.friend-requests,
+.incoming-requests,
+.incoming-invites {
+  max-height: 300px;       /* limit height */
+  max-width: 400px;        /* limit width */
+  width: 100%;             /* allow responsiveness */
+  overflow-y: auto;        /* scroll if too tall */
+  margin: 10px auto;       /* center horizontally */
+  padding: 10px;
+  background-color: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+}
+
+.friend-request,
+.game-invite {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
 }

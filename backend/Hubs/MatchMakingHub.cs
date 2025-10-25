@@ -2,7 +2,6 @@ using Services;
 using Microsoft.AspNetCore.SignalR;
 using Models.InMemoryModels;
 using Extensions;
-using System.Collections.Concurrent;
 using Games;
 
 namespace Hubs

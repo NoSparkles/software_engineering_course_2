@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace Models
@@ -12,9 +11,13 @@ namespace Models
         [Required]
         public string PasswordHash { get; set; } = null!;
 
-        public List<string> Friends { get; set; } = new List<string>();
-        public List<string> IncomingFriendRequests { get; set; } = new List<string>();
-        public List<string> OutgoingFriendRequests { get; set; } = new List<string>();
+        public List<string> Friends { get; set; } = new();
+        public List<string> IncomingFriendRequests { get; set; } = new();
+        public List<string> OutgoingFriendRequests { get; set; } = new();
+
+        // Owned collections
+        public List<ToInvitationToGame> OutcomingInviteToGameRequests { get; set; } = new();
+        public List<FromInvitationToGame> IncomingInviteToGameRequests { get; set; } = new();
 
         public int RockPaperScissorsMMR { get; set; } = 1000;
         public int FourInARowMMR { get; set; } = 1000;
@@ -24,35 +27,12 @@ namespace Models
         public int FourInARowWinStreak { get; set; } = 0;
         public int PairMatchingWinStreak { get; set; } = 0;
 
-    
-        public bool Equals(User? other)
-        {
-            if (other == null) return false;
-            return Username == other.Username;
-        }
+        public bool Equals(User? other) => other != null && Username == other.Username;
 
-       
-        public override bool Equals(object? obj)
-        {
-            return Equals(obj as User);
-        }
+        public override bool Equals(object? obj) => Equals(obj as User);
+        public override int GetHashCode() => Username.GetHashCode();
 
-        public override int GetHashCode()
-        {
-            return Username.GetHashCode();
-        }
-
-      
-        public static bool operator ==(User? left, User? right)
-        {
-            if (ReferenceEquals(left, right)) return true;
-            if (left is null || right is null) return false;
-            return left.Equals(right);
-        }
-
-        public static bool operator !=(User? left, User? right)
-        {
-            return !(left == right);
-        }
+        public static bool operator ==(User? left, User? right) => Equals(left, right);
+        public static bool operator !=(User? left, User? right) => !(left == right);
     }
 }

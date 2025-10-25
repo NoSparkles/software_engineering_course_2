@@ -1,7 +1,7 @@
-using System.Collections.Generic;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Controllers.Dtos;
 using Models;
 using Services;
 
@@ -59,6 +59,18 @@ namespace Controllers
                 return NotFound();
             return Ok(user);
         }
+
+        // GET /User/search?query=someText
+        [HttpGet("search")]
+        public async Task<ActionResult<List<User>>> SearchUsers([FromQuery] string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return BadRequest("Query cannot be empty.");
+
+            var users = await _userService.SearchUsersAsync(query);
+            return Ok(users);
+        }
+
 
         // POST: /User/register
         [HttpPost("register")]
@@ -179,6 +191,63 @@ namespace Controllers
             return Ok(updatedUser?.Friends);
         }
 
+        [HttpPut("{username}/invite-friend-to-game")]
+        public async Task<ActionResult> InviteFriendToGame(string username, [FromBody] InvitationDto invitation)
+        {
+            // username = receiver
+            // invitation.Username = sender
+            var success = await _userService.InviteFriendToGame(
+                invitation.Username,   // from (sender)
+                username,              // to (receiver)
+                invitation.GameType,
+                invitation.Code);
+
+            if (!success)
+                return NotFound("User or friend not found.");
+
+            return Ok(success);
+        }
+
+        [HttpPut("{username}/remove-invite-friend-to-game")]
+        public async Task<ActionResult> RemoveInviteFriendToGame(string username, [FromBody] InvitationDto invitation)
+        {
+            // username = receiver
+            // invitation.Username = sender
+            var success = await _userService.RemoveInviteFriendToGame(
+                invitation.Username,   // from (sender)
+                username,              // to (receiver)
+                invitation.GameType,
+                invitation.Code);
+
+            if (!success)
+                return NotFound("Invitation not found or user missing.");
+
+            return Ok(success);
+        }
+
+        [HttpDelete("{username}/clear-all-invites")]
+        public async Task<ActionResult> ClearAllInvites(string username)
+        {
+            var success = await _userService.ClearAllInvitesAsync(username);
+            if (!success)
+            {
+                return NotFound("User not found or no invites to clear.");
+            }
+
+            return Ok("All incoming and outgoing game invites cleared successfully.");
+        }
+
+        [HttpPost("{username}/remove-expired-invitations")]
+        public async Task<IActionResult> RemoveExpiredInvitations(string username)
+        {
+            var updatedUser = await _userService.RemoveInviteFriendToGameExpired(username, _roomService);
+
+            if (updatedUser == null)
+                return NotFound(new { message = "User not found" });
+
+            return Ok(updatedUser);
+        }
+
         [HttpPut("{username}/update-mmr")]
         public async Task<ActionResult> UpdateMMR(string username, [FromBody] Dictionary<string, int> mmrUpdates)
         {
@@ -216,17 +285,5 @@ namespace Controllers
                 isMatchmaking = isMatchmaking 
             });
         }
-    }
-
-    public record class RegisterDto
-    {
-        public string Username { get; set; } = null!;
-        public string Password { get; set; } = null!;
-    }
-
-    public record class LoginDto
-    {
-        public string Username { get; set; } = null!;
-        public string Password { get; set; } = null!;
     }
 }

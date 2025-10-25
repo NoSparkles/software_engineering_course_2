@@ -17,6 +17,23 @@
   margin-bottom: 20px;
 }
 
+.search-input {
+  width: 100%;
+  max-width: 400px;
+  padding: 10px 15px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+  border: 1px solid #30363d;
+  background-color: #161b22;
+  color: #fff;
+  font-size: 16px;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #58a6ff;
+}
+
 .user-list {
   display: flex;
   flex-wrap: wrap;

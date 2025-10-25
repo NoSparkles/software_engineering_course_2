@@ -1,6 +1,3 @@
-using Microsoft.AspNetCore.SignalR;
-using Models;
-
 namespace Hubs
 {
         public interface IgameHub

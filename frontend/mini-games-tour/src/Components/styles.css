@@ -127,3 +127,55 @@ button:hover {
   justify-content: center;
   align-items: center;
 }
+
+.popup-overlay {
+  position: fixed;     /* Stay fixed relative to viewport */
+  top: 0;              /* Align at the top */
+  left: 50%;           /* Center horizontally */
+  transform: translateX(-50%);
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  z-index: 9999;       /* Above other elements */
+  pointer-events: none; /* Clicks pass through overlay */
+}
+
+.popup-body {
+  margin-top: 10px;    /* Some spacing from top */
+  background-color: rgba(0, 0, 0, 0.85); /* Dark semi-transparent */
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  pointer-events: all; /* Enable interactions */
+  max-width: 400px;
+  text-align: center;
+}
+
+.notifications-banner {
+  position: fixed;
+  top: 80px;
+  left: 20px;
+  width: 250px;
+  background-color: #1e1e2f;
+  color: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0px 0px 10px rgba(0,0,0,0.3);
+  z-index: 1000;
+}
+
+.notifications-banner h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.1rem;
+}
+
+.notifications-banner p {
+  margin: 5px 0;
+}
+
+.notifications-banner a {
+  color: #00bfff;
+  text-decoration: underline;
+  font-size: 0.9rem;
+}

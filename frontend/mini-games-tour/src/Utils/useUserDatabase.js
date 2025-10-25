@@ -63,13 +63,95 @@ const useUserDatabase = () => {
     return result;
   };
 
+  // Send an invitation
+  const inviteFriendToGame = async (senderUsername, receiverUsername, gameType, code) => {
+    console.log(senderUsername, receiverUsername, gameType, code);
+    const result = await fetchData(
+      `http://localhost:5236/User/${receiverUsername}/invite-friend-to-game`, // receiver in URL
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: senderUsername, // sender in body
+          gameType,
+          code,
+        }),
+      },
+      true
+    );
+    return result;
+  };
+
+  // Accept an invitation
+  const acceptInviteFriendToGame = async (receiverUsername, senderUsername, gameType, code) => {
+    const result = await fetchData(
+      `http://localhost:5236/User/${receiverUsername}/accept-invite-friend-to-game`, // receiver in URL
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: senderUsername, // sender in body
+          gameType,
+          code,
+        }),
+      },
+      true
+    );
+    return result;
+  };
+
+  // Remove an invitation
+  const removeInviteFriendToGame = async (receiverUsername, senderUsername, gameType, code) => {
+    const result = await fetchData(
+      `http://localhost:5236/User/${receiverUsername}/remove-invite-friend-to-game`, // receiver in URL
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: senderUsername, // sender in body
+          gameType,
+          code,
+        }),
+      },
+      true
+    );
+    return result;
+  };
+
+  // Remove expired invitations
+  const removeExpiredInvites = async (username) => {
+    const result = await fetchData(
+      `http://localhost:5236/User/${username}/remove-expired-invitations`, // new endpoint
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      },
+      true
+    );
+    return result;
+  };
+
+
+  const searchUsers = async (query) => {
+    if (!query || query.trim() === '') return [];
+
+    const result = await fetchData(`http://localhost:5236/User/search?query=${encodeURIComponent(query)}`);
+    return result;
+  };
+
+
   return {
     getUsers,
     getUser,
+    searchUsers,
     sendFriendRequest,
     acceptFriendRequest,
     declineFriendRequest,
     removeFriend,
+    inviteFriendToGame,
+    acceptInviteFriendToGame,
+    removeInviteFriendToGame,
+    removeExpiredInvites,
   };
 };
 

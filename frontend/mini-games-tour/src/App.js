@@ -16,8 +16,8 @@ import { AuthProvider } from './Utils/AuthProvider';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <Router>
+      <AuthProvider>
         <Navbar />
         <ReturnToGameBanner />
         <Routes>
@@ -35,9 +35,8 @@ function App() {
           <Route path="/:gameType/matchmaking-session/:code" element={<MatchmakingSessionRoom />} />
           <Route path="/:gameType/spectate/:code" element={<SpectatePage />} />
         </Routes>
-      </Router>
-    </AuthProvider>
-    
+      </AuthProvider>
+    </Router>
   );
 }
 
