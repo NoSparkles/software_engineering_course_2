@@ -12,14 +12,14 @@ export default function UserNotificationsBanner() {
   useEffect(() => {
     if (!user) return
     
-    setIncomingFriendRequests(user.incomingFriendRequests)
-    setIncomingInviteToGameRequests(user.incomingInviteToGameRequests)
+    setIncomingFriendRequests(user.incomingFriendRequests || [])
+    setIncomingInviteToGameRequests(user.incomingInviteToGameRequests || [])
 
   }, [user])
 
   if (!user) return;
 
-  if (incomingFriendRequests.length === 0 && incomingInviteToGameRequests.length === 0) return null;
+  if (incomingFriendRequests.length === 0 && incomingInviteToGameRequests.length === 0) return;
 
   return (
     <div className="notifications-banner">

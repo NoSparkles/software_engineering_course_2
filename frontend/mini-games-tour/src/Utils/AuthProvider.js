@@ -86,6 +86,11 @@ export function AuthProvider({ children }) {
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
+    localStorage.removeItem("declinedReconnectionFlag")
+    localStorage.removeItem("playerId")
+    localStorage.removeItem("username")
+    sessionStorage.removeItem("playerId")
+    sessionStorage.removeItem("username")
     setToken(null);
   };
 
