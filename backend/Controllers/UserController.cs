@@ -263,6 +263,10 @@ namespace Controllers
         public async Task<ActionResult<List<User>>> GetAllUsers()
         {
             var users = await _userService.GetAllUsersAsync();
+
+            if (users == null || users.Count == 0)
+                return Ok(new List<User>());
+
             return Ok(users);
         }
 

@@ -13,6 +13,7 @@ import Register from './Pages/Register/Register';
 import Profile from './Pages/Profile/Profile';
 import Users from './Pages/Users/Users'
 import { AuthProvider } from './Utils/AuthProvider';
+import  LeaderBoard  from './Components/LeaderBoard';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
       <AuthProvider>
         <Navbar />
         <ReturnToGameBanner />
+        <LeaderBoard />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path='/login' element={<Login />} />
