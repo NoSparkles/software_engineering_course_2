@@ -31,7 +31,7 @@ export default function GameEntry() {
 
     try {
       const connection = new HubConnectionBuilder()
-        .withUrl("http://localhost:5236/joinByCodeHub")
+        .withUrl("http://localhost:5236/JoinByCodeHub") // fixed casing
         .build();
 
       await connection.start();
@@ -67,7 +67,7 @@ export default function GameEntry() {
 
     try {
       const connection = new HubConnectionBuilder()
-        .withUrl("http://localhost:5236/JoinByCodeHub")
+        .withUrl("http://localhost:5236/JoinByCodeHub") // fixed casing
         .build();
 
       await connection.start();
@@ -142,7 +142,7 @@ export default function GameEntry() {
   const handleCreateRoom = async () => {
     try {
       const connection = new HubConnectionBuilder()
-        .withUrl("http://localhost:5236/joinByCodeHub")
+        .withUrl("http://localhost:5236/JoinByCodeHub") // fixed casing
         .build();
 
       await connection.start();

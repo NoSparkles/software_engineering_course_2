@@ -189,6 +189,44 @@ namespace Hubs
             }
         }
 
+        public async Task ReportWin(string gameType, string roomCode, string playerId)
+        {
+            var roomKey = gameType.ToRoomKey(roomCode);
+
+            if (!RoomService.Rooms.ContainsKey(roomKey))
+            {
+                Console.WriteLine($"ReportWin failed: Room {roomKey} no longer exists");
+                return;
+            }
+
+            var room = RoomService.GetRoomByKey(roomKey);
+            if (room == null)
+            {
+                Console.WriteLine($"Room {roomKey} not found for ReportWin");
+                return;
+            }
+
+            var game = room.Game;
+            await game.ReportWin(playerId, Clients);
+
+            // Map winner and loser usernames
+            var winner = room.RoomPlayers.FirstOrDefault(p => p.PlayerId == playerId);
+            var loser = room.RoomPlayers.FirstOrDefault(p => p.PlayerId != null && p.PlayerId != playerId);
+
+            var winnerUsername = winner?.Username;
+            var loserUsername = loser?.Username;
+
+            if (!string.IsNullOrWhiteSpace(winnerUsername) && !string.IsNullOrWhiteSpace(loserUsername))
+            {
+                var ok = await UserService.ApplyGameResultAsync(gameType, winnerUsername, loserUsername, isDraw: false);
+                Console.WriteLine($"ApplyGameResultAsync({gameType}) -> {ok} for winner {winnerUsername}, loser {loserUsername}");
+            }
+            else
+            {
+                Console.WriteLine("ReportWin: Username(s) missing; skipping MMR update");
+            }
+        }
+
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
             Console.WriteLine($"JoinByCodeHub.OnDisconnectedAsync called - ConnectionId: {Context.ConnectionId}");

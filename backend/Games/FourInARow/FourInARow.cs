@@ -9,16 +9,16 @@ namespace Games
         public string[,] Board { get; private set; } = new string[6, 7];
        public string CurrentPlayerColor { get; private set; } = "R";
         // WinnerColor is null when there is no winner yet
-        public string? WinnerColor { get; private set; } = null;
+        public string WinnerColor { get; private set; } = "";
         // RoomCode will be set by the hub when the game is created
         public bool IsValidMove(int col)
         {
             return col >= 0 && col < 7 && Board[0, col] == null;
         }
 
-        public bool ApplyMove(int col, string playerColor)
+        public bool ApplyMove(int col, string playerColor, IHubCallerClients clients)
         {
-            if (WinnerColor != null || playerColor != CurrentPlayerColor || !IsValidMove(col))
+            if (!string.IsNullOrEmpty(WinnerColor) || playerColor != CurrentPlayerColor || !IsValidMove(col))
                 return false;
 
             for (int row = 5; row >= 0; row--)
@@ -27,13 +27,31 @@ namespace Games
                 {
                     Board[row, col] = playerColor;
                     if (CheckWin(row, col, playerColor))
+                    {
                         WinnerColor = playerColor;
+                        clients.Group(RoomCode).SendAsync("GameOver", WinnerColor);
+                    }
+                    else if (IsBoardFull())
+                    {
+                        WinnerColor = "DRAW";
+                        clients.Group(RoomCode).SendAsync("GameOver", WinnerColor);
+                    }
                     else
                         CurrentPlayerColor = (CurrentPlayerColor == "R") ? "Y" : "R";
                     return true;
                 }
             }
             return false;
+        }
+
+        private bool IsBoardFull()
+        {
+            for (int col = 0; col < 7; col++)
+            {
+                if (Board[0, col] == null)
+                    return false;
+            }
+            return true;
         }
 
         private bool CheckWin(int row, int col, string color)
@@ -72,7 +90,7 @@ namespace Games
                 var color = GetPlayerColor(user);
                 if (color == null) return;
                 if (!int.TryParse(command.Substring(5), out int col)) return;
-                if (ApplyMove(col, color))
+                if (ApplyMove(col, color, clients))
                 {
                     // Convert Board to jagged array for JS
                     var boardToSend = new string[6][];
@@ -95,7 +113,7 @@ namespace Games
             {
                 Board = new string[6, 7];
                 CurrentPlayerColor = "R";
-                WinnerColor = null;
+                WinnerColor = "";
                 await clients.Group(RoomCode).SendAsync("GameReset");
             }
         }
@@ -115,8 +133,15 @@ namespace Games
             {
                 board = boardToSend,
                 currentPlayer = CurrentPlayerColor,
-                winner = WinnerColor
+                winner = WinnerColor ?? ""
             };
+        }
+
+        public override async Task ReportWin(string playerId, IHubCallerClients clients)
+        {
+            Console.WriteLine($"FourInARow: ReportWin called for player {playerId}, winner is {WinnerColor}");
+            // Win already reported through GameOver event in ApplyMove
+            await Task.CompletedTask;
         }
     }
 }

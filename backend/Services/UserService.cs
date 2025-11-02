@@ -433,6 +433,59 @@ namespace Services
             // Use EF Core context to find user by username
             return _context.Users.FirstOrDefault(u => u.Username == username);
         }
+
+        // New: apply a game result to update MMR and win streaks
+        public async Task<bool> ApplyGameResultAsync(string gameType, string? winnerUsername, string? loserUsername, bool isDraw = false)
+        {
+            if (isDraw) return true; // no changes for draw
+
+            if (string.IsNullOrWhiteSpace(winnerUsername) || string.IsNullOrWhiteSpace(loserUsername))
+                return false;
+
+            var winner = await _context.Users.FindAsync(winnerUsername);
+            var loser = await _context.Users.FindAsync(loserUsername);
+            if (winner == null || loser == null) return false;
+
+            const int baseWinDelta = 15;
+            const int loseDelta = 10;
+            const int perStreakBonus = 2; // +2 MMR for each current win streak
+
+            switch (gameType)
+            {
+                case "rock-paper-scissors":
+                {
+                    var bonus = perStreakBonus * winner.RockPaperScissorsWinStreak;
+                    winner.RockPaperScissorsMMR += baseWinDelta + bonus;
+                    loser.RockPaperScissorsMMR = Math.Max(0, loser.RockPaperScissorsMMR - loseDelta);
+                    winner.RockPaperScissorsWinStreak += 1;
+                    loser.RockPaperScissorsWinStreak = 0;
+                    break;
+                }
+                case "four-in-a-row":
+                {
+                    var bonus = perStreakBonus * winner.FourInARowWinStreak;
+                    winner.FourInARowMMR += baseWinDelta + bonus;
+                    loser.FourInARowMMR = Math.Max(0, loser.FourInARowMMR - loseDelta);
+                    winner.FourInARowWinStreak += 1;
+                    loser.FourInARowWinStreak = 0;
+                    break;
+                }
+                case "pair-matching":
+                {
+                    var bonus = perStreakBonus * winner.PairMatchingWinStreak;
+                    winner.PairMatchingMMR += baseWinDelta + bonus;
+                    loser.PairMatchingMMR = Math.Max(0, loser.PairMatchingMMR - loseDelta);
+                    winner.PairMatchingWinStreak += 1;
+                    loser.PairMatchingWinStreak = 0;
+                    break;
+                }
+                default:
+                    return false;
+            }
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }
 

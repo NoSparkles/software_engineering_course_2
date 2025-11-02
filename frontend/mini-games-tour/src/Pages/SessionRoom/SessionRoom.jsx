@@ -25,7 +25,7 @@ export default function SessionRoom() {
   const hasLeftRoomRef = useRef(false);
   
   const { connection, connectionState, reconnected } = useSignalRService({
-    hubUrl: "http://localhost:5236/joinByCodeHub",
+    hubUrl: "http://localhost:5236/JoinByCodeHub", // fixed casing
     gameType,
     roomCode: code,
     playerId,
@@ -193,6 +193,26 @@ export default function SessionRoom() {
         setRoomCloseTime(null);
       });
 
+      // New: on game over, report win (non-spectators) so leaderboard updates
+      connection.on("GameOver", (winnerColor) => {
+        if (isSpectator) return;
+
+        if (winnerColor === "DRAW") {
+          setStatus("It's a draw!");
+          return;
+        }
+
+        if (playerColor && winnerColor === playerColor) {
+          setStatus("You won!");
+          if (connection && connection.state === "Connected") {
+            connection.invoke("ReportWin", gameType, code, playerId)
+              .catch(err => console.error("ReportWin failed:", err));
+          }
+        } else {
+          setStatus("You lost!");
+        }
+      });
+
       connection.on("RoomClosing", (message) => {
         setStatus(message);
         localStorage.removeItem("roomCloseTime");
@@ -320,6 +340,7 @@ export default function SessionRoom() {
         connection.off("RoomClosing");
         connection.off("RoomClosed");
         connection.off("JoinFailed");
+        connection.off("GameOver"); // added cleanup
       };
     }
   }, [gameType, code, navigate, connection, connectionState, playerId, token]);
