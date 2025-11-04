@@ -20,10 +20,14 @@ export default function MatchmakingSessionRoom() {
   const [status, setStatus] = useState("Game in progress...");
   const [board, setBoard] = useState(null);
   const [playerColor, setPlayerColor] = useState(null);
+  const playerColorRef = useRef(null);
   const playerId = usePlayerId();
   const timeLeft = useCountdownTimer();
   const [isLeavingRoom, setIsLeavingRoom] = useState(false);
   const hasLeftRoomRef = useRef(false);
+  const [roomCloseTime, setRoomCloseTime] = useState(() => localStorage.getItem("roomCloseTime"));
+  const [roomPlayers, setRoomPlayers] = useState([playerId]);
+  const [gameStarted, setGameStarted] = useState(false);
   
   const { connection, connectionState, reconnected } = useSignalRService({
     hubUrl: "http://localhost:5236/MatchMakingHub",
@@ -158,7 +162,45 @@ export default function MatchmakingSessionRoom() {
       });
 
       connection.on("SetPlayerColor", (color) => {
+        const extractedColor = color[playerId];
         setPlayerColor(color[playerId]);
+        playerColorRef.current = extractedColor;
+      });
+
+      connection.on("GameOver", (winnerColor) => {
+        const currentPlayerColor = playerColorRef.current;
+        console.log("GameOver event:", { winnerColor, playerColor: currentPlayerColor, playerId });
+        
+        if (!isSpectator) {
+          if (winnerColor === "DRAW") {
+            setStatus("It's a draw!");
+            console.log("Game ended in a draw");
+          } else if (currentPlayerColor === winnerColor) {
+            setStatus("You won!");
+            if (connection && connection.state === "Connected") {
+              connection.invoke("ReportWin", gameType, code, playerId)
+                .catch(err => console.error("ReportWin failed:", err));
+            }
+            console.log(`Player ${playerId} with color ${currentPlayerColor} has won the game`);
+          } else {
+            setStatus("You lost!");
+            console.log(`Player ${playerId} with color ${currentPlayerColor} has lost the game. Winner was ${winnerColor}`);
+          }
+        } else {
+          // For spectators, show more descriptive winner messages
+          if (winnerColor === "DRAW") {
+            setStatus("Game over! It's a draw!");
+          } else {
+            // Handle different game types for spectator display
+            let winnerName = winnerColor;
+            if (gameType === 'four-in-a-row' || gameType === 'pair-matching') {
+              winnerName = winnerColor === "R" ? "Red" : "Yellow";
+            } else if (gameType === 'rock-paper-scissors') {
+              winnerName = winnerColor === "R" ? "Player 1 (Red)" : "Player 2 (Yellow)";
+            }
+            setStatus(`Game over! Winner: ${winnerName}`);
+          }
+        }
       });
 
       connection.on("UnauthorizedMatchmaking", () => {
@@ -383,19 +425,6 @@ export default function MatchmakingSessionRoom() {
     
     navigate('/');
   };
-
-  const [roomCloseTime, setRoomCloseTime] = useState(() => localStorage.getItem("roomCloseTime"));
-  const [roomPlayers, setRoomPlayers] = useState([playerId]);
-  const [gameStarted, setGameStarted] = useState(false);
-
-  useEffect(() => {
-    function handleRoomCloseTimeChange() {
-      setRoomCloseTime(localStorage.getItem("roomCloseTime"));
-    }
-    window.addEventListener("storage", handleRoomCloseTimeChange);
-
-    return () => window.removeEventListener("storage", handleRoomCloseTimeChange);
-  }, []);
 
   const showTimer = !isSpectator &&
     roomCloseTime &&

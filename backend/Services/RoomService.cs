@@ -3,6 +3,7 @@ using Games;
 using Extensions;
 using Models;
 using Models.InMemoryModels;
+using System.Threading;
 
 namespace Services
 {
@@ -100,6 +101,19 @@ namespace Services
             return false;
         }
 
+        public async Task ReportWin(string playerId, IHubCallerClients clients)
+        {
+            foreach (var room in Rooms.Values)
+            {
+                if (room.RoomPlayers.Any(rp => rp.PlayerId == playerId))
+                {
+                    await room.Game.ReportWin(playerId, clients); // pass clients
+                    await clients.Group(room.Code).SendAsync("PlayerWon", playerId);
+                    break;
+                }
+            }
+        }
+
         public async Task JoinAsPlayerNotMatchMaking(string gameType, string roomCode, string playerId, User? user, string connectionId, IHubCallerClients clients)
         {
             var roomKey = gameType.ToRoomKey(roomCode);
@@ -153,7 +167,11 @@ namespace Services
                     foreach (var rp in room.RoomPlayers)
                     {
                         if (rp.PlayerId != null)
-                            playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                        {
+                            var color = game.GetPlayerColor(rp);
+                            if (color != null)
+                                playerIdToColor[rp.PlayerId] = color;
+                        }
                     }
                 }
                 await clients.Client(connectionId).SendAsync("SetPlayerColor", playerIdToColor);
@@ -171,12 +189,20 @@ namespace Services
                     case PairMatching pairGame:
                         var boardState = pairGame.GetGameState();
                         await clients.Client(connectionId).SendAsync("ReceiveBoard", boardState);
+                        if (pairGame.WinnerColor != "")
+                        {
+                            await clients.Client(connectionId).SendAsync("GameOver", pairGame.WinnerColor);
+                        }
                         if (SpectatorHubContext != null)
                             await SpectatorHubContext.Clients.Group(roomKey).SendAsync("GameStateUpdate", boardState);
                         break;
                     case RockPaperScissors rpsGame:
                         var rpsState = rpsGame.GetGameStatePublic();
                         await clients.Client(connectionId).SendAsync("ReceiveRpsState", rpsState);
+                        if (rpsGame.WinnerColor != "")
+                        {
+                            await clients.Client(connectionId).SendAsync("GameOver", rpsGame.WinnerColor);
+                        }
                         if (SpectatorHubContext != null)
                             await SpectatorHubContext.Clients.Group(roomKey).SendAsync("GameStateUpdate", rpsState);
                         break;
@@ -252,12 +278,20 @@ namespace Services
                     case PairMatching pairGame:
                         var boardState2 = pairGame.GetGameState();
                         await clients.Group(roomKey).SendAsync("ReceiveBoard", boardState2);
+                        if (pairGame.WinnerColor != "")
+                        {
+                            await clients.Client(connectionId).SendAsync("GameOver", pairGame.WinnerColor);
+                        }
                         if (SpectatorHubContext != null)
                             await SpectatorHubContext.Clients.Group(roomKey).SendAsync("GameStateUpdate", boardState2);
                         break;
                     case RockPaperScissors rpsGame:
                         var rpsState2 = rpsGame.GetGameStatePublic();
                         await clients.Group(roomKey).SendAsync("ReceiveRpsState", rpsState2);
+                        if (rpsGame.WinnerColor != "")
+                        {
+                            await clients.Client(connectionId).SendAsync("GameOver", rpsGame.WinnerColor);
+                        }
                         if (SpectatorHubContext != null)
                             await SpectatorHubContext.Clients.Group(roomKey).SendAsync("GameStateUpdate", rpsState2);
                         break;
@@ -327,7 +361,11 @@ namespace Services
                     foreach (var rp in room.RoomPlayers)
                     {
                         if (rp.PlayerId != null)
-                            playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                        {
+                            var color = game.GetPlayerColor(rp);
+                            if (color != null)
+                                playerIdToColor[rp.PlayerId] = color;
+                        }
                     }
                 }
                 await clients.Client(connectionId).SendAsync("SetPlayerColor", playerIdToColor);
@@ -338,18 +376,30 @@ namespace Services
                     case FourInARowGame fourGame:
                         var moveState3 = fourGame.GetGameState();
                         await clients.Client(connectionId).SendAsync("ReceiveMove", moveState3);
+                        if( fourGame.WinnerColor != "")
+                        {
+                            await clients.Client(connectionId).SendAsync("GameOver", fourGame.WinnerColor);
+                        }
                         if (SpectatorHubContext != null)
                             await SpectatorHubContext.Clients.Group(roomKey).SendAsync("GameStateUpdate", moveState3);
                         break;
                     case PairMatching pairGame:
                         var boardState3 = pairGame.GetGameState();
                         await clients.Client(connectionId).SendAsync("ReceiveBoard", boardState3);
+                        if (pairGame.WinnerColor != "")
+                        {
+                            await clients.Client(connectionId).SendAsync("GameOver", pairGame.WinnerColor);
+                        }
                         if (SpectatorHubContext != null)
                             await SpectatorHubContext.Clients.Group(roomKey).SendAsync("GameStateUpdate", boardState3);
                         break;
                     case RockPaperScissors rpsGame:
                         var rpsState3 = rpsGame.GetGameStatePublic();
                         await clients.Client(connectionId).SendAsync("ReceiveRpsState", rpsState3);
+                        if (rpsGame.WinnerColor != "")
+                        {
+                            await clients.Client(connectionId).SendAsync("GameOver", rpsGame.WinnerColor);
+                        }
                         if (SpectatorHubContext != null)
                             await SpectatorHubContext.Clients.Group(roomKey).SendAsync("GameStateUpdate", rpsState3);
                         break;
@@ -388,7 +438,11 @@ namespace Services
                     foreach (var rp in room.RoomPlayers)
                     {
                         if (rp.PlayerId != null)
-                            playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                        {
+                            var color = game.GetPlayerColor(rp);
+                            if (color != null)
+                                playerIdToColor[rp.PlayerId] = color;
+                        }
                     }
                 }
 
@@ -420,7 +474,11 @@ namespace Services
                     foreach (var rp in room.RoomPlayers)
                     {
                         if (rp.PlayerId != null)
-                            playerIdToColor[rp.PlayerId] = game.GetPlayerColor(rp);
+                        {
+                            var color = game.GetPlayerColor(rp);
+                            if (color != null)
+                                playerIdToColor[rp.PlayerId] = color;
+                        }
                     }
                 }
                 await clients.Group(roomKey).SendAsync("SetPlayerColor", playerIdToColor);
@@ -437,12 +495,20 @@ namespace Services
                     case PairMatching pairGame:
                         var boardState4 = pairGame.GetGameState();
                         await clients.Group(roomKey).SendAsync("ReceiveBoard", boardState4);
+                        if (pairGame.WinnerColor != "")
+                        {
+                            await clients.Client(connectionId).SendAsync("GameOver", pairGame.WinnerColor);
+                        }
                         if (SpectatorHubContext != null)
                             await SpectatorHubContext.Clients.Group(roomKey).SendAsync("GameStateUpdate", boardState4);
                         break;
                     case RockPaperScissors rpsGame:
                         var rpsState4 = rpsGame.GetGameStatePublic();
                         await clients.Group(roomKey).SendAsync("ReceiveRpsState", rpsState4);
+                        if (rpsGame.WinnerColor != "")
+                        {
+                            await clients.Client(connectionId).SendAsync("GameOver", rpsGame.WinnerColor);
+                        }
                         if (SpectatorHubContext != null)
                             await SpectatorHubContext.Clients.Group(roomKey).SendAsync("GameStateUpdate", rpsState4);
                         break;
@@ -726,6 +792,7 @@ namespace Services
                 try
                 {
                     cts?.Cancel();
+                    cts?.Dispose();
                 }
                 catch (ObjectDisposedException)
                 {
@@ -744,10 +811,13 @@ namespace Services
                 existing = room.RoomTimerCancellation;
                 room.RoomTimerCancellation = null;
             }
-            try { existing?.Cancel(); } catch (ObjectDisposedException) { }
+            try { 
+                existing?.Cancel(); 
+                existing?.Dispose(); 
+            } catch (ObjectDisposedException) { }
 
             // Set new timer
-            var newCts = new System.Threading.CancellationTokenSource();
+            var newCts = new CancellationTokenSource();
             lock (room)
             {
                 room.RoomCloseTime = DateTime.UtcNow.AddSeconds(30);

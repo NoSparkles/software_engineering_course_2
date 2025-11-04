@@ -112,6 +112,12 @@ namespace Games
             }
 
             await clients.Group(RoomCode).SendAsync("ReceiveRpsState", GetGameState());
+
+            // Send GameOver event when match is complete
+            if (!string.IsNullOrEmpty(WinnerColor))
+            {
+                await clients.Group(RoomCode).SendAsync("GameOver", WinnerColor);
+            }
         }
 
         private static string DecideWinner(string rChoice, string yChoice)
@@ -158,6 +164,12 @@ namespace Games
         public object GetGameStatePublic()
         {
             return GetGameState();
+        }
+
+        public override async Task ReportWin(string playerId, IHubCallerClients clients)
+        {
+            // Win is already communicated via GameOver; nothing to do here.
+            await Task.CompletedTask;
         }
     }
 }
