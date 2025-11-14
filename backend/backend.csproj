@@ -7,6 +7,10 @@
     <RootNamespace>backend</RootNamespace>
   </PropertyGroup>
 
+  <!-- Prevent duplicate assembly attributes when AssemblyInfo is defined manually -->
+  <PropertyGroup>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.10" />
@@ -16,16 +20,25 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.5" />
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Controllers\" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="jwt.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <!-- Exclude test sources placed under the backend.Tests folder so they are not compiled into the main project -->
+  <ItemGroup>
+    <Compile Remove="backend.Tests\**\*.cs" />
+    <None Remove="backend.Tests\**\*.*" />
   </ItemGroup>
 
 </Project>
