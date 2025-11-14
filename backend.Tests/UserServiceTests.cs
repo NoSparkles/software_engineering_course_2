@@ -165,6 +165,26 @@ namespace backend.Tests
             result.Should().BeNull();
         }
 
+        [Fact]
+        public async Task DeleteUserAsync_Should_Return_True_When_User_Exists()
+        {
+            _context.Users.Add(new User { Username = "testuser", PasswordHash = "hash123" });
+            await _context.SaveChangesAsync();
+
+            var result = await _service.DeleteUserAsync("testuser");
+
+            result.Should().BeTrue();
+            var deletedUser = await _context.Users.FindAsync("testuser");
+            deletedUser.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task DeleteUserAsync_Should_Return_False_When_User_Does_Not_Exist()
+        {
+            var result = await _service.DeleteUserAsync("nonexistent");
+
+            result.Should().BeFalse();
+        }
 
     }
 }
