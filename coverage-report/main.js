@@ -233,7 +233,7 @@ var assemblies = [
       { "name": "Exceptions.ExceptionConsoleLogger", "rp": "backend_ExceptionConsoleLogger.html", "cl": 0, "ucl": 3, "cal": 3, "tl": 10, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Exceptions.ExceptionFileLogger", "rp": "backend_ExceptionFileLogger.html", "cl": 0, "ucl": 14, "cal": 14, "tl": 25, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Exceptions.ExceptionManager<T>", "rp": "backend_ExceptionManager_1.html", "cl": 0, "ucl": 8, "cal": 8, "tl": 19, "cb": 0, "tb": 2, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Extensions.RoomKeyExtensions", "rp": "backend_RoomKeyExtensions.html", "cl": 0, "ucl": 1, "cal": 1, "tl": 8, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Extensions.RoomKeyExtensions", "rp": "backend_RoomKeyExtensions.html", "cl": 1, "ucl": 0, "cal": 1, "tl": 8, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Games.Card", "rp": "backend_Card.html", "cl": 0, "ucl": 6, "cal": 6, "tl": 14, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Games.FourInARowGame", "rp": "backend_FourInARowGame.html", "cl": 0, "ucl": 112, "cal": 112, "tl": 147, "cb": 0, "tb": 60, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Games.GameInstance", "rp": "backend_GameInstance.html", "cl": 0, "ucl": 13, "cal": 13, "tl": 31, "cb": 0, "tb": 8, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
@@ -242,14 +242,14 @@ var assemblies = [
       { "name": "Hubs.JoinByCodeHub", "rp": "backend_JoinByCodeHub.html", "cl": 0, "ucl": 152, "cal": 152, "tl": 256, "cb": 0, "tb": 52, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Hubs.MatchMakingHub", "rp": "backend_MatchMakingHub.html", "cl": 0, "ucl": 224, "cal": 224, "tl": 352, "cb": 0, "tb": 86, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Hubs.SpectatorHub", "rp": "backend_SpectatorHub.html", "cl": 0, "ucl": 90, "cal": 90, "tl": 148, "cb": 0, "tb": 32, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Models.FromInvitationToGame", "rp": "backend_FromInvitationToGame.html", "cl": 0, "ucl": 13, "cal": 13, "tl": 25, "cb": 0, "tb": 8, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Models.FromInvitationToGame", "rp": "backend_FromInvitationToGame.html", "cl": 10, "ucl": 3, "cal": 13, "tl": 25, "cb": 4, "tb": 8, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Models.InMemoryModels.Room", "rp": "backend_Room.html", "cl": 0, "ucl": 33, "cal": 33, "tl": 46, "cb": 0, "tb": 10, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Models.InMemoryModels.RoomUser", "rp": "backend_RoomUser.html", "cl": 0, "ucl": 19, "cal": 19, "tl": 28, "cb": 0, "tb": 4, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Models.ToInvitationToGame", "rp": "backend_ToInvitationToGame.html", "cl": 0, "ucl": 13, "cal": 13, "tl": 25, "cb": 0, "tb": 8, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Models.ToInvitationToGame", "rp": "backend_ToInvitationToGame.html", "cl": 10, "ucl": 3, "cal": 13, "tl": 25, "cb": 4, "tb": 8, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Models.User", "rp": "backend_User.html", "cl": 14, "ucl": 5, "cal": 19, "tl": 38, "cb": 0, "tb": 2, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Program", "rp": "backend_Program.html", "cl": 0, "ucl": 73, "cal": 73, "tl": 103, "cb": 0, "tb": 8, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Services.RoomService", "rp": "backend_RoomService.html", "cl": 0, "ucl": 826, "cal": 826, "tl": 1092, "cb": 0, "tb": 386, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Services.UserService", "rp": "backend_UserService.html", "cl": 88, "ucl": 224, "cal": 312, "tl": 491, "cb": 13, "tb": 112, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Services.RoomService", "rp": "backend_RoomService.html", "cl": 16, "ucl": 810, "cal": 826, "tl": 1092, "cb": 0, "tb": 386, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Services.UserService", "rp": "backend_UserService.html", "cl": 262, "ucl": 50, "cal": 312, "tl": 491, "cb": 87, "tb": 112, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
     ]},
 ];
 
@@ -336,18 +336,6 @@ var riskHotspots = [
       { "value": 16, "exceeded": true },
     ]},
   {
-    "assembly": "backend", "class": "Services.UserService", "reportPath": "backend_UserService.html", "methodName": "ApplyGameResultAsync()", "methodShortName": "ApplyGameResultAsync()", "fileIndex": 0, "line": 439,
-    "metrics": [
-      { "value": 272, "exceeded": true },
-      { "value": 16, "exceeded": true },
-    ]},
-  {
-    "assembly": "backend", "class": "Services.UserService", "reportPath": "backend_UserService.html", "methodName": "RemoveInviteFriendToGameExpired()", "methodShortName": "RemoveInviteFriendToGameExpired()", "fileIndex": 0, "line": 295,
-    "metrics": [
-      { "value": 272, "exceeded": true },
-      { "value": 16, "exceeded": true },
-    ]},
-  {
     "assembly": "backend", "class": "Games.FourInARowGame", "reportPath": "backend_FourInARowGame.html", "methodName": "HandleCommand()", "methodShortName": "HandleCommand()", "fileIndex": 0, "line": 87,
     "metrics": [
       { "value": 210, "exceeded": true },
@@ -355,12 +343,6 @@ var riskHotspots = [
     ]},
   {
     "assembly": "backend", "class": "Hubs.MatchMakingHub", "reportPath": "backend_MatchMakingHub.html", "methodName": "JoinMatchmaking()", "methodShortName": "JoinMatchmaking()", "fileIndex": 0, "line": 125,
-    "metrics": [
-      { "value": 210, "exceeded": true },
-      { "value": 14, "exceeded": false },
-    ]},
-  {
-    "assembly": "backend", "class": "Services.UserService", "reportPath": "backend_UserService.html", "methodName": "SendFriendRequestAsync()", "methodShortName": "SendFriendRequestAsync()", "fileIndex": 0, "line": 143,
     "metrics": [
       { "value": 210, "exceeded": true },
       { "value": 14, "exceeded": false },
@@ -420,10 +402,16 @@ var riskHotspots = [
       { "value": 10, "exceeded": false },
     ]},
   {
-    "assembly": "backend", "class": "Services.UserService", "reportPath": "backend_UserService.html", "methodName": "UpdateMMRAsync()", "methodShortName": "UpdateMMRAsync()", "fileIndex": 0, "line": 390,
+    "assembly": "backend", "class": "Services.UserService", "reportPath": "backend_UserService.html", "methodName": "ApplyGameResultAsync()", "methodShortName": "ApplyGameResultAsync()", "fileIndex": 0, "line": 439,
     "metrics": [
-      { "value": 110, "exceeded": true },
-      { "value": 10, "exceeded": false },
+      { "value": 103, "exceeded": true },
+      { "value": 16, "exceeded": true },
+    ]},
+  {
+    "assembly": "backend", "class": "Services.UserService", "reportPath": "backend_UserService.html", "methodName": "SendFriendRequestAsync()", "methodShortName": "SendFriendRequestAsync()", "fileIndex": 0, "line": 143,
+    "metrics": [
+      { "value": 79, "exceeded": true },
+      { "value": 14, "exceeded": false },
     ]},
   {
     "assembly": "backend", "class": "Controllers.UserController", "reportPath": "backend_UserController.html", "methodName": "Login()", "methodShortName": "Login()", "fileIndex": 0, "line": 93,
@@ -487,12 +475,6 @@ var riskHotspots = [
     ]},
   {
     "assembly": "backend", "class": "Services.RoomService", "reportPath": "backend_RoomService.html", "methodName": "CancelRoomTimer()", "methodShortName": "CancelRoomTimer()", "fileIndex": 0, "line": 782,
-    "metrics": [
-      { "value": 72, "exceeded": true },
-      { "value": 8, "exceeded": false },
-    ]},
-  {
-    "assembly": "backend", "class": "Services.UserService", "reportPath": "backend_UserService.html", "methodName": "RemoveFriendAsync()", "methodShortName": "RemoveFriendAsync()", "fileIndex": 0, "line": 226,
     "metrics": [
       { "value": 72, "exceeded": true },
       { "value": 8, "exceeded": false },
@@ -576,22 +558,10 @@ var riskHotspots = [
       { "value": 6, "exceeded": false },
     ]},
   {
-    "assembly": "backend", "class": "Services.UserService", "reportPath": "backend_UserService.html", "methodName": "AcceptFriendRequestAsync()", "methodShortName": "AcceptFriendRequestAsync()", "fileIndex": 0, "line": 185,
+    "assembly": "backend", "class": "Services.UserService", "reportPath": "backend_UserService.html", "methodName": "RemoveInviteFriendToGameExpired()", "methodShortName": "RemoveInviteFriendToGameExpired()", "fileIndex": 0, "line": 295,
     "metrics": [
-      { "value": 42, "exceeded": true },
-      { "value": 6, "exceeded": false },
-    ]},
-  {
-    "assembly": "backend", "class": "Services.UserService", "reportPath": "backend_UserService.html", "methodName": "InviteFriendToGame()", "methodShortName": "InviteFriendToGame()", "fileIndex": 0, "line": 245,
-    "metrics": [
-      { "value": 42, "exceeded": true },
-      { "value": 6, "exceeded": false },
-    ]},
-  {
-    "assembly": "backend", "class": "Services.UserService", "reportPath": "backend_UserService.html", "methodName": "RejectFriendRequestAsync()", "methodShortName": "RejectFriendRequestAsync()", "fileIndex": 0, "line": 207,
-    "metrics": [
-      { "value": 42, "exceeded": true },
-      { "value": 6, "exceeded": false },
+      { "value": 16, "exceeded": false },
+      { "value": 16, "exceeded": true },
     ]},
 ];
 
