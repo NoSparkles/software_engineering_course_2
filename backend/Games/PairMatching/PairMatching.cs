@@ -124,6 +124,17 @@ namespace Games
                 }
             }
         }
+
+        public Card[,] GetBoard()
+        {
+            return Board;
+        }
+
+        public Dictionary<string, int> GetScores()
+        {
+            return Scores;
+        }
+
         private void ResetGame()
         {
             GenerateBoard();
@@ -135,38 +146,39 @@ namespace Games
             resetVotes["R"] = false;
             resetVotes["Y"] = false;
         }
-        public object GetGameState()
+        public GameState GetGameState()
         {
-            var boardState = new List<object>();
+            var boardState = new List<CardInfo>();
+
             for (int i = 0; i < 3; i++)
             {
                 for (int j = 0; j < 6; j++)
                 {
                     var card = Board[i, j];
-                    boardState.Add(new
+                    boardState.Add(new CardInfo
                     {
-                        value = card.Value,
-                        state = card.state.ToString(),
-                        x = i,
-                        y = j
+                        Value = card.Value,
+                        State = card.state.ToString(),
+                        X = i,
+                        Y = j
                     });
                 }
             }
 
-            // Convert flipped (row, col) pairs to flat indices
             var flippedIndices = FlippedCards
                 .Select(coords => coords[0] * 6 + coords[1])
                 .ToList();
 
-            return new
+            return new GameState
             {
-                board = boardState,
-                currentPlayer = CurrentPlayerColor,
-                flipped = flippedIndices,
-                scores = Scores,
-                winner = WinnerColor ?? ""
+                Board = boardState,
+                CurrentPlayer = CurrentPlayerColor,
+                Flipped = flippedIndices,
+                Scores = Scores,
+                Winner = WinnerColor ?? ""
             };
         }
+
 
         public override async Task ReportWin(string playerId, IHubCallerClients clients)
         {
