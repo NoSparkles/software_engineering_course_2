@@ -14,11 +14,12 @@ namespace Controllers
     {
         private readonly UserService _userService;
         private readonly RoomService _roomService;
-
+        private readonly ExceptionManager<UserNotFoundException> mgr;
         public UserController(UserService userService, RoomService roomService)
         {
             _userService = userService;
             _roomService = roomService;
+            mgr = new ExceptionManager<UserNotFoundException>();
         }
 
         [Authorize]
@@ -36,7 +37,6 @@ namespace Controllers
             }
             catch (UserNotFoundException uex)
             {
-                var mgr = new ExceptionManager<UserNotFoundException>();
                 mgr.Log<ExceptionFileLogger>(uex);
                 mgr.Log<ExceptionConsoleLogger>(uex);
                 return NotFound(new { message = uex.Message, code = uex.ErrorCode });
@@ -69,7 +69,7 @@ namespace Controllers
             }
             catch (UserNotFoundException uex)
             {
-                var mgr = new ExceptionManager<UserNotFoundException>();
+             
                 mgr.Log<ExceptionFileLogger>(uex);
                 mgr.Log<ExceptionConsoleLogger>(uex);
                 return NotFound(new { message = uex.Message, code = uex.ErrorCode });
@@ -106,7 +106,7 @@ namespace Controllers
             }
             catch (UserNotFoundException uex)
             {
-                var mgr = new ExceptionManager<UserNotFoundException>();
+          
                 mgr.Log<ExceptionFileLogger>(uex);
                 mgr.Log<ExceptionConsoleLogger>(uex);
                 return StatusCode(500, new { message = "User created but could not be retrieved.", code = uex.ErrorCode });
@@ -150,7 +150,7 @@ namespace Controllers
             }
             catch (UserNotFoundException uex)
             {
-                var mgr = new ExceptionManager<UserNotFoundException>();
+               
                 mgr.Log<ExceptionFileLogger>(uex);
                 mgr.Log<ExceptionConsoleLogger>(uex);
                 return Unauthorized("Invalid username or password.");
@@ -175,7 +175,7 @@ namespace Controllers
             }
             catch (UserNotFoundException uex)
             {
-                var mgr = new ExceptionManager<UserNotFoundException>();
+               
                 mgr.Log<ExceptionFileLogger>(uex);
                 mgr.Log<ExceptionConsoleLogger>(uex);
                 return NotFound("User not found.");
@@ -201,7 +201,7 @@ namespace Controllers
             }
             catch (UserNotFoundException uex)
             {
-                var mgr = new ExceptionManager<UserNotFoundException>();
+             
                 mgr.Log<ExceptionFileLogger>(uex);
                 mgr.Log<ExceptionConsoleLogger>(uex);
                 return NotFound("User not found.");
