@@ -3,9 +3,7 @@
     <DataCollectors>
       <DataCollector friendlyName="XPlat Code Coverage">
         <Configuration>
-          <ExcludeByFile>
-            <File>**/Migrations/*.cs</File>
-          </ExcludeByFile>
+          <ExcludeByFile>**/Program.cs,**/Migrations/*.cs</ExcludeByFile>
         </Configuration>
       </DataCollector>
     </DataCollectors>
