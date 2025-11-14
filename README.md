@@ -1,2 +1,5 @@
 # software_engineering_course_2
-**./watch_coverage.ps1** - to watch coverage
+
+## Commands to start tests:
+- dotnet test backend.Tests --collect:"XPlat Code Coverage"
+- start coverage-report/index.html
