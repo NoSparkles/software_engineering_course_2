@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using Extensions;
 using System.Text.Json;
+using Exceptions;
 
 namespace Services
 {
@@ -46,9 +47,12 @@ namespace Services
         }
 
         // Get a user by username
-        public async Task<User?> GetUserAsync(string username)
+        public async Task<User> GetUserAsync(string username)
         {
-            return await _context.Users.FindAsync(username);
+            var user = await _context.Users.FindAsync(username);
+            if (user == null)
+                throw new UserNotFoundException(username, "USR_404", "GetUserAsync");
+            return user;
         }
 
         public async Task<List<User>> SearchUsersAsync(string query)
