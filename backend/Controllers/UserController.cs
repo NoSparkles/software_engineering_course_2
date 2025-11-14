@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Controllers.Dtos;
 using Models;
 using Services;
+using Exceptions;
 
 namespace Controllers
 {
@@ -13,11 +14,12 @@ namespace Controllers
     {
         private readonly UserService _userService;
         private readonly RoomService _roomService;
-
+        private readonly ExceptionManager<UserNotFoundException> mgr;
         public UserController(UserService userService, RoomService roomService)
         {
             _userService = userService;
             _roomService = roomService;
+            mgr = new ExceptionManager<UserNotFoundException>();
         }
 
         [Authorize]
@@ -28,11 +30,17 @@ namespace Controllers
             if (string.IsNullOrEmpty(username))
                 return Unauthorized("Missing username claim.");
 
-            var user = await _userService.GetUserAsync(username);
-            if (user == null)
-                return NotFound("User not found.");
-
-            return Ok(user);
+            try
+            {
+                var user = await _userService.GetUserAsync(username);
+                return Ok(user);
+            }
+            catch (UserNotFoundException uex)
+            {
+                mgr.Log<ExceptionFileLogger>(uex);
+                mgr.Log<ExceptionConsoleLogger>(uex);
+                return NotFound(new { message = uex.Message, code = uex.ErrorCode });
+            }
         }
 
         [Authorize]
@@ -54,10 +62,18 @@ namespace Controllers
         [HttpGet("{username}")]
         public async Task<ActionResult<User>> GetUser(string username)
         {
-            var user = await _userService.GetUserAsync(username);
-            if (user == null)
-                return NotFound();
-            return Ok(user);
+            try
+            {
+                var user = await _userService.GetUserAsync(username);
+                return Ok(user);
+            }
+            catch (UserNotFoundException uex)
+            {
+             
+                mgr.Log<ExceptionFileLogger>(uex);
+                mgr.Log<ExceptionConsoleLogger>(uex);
+                return NotFound(new { message = uex.Message, code = uex.ErrorCode });
+            }
         }
 
         // GET /User/search?query=someText
@@ -83,8 +99,18 @@ namespace Controllers
             if (!success)
                 return Conflict("Username already exists.");
 
-            var createdUser = await _userService.GetUserAsync(registerDto.Username);
-            return CreatedAtAction(nameof(GetUser), new { username = registerDto.Username }, createdUser);
+            try
+            {
+                var createdUser = await _userService.GetUserAsync(registerDto.Username);
+                return CreatedAtAction(nameof(GetUser), new { username = registerDto.Username }, createdUser);
+            }
+            catch (UserNotFoundException uex)
+            {
+          
+                mgr.Log<ExceptionFileLogger>(uex);
+                mgr.Log<ExceptionConsoleLogger>(uex);
+                return StatusCode(500, new { message = "User created but could not be retrieved.", code = uex.ErrorCode });
+            }
         }
 
         // POST: /User/login
@@ -94,34 +120,41 @@ namespace Controllers
             if (string.IsNullOrWhiteSpace(loginDto.Username) || string.IsNullOrWhiteSpace(loginDto.Password))
                 return BadRequest("Username and password are required.");
 
-            var user = await _userService.GetUserAsync(loginDto.Username);
-            if (user == null)
-                return Unauthorized("Invalid username or password.");
-
-            var hashedInput = _userService.HashPassword(loginDto.Password);
-            if (user.PasswordHash != hashedInput)
-                return Unauthorized("Invalid username or password.");
-
-            var token = _userService.GenerateJwtToken(user);
-
-            return Ok(new
+            try
             {
-                token,
-                user = new
+                var user = await _userService.GetUserAsync(loginDto.Username);
+                var hashedInput = _userService.HashPassword(loginDto.Password);
+                if (user.PasswordHash != hashedInput)
+                    return Unauthorized("Invalid username or password.");
+
+                var token = _userService.GenerateJwtToken(user);
+
+                return Ok(new
                 {
-                    user.Username,
-                    PlayerId = user.Username,
-                    user.Friends,
-                    user.RockPaperScissorsMMR,
-                    user.FourInARowMMR,
-                    user.PairMatchingMMR,
-                    user.RockPaperScissorsWinStreak,
-                    user.FourInARowWinStreak,
-                    user.PairMatchingWinStreak,
-                    user.IncomingFriendRequests,
-                    user.OutgoingFriendRequests
-                }
-            });
+                    token,
+                    user = new
+                    {
+                        user.Username,
+                        PlayerId = user.Username,
+                        user.Friends,
+                        user.RockPaperScissorsMMR,
+                        user.FourInARowMMR,
+                        user.PairMatchingMMR,
+                        user.RockPaperScissorsWinStreak,
+                        user.FourInARowWinStreak,
+                        user.PairMatchingWinStreak,
+                        user.IncomingFriendRequests,
+                        user.OutgoingFriendRequests
+                    }
+                });
+            }
+            catch (UserNotFoundException uex)
+            {
+               
+                mgr.Log<ExceptionFileLogger>(uex);
+                mgr.Log<ExceptionConsoleLogger>(uex);
+                return Unauthorized("Invalid username or password.");
+            }
         }
         [HttpPut("{username}/send-request")]
         public async Task<ActionResult> SendFriendRequest(string username, [FromBody] string targetUsername)
@@ -130,16 +163,23 @@ namespace Controllers
             if (!success)
                 return BadRequest("Could not send friend request.");
 
-            var updatedUser = await _userService.GetUserAsync(username);
-            if (updatedUser == null)
-                return NotFound("User not found.");
-            
-            return Ok(new
+            try
             {
-                updatedUser.Friends,
-                updatedUser.IncomingFriendRequests,
-                updatedUser.OutgoingFriendRequests
-            });
+                var updatedUser = await _userService.GetUserAsync(username);
+                return Ok(new
+                {
+                    updatedUser.Friends,
+                    updatedUser.IncomingFriendRequests,
+                    updatedUser.OutgoingFriendRequests
+                });
+            }
+            catch (UserNotFoundException uex)
+            {
+               
+                mgr.Log<ExceptionFileLogger>(uex);
+                mgr.Log<ExceptionConsoleLogger>(uex);
+                return NotFound("User not found.");
+            }
         }
 
         [HttpPut("{username}/accept-request")]
@@ -149,16 +189,23 @@ namespace Controllers
             if (!success)
                 return BadRequest("Could not accept friend request.");
 
-            var updatedUser = await _userService.GetUserAsync(username);
-            if (updatedUser == null)
-                return NotFound("User not found.");
-            
-            return Ok(new
+            try
             {
-                updatedUser.Friends,
-                updatedUser.IncomingFriendRequests,
-                updatedUser.OutgoingFriendRequests
-            });
+                var updatedUser = await _userService.GetUserAsync(username);
+                return Ok(new
+                {
+                    updatedUser.Friends,
+                    updatedUser.IncomingFriendRequests,
+                    updatedUser.OutgoingFriendRequests
+                });
+            }
+            catch (UserNotFoundException uex)
+            {
+             
+                mgr.Log<ExceptionFileLogger>(uex);
+                mgr.Log<ExceptionConsoleLogger>(uex);
+                return NotFound("User not found.");
+            }
         }
 
         [HttpPut("{username}/reject-request")]

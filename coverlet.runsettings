@@ -1,11 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
 <RunSettings>
   <DataCollectionRunSettings>
     <DataCollectors>
       <DataCollector friendlyName="XPlat Code Coverage">
         <Configuration>
-          <ExcludeByFile>
-            <File>**/Migrations/*.cs</File>
-          </ExcludeByFile>
+          <Format>cobertura</Format>
+          <Exclude>[xunit*]*,[*.Tests]*</Exclude>
         </Configuration>
       </DataCollector>
     </DataCollectors>

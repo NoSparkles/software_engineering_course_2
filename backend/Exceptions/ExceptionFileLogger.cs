@@ -8,6 +8,9 @@ namespace Exceptions
         {
             _filePath = filePath;
         }
+        public ExceptionFileLogger() : this("ExceptionLogs.txt")
+        {
+        }
 
         public void Log(Exception ex)
         {
