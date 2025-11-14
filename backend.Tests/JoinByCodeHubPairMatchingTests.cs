@@ -155,6 +155,57 @@ namespace backend.Tests
             _roomService.Rooms.Should().ContainKey(roomKey);
         }
 
+        [Fact]
+        public async Task Join_ShouldStartGame_WhenTwoPlayersJoinRoom()
+        {
+            var gameType = "pair-matching";
+            var roomCode = "room1";
+            var roomKey = gameType.ToRoomKey(roomCode);
+
+            var room = CreateRoomWithoutPlayers(gameType, roomCode);
+
+            var user1 = new User { Username = "player1", PasswordHash = "hashedpassword" };
+            _context.Users.Add(user1);
+
+            var user2 = new User { Username = "player2", PasswordHash = "hashedpassword" };
+            _context.Users.Add(user2);
+            _context.SaveChanges();
+
+            var jwt1 = _userService.GenerateJwtToken(user1);
+            var jwt2 = _userService.GenerateJwtToken(user2);
+
+            var callerProxy = A.Fake<ISingleClientProxy>();
+            var clients = A.Fake<IHubCallerClients>();
+            var groupProxy = A.Fake<IClientProxy>();
+            _hub.Clients = clients;
+
+            A.CallTo(() => clients.Caller).Returns(callerProxy);
+            A.CallTo(() => clients.Group(roomKey)).Returns(groupProxy);
+
+            await _hub.Join(gameType, roomCode, "player1", jwt1);
+
+            _roomService.Rooms.Should().ContainKey(roomKey);
+            var updatedRoom = _roomService.Rooms[roomKey];
+
+            updatedRoom.RoomPlayers.Should().HaveCount(1);
+            updatedRoom.GameStarted.Should().BeFalse("game should not start after only one player joins");
+
+            await _hub.Join(gameType, roomCode, "player2", jwt2);
+
+            updatedRoom = _roomService.Rooms[roomKey];
+
+            updatedRoom.RoomPlayers.Should().HaveCount(2);
+            updatedRoom.GameStarted.Should().BeTrue("game should start when two players join");
+
+            updatedRoom.Game.Should().BeOfType<PairMatching>("the game instance should be of type PairMatching");
+            updatedRoom.Code.Should().Be(roomKey, "the room code should match the one used to create the room");
+
+            updatedRoom.RoomPlayers[0].Username.Should().Be("player1");
+            updatedRoom.Game.GetPlayerColor(updatedRoom.RoomPlayers[0]).Should().Be("R");
+            updatedRoom.RoomPlayers[1].Username.Should().Be("player2");
+            updatedRoom.Game.GetPlayerColor(updatedRoom.RoomPlayers[1]).Should().Be("Y");
+        }
+
         private Room CreateRoomWithoutPlayers(string gameType, string roomCode)
         {
             var roomKey = gameType.ToRoomKey(roomCode);
