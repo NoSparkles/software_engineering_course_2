@@ -48,10 +48,17 @@ namespace backend.Tests
             var context = A.Fake<HubCallerContext>();
             A.CallTo(() => context.ConnectionId).Returns("conn1");
             _hub.Context = context;
+
+            var fakeGroupManager = A.Fake<IGroupManager>();
+        A.CallTo(() => fakeGroupManager.AddToGroupAsync(A<string>._, A<string>._, A<CancellationToken>._))
+            .Returns(Task.CompletedTask);
+
+        _hub.Groups = fakeGroupManager;
+
         }
 
         [Fact]
-        public async Task Join_Should_SendInitialBoard_ForPairMatching()
+        public async Task HandleCommand_GetBoard_Should_SendInitialBoard_ForPairMatching()
         {
             var gameType = "pair-matching";
             var roomCode = "room1";
@@ -91,6 +98,75 @@ namespace backend.Tests
             sentState.Scores.Should().ContainKey("R");
             sentState.Scores.Should().ContainKey("Y");
             sentState.Winner.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task Join_ShouldFail_WhenRoomDoesNotExist()
+        {
+            // Arrange
+            var gameType = "pair-matching";
+            var roomCode = "nonexistent";
+            var jwtToken = "fakeJwt";
+
+            var callerProxy = A.Fake<ISingleClientProxy>();
+            A.CallTo(() => _clients.Caller).Returns(callerProxy);
+
+            await _hub.Join(gameType, roomCode, "player1", jwtToken);
+
+            A.CallTo(() => callerProxy.SendCoreAsync(
+                "JoinFailed",
+                A<object[]>.That.Contains("Room no longer exists. It may have been closed."),
+                A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
+        }
+
+        [Fact]
+        public async Task Join_ShouldAddPlayerToRoom_WhenRoomExists()
+        {
+            var gameType = "pair-matching";
+            var roomCode = "room1";
+            var roomKey = gameType.ToRoomKey(roomCode);
+
+            var room = CreateRoomWithoutPlayers(gameType, roomCode);
+
+            var user = new User { Username = "player1", PasswordHash = "hashedpassword" };
+            _context.Users.Add(user);
+            _context.SaveChanges();
+
+            var jwtToken = _userService.GenerateJwtToken(user);
+
+            var callerProxy = A.Fake<ISingleClientProxy>();
+            var clients = A.Fake<IHubCallerClients>();
+            var groupProxy = A.Fake<IClientProxy>();
+            _hub.Clients = clients;
+            A.CallTo(() => clients.Caller).Returns(callerProxy);
+            A.CallTo(() => clients.Group(roomKey)).Returns(groupProxy);
+
+            await _hub.Join(gameType, roomCode, "player1", jwtToken);
+
+            _roomService.Rooms.Should().ContainKey(roomKey);
+
+            var updatedRoom = _roomService.Rooms[roomKey];
+
+            var playerExists = updatedRoom.RoomPlayers.Exists(rp => rp.Username == "player1");
+
+            playerExists.Should().BeTrue("JoinAsPlayerNotMatchMaking should be called to add player to the room");
+            
+            _roomService.Rooms.Should().ContainKey(roomKey);
+        }
+
+        private Room CreateRoomWithoutPlayers(string gameType, string roomCode)
+        {
+            var roomKey = gameType.ToRoomKey(roomCode);
+
+            var game = new PairMatching();
+            var room = new Room(game, isMatchMaking: false)
+            {
+                Code = roomCode
+            };
+
+            _roomService.Rooms[roomKey] = room;
+            return room;
         }
     }
 }
