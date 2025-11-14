@@ -286,5 +286,162 @@ namespace backend.Tests
             Assert.False(inGame);
         }
 
+        [Fact]
+        public async Task Register_Should_Return_Created_When_Valid()
+        {
+            var dto = new RegisterDto { Username = "newuser", Password = "password123" };
+            var result = await _controller.Register(dto);
+
+            var created = Assert.IsType<CreatedAtActionResult>(result.Result);
+            var user = Assert.IsType<User>(created.Value);
+            user.Username.Should().Be("newuser");
+        }
+
+        [Fact]
+        public async Task Register_Should_Return_BadRequest_When_Username_Is_Null()
+        {
+            var dto = new RegisterDto { Username = null!, Password = "password123" };
+            var result = await _controller.Register(dto);
+
+            var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+            badRequest.Value.Should().Be("Username and password are required.");
+        }
+
+        [Fact]
+        public async Task Register_Should_Return_BadRequest_When_Username_Is_Empty()
+        {
+            var dto = new RegisterDto { Username = "", Password = "password123" };
+            var result = await _controller.Register(dto);
+
+            var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+            badRequest.Value.Should().Be("Username and password are required.");
+        }
+
+        [Fact]
+        public async Task Register_Should_Return_BadRequest_When_Username_Is_Whitespace()
+        {
+            var dto = new RegisterDto { Username = "   ", Password = "password123" };
+            var result = await _controller.Register(dto);
+
+            var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+            badRequest.Value.Should().Be("Username and password are required.");
+        }
+
+        [Fact]
+        public async Task Register_Should_Return_BadRequest_When_Password_Is_Null()
+        {
+            var dto = new RegisterDto { Username = "newuser", Password = null! };
+            var result = await _controller.Register(dto);
+
+            var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+            badRequest.Value.Should().Be("Username and password are required.");
+        }
+
+        [Fact]
+        public async Task Register_Should_Return_BadRequest_When_Password_Is_Empty()
+        {
+            var dto = new RegisterDto { Username = "newuser", Password = "" };
+            var result = await _controller.Register(dto);
+
+            var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+            badRequest.Value.Should().Be("Username and password are required.");
+        }
+
+        [Fact]
+        public async Task Register_Should_Return_BadRequest_When_Password_Is_Whitespace()
+        {
+            var dto = new RegisterDto { Username = "newuser", Password = "   " };
+            var result = await _controller.Register(dto);
+
+            var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+            badRequest.Value.Should().Be("Username and password are required.");
+        }
+
+        [Fact]
+        public async Task Register_Should_Return_BadRequest_When_Both_Are_Null()
+        {
+            var dto = new RegisterDto { Username = null!, Password = null! };
+            var result = await _controller.Register(dto);
+
+            var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+            badRequest.Value.Should().Be("Username and password are required.");
+        }
+
+        [Fact]
+        public async Task Register_Should_Return_Conflict_When_Username_Already_Exists()
+        {
+            _context.Users.Add(new User { Username = "existing", PasswordHash = "hash" });
+            await _context.SaveChangesAsync();
+
+            var dto = new RegisterDto { Username = "existing", Password = "password123" };
+            var result = await _controller.Register(dto);
+
+            var conflict = Assert.IsType<ConflictObjectResult>(result.Result);
+            conflict.Value.Should().Be("Username already exists.");
+        }
+
+        [Fact]
+        public async Task Register_Should_Create_User_With_Correct_Username()
+        {
+            var dto = new RegisterDto { Username = "testuser", Password = "testpass" };
+            var result = await _controller.Register(dto);
+
+            var created = Assert.IsType<CreatedAtActionResult>(result.Result);
+            var user = Assert.IsType<User>(created.Value);
+            user.Username.Should().Be("testuser");
+            
+            // Verify user was actually saved to database
+            var savedUser = await _context.Users.FindAsync("testuser");
+            savedUser.Should().NotBeNull();
+            savedUser!.Username.Should().Be("testuser");
+        }
+
+        [Fact]
+        public async Task Register_Should_Hash_Password()
+        {
+            var dto = new RegisterDto { Username = "hashtest", Password = "plaintext" };
+            var result = await _controller.Register(dto);
+
+            var created = Assert.IsType<CreatedAtActionResult>(result.Result);
+            var user = Assert.IsType<User>(created.Value);
+            
+            // Password should be hashed, not plaintext
+            user.PasswordHash.Should().NotBe("plaintext");
+            user.PasswordHash.Should().NotBeNullOrEmpty();
+        }
+
+        [Fact]
+        public void RegisterDto_Should_Have_Default_Values()
+        {
+            var dto = new RegisterDto();
+            dto.Username.Should().BeNull();
+            dto.Password.Should().BeNull();
+        }
+
+        [Fact]
+        public void RegisterDto_Should_Allow_Property_Assignment()
+        {
+            var dto = new RegisterDto
+            {
+                Username = "test",
+                Password = "pass"
+            };
+
+            dto.Username.Should().Be("test");
+            dto.Password.Should().Be("pass");
+        }
+
+        [Fact]
+        public void RegisterDto_Should_Support_Record_Equality()
+        {
+            var dto1 = new RegisterDto { Username = "user", Password = "pass" };
+            var dto2 = new RegisterDto { Username = "user", Password = "pass" };
+            var dto3 = new RegisterDto { Username = "user", Password = "different" };
+
+            // Records use value equality
+            dto1.Should().Be(dto2);
+            dto1.Should().NotBe(dto3);
+        }
+
     }
 }
