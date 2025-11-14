@@ -8,4 +8,6 @@ start coverage-report/index.html
 ```
 
 ### Sometimes this command needed when report generator is not found:
-- $env:PATH += ";$env:USERPROFILE\.dotnet\tools"
+```
+$env:PATH += ";$env:USERPROFILE\.dotnet\tools"
+```
