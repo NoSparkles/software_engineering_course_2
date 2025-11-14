@@ -158,7 +158,7 @@ namespace Games
                     boardState.Add(new CardInfo
                     {
                         Value = card.Value,
-                        State = card.state,
+                        State = card.state.ToString(),
                         X = i,
                         Y = j
                     });
