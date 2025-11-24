@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import { useCountdownTimer } from './useCountdownTimer';
 import './styles.css';
+import useRoomDatabase from './useRoomDatabase';
 
 export function ReturnToGameBanner() {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export function ReturnToGameBanner() {
   const [roomCloseTime, setRoomCloseTime] = useState(null);
   const [shouldShowTimer, setShouldShowTimer] = useState(false);
   const signalrRef = useRef([]);
+  const { roomExists } = useRoomDatabase()
   const timeLeft = useCountdownTimer(0);
 
   // Main banner logic
@@ -114,6 +116,18 @@ export function ReturnToGameBanner() {
       setGameInfo(info);
       setRoomCloseTime(timerShouldShow ? closeTime : null);
       setShouldShowTimer(timerShouldShow);
+
+      // Ask backend if room still exists
+      const exists = await roomExists(info.gameType, info.code);
+      if (!exists) {
+        console.log("[Banner] Room no longer exists, clearing session");
+        localStorage.removeItem("activeGame");
+        localStorage.removeItem("roomCloseTime");
+        setShowBanner(false);
+        setGameInfo(null);
+        setRoomCloseTime(null);
+        setShouldShowTimer(false);
+      }
     }
 
     checkBanner();
