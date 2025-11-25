@@ -285,7 +285,9 @@ const Profile = () => {
                 return (
                   <div key={i} className='game-invite'>
                     <span className='invite-info'>
-                      <span>{invite.fromUsername}</span> invites you to play <span>{gameType}</span>
+                      <span className='invite-username'>{invite.fromUsername}</span>
+                      <span className='invite-text'> invites you to play  </span>
+                      <span className='invite-game'> {gameType}</span>
                     </span>
                     <button className='join-invite-btn' onClick={() => handleJoinInvite(invite)}>
                       Join

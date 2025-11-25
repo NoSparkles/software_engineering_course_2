@@ -89,8 +89,7 @@
   flex-wrap: wrap;
 }
 
-.friend-request .requester-name,
-.game-invite .invite-info {
+.friend-request .requester-name {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -98,12 +97,40 @@
   white-space: nowrap;
 }
 
-.game-invite .invite-info span {
+.game-invite .invite-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 4px;
+}
+
+.game-invite .invite-username {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  display: inline-block;
-  max-width: 150px;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.game-invite .invite-text {
+  flex-shrink: 0;
+  white-space: normal;
+  margin: 0 2px;
+}
+
+.game-invite .invite-game {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 100%;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-left: 2px;
 }
 
 .friend-request .profile-hero__actions,
