@@ -34,7 +34,6 @@ export default function Navbar() {
     <nav className="navbar">
       <div className="navbar__brand" onClick={handleHomeClick}>
         <div className="navbar__logo">MiniGames</div>
-        <span className="navbar__tag">MVP</span>
       </div>
 
 
