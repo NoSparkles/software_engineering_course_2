@@ -58,16 +58,8 @@ export default function RpsBoard({ playerColor, connection, roomCode, playerId, 
   const btn = (c) => {
     const isSelected = selectedChoice === c || yourServerChoice === c;
     return {
-      padding: '10px 14px',
-      borderRadius: 10,
-      border: '1px solid #ccc',
-      minWidth: 120,
-      fontWeight: 600,
-      transition: 'filter 120ms, transform 80ms, opacity 80ms',
-      filter: isSelected ? 'brightness(0.85)' : 'none',
-      transform: isSelected ? 'scale(0.98)' : 'none',
-      opacity: isLocked && !isSelected ? 0.6 : 1,
-      cursor: isLocked && !isSelected ? 'not-allowed' : 'pointer',
+   
+      
     };
   };
 
@@ -82,11 +74,11 @@ export default function RpsBoard({ playerColor, connection, roomCode, playerId, 
           {state.lastDraw && <div style={{ marginBottom: 10, fontWeight: 600 }}>Draw! Pick again.</div>}
 
           <div style={{ display:'flex', gap:12, justifyContent:'center', marginTop:10 }}>
-            <button style={btn('rock')}     disabled={isLocked || spectator} onClick={() => handleChoose('rock')}>
+            <button style={btn('rock')}     disabled={isLocked || spectator} onClick={() => handleChoose('rock')} className='btn btn--primary'>
               🪨 Rock</button>
-            <button style={btn('paper')}    disabled={isLocked || spectator} onClick={() => handleChoose('paper')}>
+            <button style={btn('paper')}    disabled={isLocked || spectator} onClick={() => handleChoose('paper')} className='btn btn--primary'>
               📄 Paper</button>
-            <button style={btn('scissors')} disabled={isLocked || spectator} onClick={() => handleChoose('scissors')}>
+            <button style={btn('scissors')} disabled={isLocked || spectator} onClick={() => handleChoose('scissors')} className='btn btn--primary'>
               ✂️ Scissors</button>
           </div>
 
@@ -106,7 +98,7 @@ export default function RpsBoard({ playerColor, connection, roomCode, playerId, 
               : (state.winner === you ? '🎉 You Win!' : '💀 You Lose')}
           </h3>
           <p>Final Score — Red {scores.R} : Yellow {scores.Y}</p>
-          <button className="reset-button" onClick={reset}>Play Again</button>
+          <button className="reset-button btn--primary" onClick={reset}>Play Again</button>
           {resetVote && <p>Waiting for other player to confirm…</p>}
         </div>
       )}
