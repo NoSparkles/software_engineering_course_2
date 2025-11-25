@@ -99,7 +99,7 @@ export default function RpsBoard({ playerColor, connection, roomCode, playerId, 
       )}
 
       {state.winner && (
-        <div className="game-over" style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', marginTop:20 }}>
+        <div className="game-over" style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', marginTop:20, backgroundColor: '#0d111d'}}>
           <h3>
             {state.winner === 'DRAW'
               ? '🤝 Match Draw'
