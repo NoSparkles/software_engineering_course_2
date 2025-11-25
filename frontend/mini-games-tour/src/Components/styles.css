@@ -310,6 +310,15 @@
   justify-content: space-between;
   align-items: center;
   font-size: 0.95rem;
+  gap: 8px;
+}
+
+.leaderboard-panel__row span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
 }
 
 .leaderboard-panel__meta {

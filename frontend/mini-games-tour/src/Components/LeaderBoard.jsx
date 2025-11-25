@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../Utils/AuthProvider';
 import './styles.css';
 
 export default function LeaderBoard() {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -55,21 +57,55 @@ export default function LeaderBoard() {
       .map(p => ({ ...p, totalMmr: p.rps + p.four + p.match }))
       .sort((a, b) => b.totalMmr - a.totalMmr);
 
+    // Get top 100
+    const top100 = sortedPlayers.slice(0, 100);
+    
+    // Find current player's rank
+    const currentPlayer = user?.username 
+      ? sortedPlayers.find(p => p.username === user.username)
+      : null;
+    const currentPlayerRank = currentPlayer 
+      ? sortedPlayers.findIndex(p => p.username === currentPlayer.username) + 1
+      : null;
+
     return (
-      <ul className="leaderboard-panel__list">
-        {sortedPlayers.map((p, i) => (
-          <li className="leaderboard-panel__item" key={p.username || i}>
-            <div className="leaderboard-panel__row">
-              <strong>#{i + 1}</strong>
-              <span>{p.username}</span>
-              <span>{p.totalMmr} MMR</span>
+      <>
+        <ul className="leaderboard-panel__list">
+          {top100.map((p, i) => (
+            <li className="leaderboard-panel__item" key={p.username || i}>
+              <div className="leaderboard-panel__row">
+                <strong>#{i + 1}</strong>
+                <span>{p.username}</span>
+                <span>{p.totalMmr} MMR</span>
+              </div>
+              <div className="leaderboard-panel__meta">
+                RPS: {p.rps} • 4-in-Row: {p.four} • Matching: {p.match}
+              </div>
+            </li>
+          ))}
+        </ul>
+        {currentPlayer && currentPlayerRank && (
+          <div style={{ 
+            marginTop: '16px', 
+            paddingTop: '16px', 
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)' 
+          }}>
+            <div className="leaderboard-panel__item" style={{ 
+              background: 'rgba(125, 184, 255, 0.1)',
+              border: '1px solid rgba(125, 184, 255, 0.3)'
+            }}>
+              <div className="leaderboard-panel__row">
+                <strong>#{currentPlayerRank}</strong>
+                <span>{currentPlayer.username}</span>
+                <span>{currentPlayer.totalMmr} MMR</span>
+              </div>
+              <div className="leaderboard-panel__meta">
+                RPS: {currentPlayer.rps} • 4-in-Row: {currentPlayer.four} • Matching: {currentPlayer.match}
+              </div>
             </div>
-            <div className="leaderboard-panel__meta">
-              RPS: {p.rps} • 4-in-Row: {p.four} • Matching: {p.match}
-            </div>
-          </li>
-        ))}
-      </ul>
+          </div>
+        )}
+      </>
     );
   };
 

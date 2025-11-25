@@ -65,6 +65,10 @@
   transition: transform 0.15s ease, border-color 0.15s ease;
   display: inline-block;
   box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .user-card:hover {

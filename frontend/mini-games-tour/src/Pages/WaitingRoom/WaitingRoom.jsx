@@ -168,12 +168,24 @@ export default function WaitingRoom() {
               <>
                 <h3>Invite a friend</h3>
                 <div className="invite-friends-waiting">
-                  {user.friends.map((friend, i) => (
-                    <div className='invite-friend-box' key={i}>
-                      <span>{friend}</span>
-                      <button className="btn btn--ghost" onClick={() => handleInviteFriendButton(friend)}>Invite</button>
-                    </div>
-                  ))}
+                  {user.friends.map((friend, i) => {
+                    // Calculate width based on username length
+                    const minWidth = 200; // Minimum width in pixels
+                    const charWidth = 10; // Approximate width per character
+                    const padding = 100; // Horizontal padding + button width
+                    const calculatedWidth = Math.max(minWidth, friend.length * charWidth + padding);
+                    
+                    return (
+                      <div 
+                        className='invite-friend-box' 
+                        key={i}
+                        style={{ width: `${calculatedWidth}px` }}
+                      >
+                        <span>{friend}</span>
+                        <button className="btn btn--ghost" onClick={() => handleInviteFriendButton(friend)}>Invite</button>
+                      </div>
+                    );
+                  })}
                 </div>
               </>
             ) : (
