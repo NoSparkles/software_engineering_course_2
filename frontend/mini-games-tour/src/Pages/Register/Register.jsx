@@ -34,45 +34,52 @@ export default function Register() {
   };
 
   return (
-    <form className="register-form" onSubmit={handleSubmit}>
-      <h2>Sign Up</h2>
+    <div className="auth-page">
+      <form className="auth-card" onSubmit={handleSubmit}>
+        <div className="auth-card__header">
+          <p className="eyebrow">Create account</p>
+          <h2>Sign Up</h2>
+        </div>
 
-      <div className="form-group">
-        <label htmlFor="username">Username</label>
-        <input
-          id="username"
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
-      </div>
+        <div className="auth-form-group">
+          <label htmlFor="username">Username</label>
+          <input
+            id="username"
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
+        </div>
 
-      <div className="form-group">
-        <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-      </div>
+        <div className="auth-form-group">
+          <label htmlFor="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
 
-      <div className="form-group">
-        <label htmlFor="confirmPassword">Confirm Password</label>
-        <input
-          id="confirmPassword"
-          type="password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
-        />
-      </div>
+        <div className="auth-form-group">
+          <label htmlFor="confirmPassword">Confirm Password</label>
+          <input
+            id="confirmPassword"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
+        </div>
 
-      <button type="submit">Sign Up</button>
+        {error && <p className="auth-error">{error}</p>}
 
-      {error && <p className="error-message">{error}</p>}
-    </form>
+        <button className="btn btn--primary auth-submit" type="submit">
+          Sign Up
+        </button>
+      </form>
+    </div>
   );
 }

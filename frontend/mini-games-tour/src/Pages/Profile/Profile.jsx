@@ -187,7 +187,7 @@ const Profile = () => {
     setIncomingInviteToGameRequests(user?.incomingInviteToGameRequests || [])
   }, [user])
 
-  if (loading) return <div className="profile">Loading...</div>
+  if (loading) return <div className="profile page-shell">Loading...</div>
 
   const isFriend = profileUser.friends?.includes(viewer)
   // from viewer perspective:
@@ -195,128 +195,141 @@ const Profile = () => {
   const theySentRequestToMe = profileUser.outgoingFriendRequests?.includes(viewer) // profileUser requested me
 
   return (
-    <div className='profile'>
-      <h1>{profileUser.username}</h1>
-
-      {/* Friend / Request controls for other users */}
-      {!isOwnProfile && (
-        <>
-          {/* Spectate button - show if user is in a game */}
-          {!gameInfoLoading && currentGameInfo?.inGame && (
-            <div className="spectate-section">
-              <p> {profileUser.username} is currently playing {currentGameInfo.gameType.replace('-', ' ')}</p>
-              <button 
-                className='spectate-btn' 
-                onClick={handleSpectate}
-                disabled={spectatorStatus === 'connecting'}
-              >
-                {spectatorStatus === 'connecting' ? 'Connecting...' : 'Spectate Game'}
-              </button>
-              {spectatorError && (
-                <p style={{ color: 'red', fontSize: '0.9em' }}>
-                  Error: {spectatorError}
-                </p>
-              )}
-            </div>
-          )}
-
-          {isFriend && (
-            <button className='remove-friend-btn' onClick={handleUnfriend}>
-              Unfriend
-            </button>
-          )}
-
-          {!isFriend && iSentRequestToThem && (
-            // I already sent them a request -> allow cancel
-            <button className='cancel-request-btn' onClick={handleCancelRequest}>
-              Cancel Request
-            </button>
-          )}
-
-          {!isFriend && theySentRequestToMe && (
-            // They sent me a request -> I can accept or decline
+    <div className='profile '>
+      <section className='profile-hero '>
+        <h1>{profileUser.username}</h1>
+        <div className="profile-hero__actions">
+          {!isOwnProfile && (
             <>
-              <button className='accept-friend-btn' onClick={() => handleAcceptRequest(profileUser.username)}>
-                Accept Friend Request
-              </button>
-              <button className='decline-friend-btn' onClick={() => handleDeclineRequest(profileUser.username)}>
-                Decline
-              </button>
+              {isFriend && (
+                <button className='remove-friend-btn' onClick={handleUnfriend}>
+                  Unfriend
+                </button>
+              )}
+
+              {!isFriend && iSentRequestToThem && (
+                <button className='cancel-request-btn' onClick={handleCancelRequest}>
+                  Cancel Request
+                </button>
+              )}
+
+              {!isFriend && theySentRequestToMe && (
+                <>
+                  <button className='accept-friend-btn' onClick={() => handleAcceptRequest(profileUser.username)}>
+                    Accept Request
+                  </button>
+                  <button className='decline-friend-btn' onClick={() => handleDeclineRequest(profileUser.username)}>
+                    Decline
+                  </button>
+                </>
+              )}
+
+              {!isFriend && !iSentRequestToThem && !theySentRequestToMe && (
+                <button className='add-friend-btn' onClick={handleSendRequest}>
+                  Send Friend Request
+                </button>
+              )}
             </>
           )}
+        </div>
 
-          {!isFriend && !iSentRequestToThem && !theySentRequestToMe && (
-            // No relation -> send request
-            <button className='add-friend-btn' onClick={handleSendRequest}>
-              Send Friend Request
+        {!isOwnProfile && !gameInfoLoading && currentGameInfo?.inGame && (
+          <div className="spectate-section">
+            <p>{profileUser.username} is currently playing {currentGameInfo.gameType.replace('-', ' ')}</p>
+            <button
+              className='spectate-btn'
+              onClick={handleSpectate}
+              disabled={spectatorStatus === 'connecting'}
+            >
+              {spectatorStatus === 'connecting' ? 'Connecting...' : 'Spectate Game'}
             </button>
-          )}
-        </>
-      )}
+            {spectatorError && (
+              <p className="auth-error">
+                Error: {spectatorError}
+              </p>
+            )}
+          </div>
+        )}
+      </section>
 
-      {/* Own profile: show incoming requests list */}
-      {isOwnProfile && profileUser.incomingFriendRequests?.length > 0 && (
-        <div className='incoming-requests'>
-          <h2>Incoming Friend Requests</h2>
-          {profileUser.incomingFriendRequests.map((requester, i) => (
-            <div key={i} className='friend-request'>
-              <span className='requester-name'>{requester}</span>
-              <button className='accept-friend-btn' onClick={() => handleAcceptRequest(requester)}>
-                Accept
-              </button>
-              <button className='decline-friend-btn' onClick={() => handleDeclineRequest(requester)}>
-                Decline
-              </button>
+      {showRoomExpired && <Popup className='room-expired-popup'>Room expired</Popup>}
+
+      <div className="profile-grid">
+        {isOwnProfile && profileUser.incomingFriendRequests?.length > 0 && (
+          <div className='profile-card '>
+            <h2>Incoming Friend Requests</h2>
+            <div className="request-list">
+              {profileUser.incomingFriendRequests.map((requester, i) => (
+                <div key={i} className='friend-request'>
+                  <span className='requester-name'>{requester}</span>
+                  <div className="profile-hero__actions">
+                    <button className='accept-friend-btn' onClick={() => handleAcceptRequest(requester)}>
+                      Accept
+                    </button>
+                    <button className='decline-friend-btn' onClick={() => handleDeclineRequest(requester)}>
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        )}
 
-      {
-        showRoomExpired && <Popup className='room-expired-popup'>Room expired</Popup>
-      }
+        {isOwnProfile && incomingInviteToGameRequests?.length > 0 && (
+          <div className='profile-card'>
+            <h2>Incoming Game Invites</h2>
+            <div className="invite-list">
+              {incomingInviteToGameRequests.map((invite, i) => {
+                const gameType = invite.roomKey?.split(':')[0];
+                return (
+                  <div key={i} className='game-invite'>
+                    <span className='invite-info'>
+                      <span className='invite-username'>{invite.fromUsername}</span>
+                      <span className='invite-text'> invites you to play  </span>
+                      <span className='invite-game'> {gameType}</span>
+                    </span>
+                    <button className='join-invite-btn' onClick={() => handleJoinInvite(invite)}>
+                      Join
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-      {isOwnProfile && incomingInviteToGameRequests?.length > 0 && (
-        <div className='incoming-invites'>
-          <h2>Incoming Game Invites</h2>
-          {incomingInviteToGameRequests.map((invite, i) => {
-            const gameType = invite.roomKey?.split(':')[0]; // Extract game type
-            return (
-              <div key={i} className='game-invite'>
-                <span className='invite-info'>
-                  <span>{invite.fromUsername}</span> invites you to play <span>{gameType}</span>
-                </span>
-                <button className='join-invite-btn' onClick={() => handleJoinInvite(invite)}>
-                  Join
-                </button>
-              </div>
-            );
-          })}
+        <div className='profile-card '>
+          <h2>Friends</h2>
+          <div className='friends-container'>
+            {profileUser.friends?.length
+              ? profileUser.friends.map((item, i) => (
+                  <Link to={`/profile/${item}`} key={i}>{item}</Link>
+                ))
+              : <p className="profile-empty">No friends yet.</p>
+            }
+          </div>
         </div>
-      )}
 
-      <div className='friends-container'>
-        <h2>Friends</h2>
-        {profileUser.friends?.map((item, i) => (
-          <Link to={`/profile/${item}`} key={i}>{item}</Link>
-        ))}
-      </div>
-
-      <div className='games-info'>
-        <div className='game-info'>
-          <h2>Four In a Row</h2>
-          <span className='game-mmr'>MMR: {profileUser.fourInARowMMR}</span>
-          <span className='game-streak'>Win Streak: {profileUser.fourInARowWinStreak}</span>
-        </div>
-        <div className='game-info'>
-          <h2>Pair Matching</h2>
-          <span className='game-mmr'>MMR: {profileUser.pairMatchingMMR}</span>
-          <span className='game-streak'>Win Streak: {profileUser.pairMatchingWinStreak}</span>
-        </div>
-        <div className='game-info'>
-          <h2>Rock Paper Scissors</h2>
-          <span className='game-mmr'>MMR: {profileUser.rockPaperScissorsMMR}</span>
-          <span className='game-streak'>Win Streak: {profileUser.rockPaperScissorsWinStreak}</span>
+        <div className='profile-card'>
+          <h2>Ranked stats</h2>
+          <div className='games-info'>
+            <div className='game-info'>
+              <h2>Four In a Row</h2>
+              <span className='game-mmr'>MMR: {profileUser.fourInARowMMR}</span>
+              <span className='game-streak'>Win Streak: {profileUser.fourInARowWinStreak}</span>
+            </div>
+            <div className='game-info'>
+              <h2>Pair Matching</h2>
+              <span className='game-mmr'>MMR: {profileUser.pairMatchingMMR}</span>
+              <span className='game-streak'>Win Streak: {profileUser.pairMatchingWinStreak}</span>
+            </div>
+            <div className='game-info'>
+              <h2>Rock Paper Scissors</h2>
+              <span className='game-mmr'>MMR: {profileUser.rockPaperScissorsMMR}</span>
+              <span className='game-streak'>Win Streak: {profileUser.rockPaperScissorsWinStreak}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -61,16 +61,16 @@ export const Board = ({ playerColor, connection, roomCode, playerId, spectator =
                 {winner ? (
                     <span>
                         <div className='winnerText' style={{
-                            backgroundColor: winner === 'R' ? 'red' : 'yellow',
-                            color: '#fff',
+                            backgroundColor: winner === 'R' ? '#ff4444' : '#ffd700',
+                            color: '#05070d',
                         }}>
-                            Winner: {winner === 'R' ? 'Red' : 'Yellow'}    
+                            Winner: {winner === 'R' ? 'Red' : 'Yellow'}  
                         </div>
                     </span>
                 ) : (
-                    <span>Current Player: {currentPlayer === 'R' ? 'Red' : 'Yellow'}</span>
+                    <span style={{ color: 'var(--color-text)' , marginRight:10}}>Current Player: {currentPlayer === 'R' ? 'Red' : 'Yellow'}</span>
                 )}
-                <button style={{ marginLeft: '20px' }} onClick={handleReset} disabled={spectator}>Reset</button>
+                <button className='btn btn--primary resetGame' onClick={handleReset} disabled={spectator}>Reset</button>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COLS}, 50px)` }}>
                 {board.map((row, rowIdx) =>

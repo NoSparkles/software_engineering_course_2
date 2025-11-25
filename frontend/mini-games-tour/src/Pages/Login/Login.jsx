@@ -27,35 +27,41 @@ export default function Login() {
   };
 
   return (
-    <form className="login-form" onSubmit={handleSubmit}>
-    
-      <h2>Log In</h2>
+    <div className="auth-page">
+      <form className="auth-card " onSubmit={handleSubmit}>
+        <div className="auth-card__header">
+          <p className="eyebrow">Welcome back</p>
+          <h2>Log In</h2>
+        </div>
 
-      <div className="login-form-group">
-        <label htmlFor="username">Username</label>
-        <input
-          id="username"
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
-      </div>
+        <div className="auth-form-group">
+          <label htmlFor="username">Username</label>
+          <input
+            id="username"
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
+        </div>
 
-      <div className="login-form-group">
-        <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-      </div>
+        <div className="auth-form-group">
+          <label htmlFor="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
 
-      <button className="login-btn" type="submit">Log In</button>
+        {error && <p className="auth-error">{error}</p>}
 
-      {error && <p className="login-error-message">{error}</p>}
-    </form>
+        <button className="btn btn--primary auth-submit" type="submit">
+          Log In
+        </button>
+      </form>
+    </div>
   );
 }

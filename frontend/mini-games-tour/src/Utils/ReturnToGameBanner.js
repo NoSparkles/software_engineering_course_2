@@ -384,13 +384,13 @@ export function ReturnToGameBanner() {
       <div className="banner-content">
         <p>You have an active game in progress!</p>
         <div className="banner-buttons">
-          <button onClick={handleReturnToGame} className="return-button">
+          <button onClick={handleReturnToGame} className="return-button btn--primary">
             Return to Game
           </button>
           {shouldShowTimer && (
             <button
               onClick={handleDeclineReconnection}
-              className="decline-button"
+              className="decline-button btn--primary"
             >
               Decline
             </button>
@@ -398,7 +398,7 @@ export function ReturnToGameBanner() {
         </div>
         {shouldShowTimer && (
           <p style={{
-            color: timeLeft <= 10 ? "red" : timeLeft <= 20 ? "orange" : "black",
+            color: timeLeft <= 10 ? "red" : timeLeft <= 20 ? "orange" : "white",
             fontSize: "14px",
             margin: "5px 0 0 0"
           }}>

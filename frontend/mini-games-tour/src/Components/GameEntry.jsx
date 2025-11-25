@@ -163,36 +163,34 @@ export default function GameEntry() {
   };
 
   return (
-    <div className="game-entry-container">
-      <h2>{gameType.toUpperCase()} Game</h2>
+    <div className="game-entry-container ">
+      <h2>{gameType.toUpperCase().replace(/-/g, ' ')} Game</h2>
 
-      <div className="entry-section">
-        <button onClick={handleCreateRoom}>Create Room</button>
+      <div className="entry-section ">
+        <button className="btn btn--primary" onClick={handleCreateRoom} style={{marginTop: 10}}>Create Room</button>
         <h3>Or</h3>
         <h3>Join by Code</h3>
         <input
           className='room-code'
           type="text"
-          value={code}
           onChange={e => setCode(e.target.value.toUpperCase())}
           placeholder="Enter game code"
-          maxLength={6}
+          
         />
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center', marginTop: 12 }}>
-          <button onClick={handleJoinByCode}>Join</button>
-          <button onClick={handleJoinAsSpectator}>Join as Spectator</button>
+        <div className="entry-buttons">
+          <button className="btn btn--primary" onClick={handleJoinByCode} style={{marginLeft: 10}}>Join</button>
+          <button className="btn btn--ghost" onClick={handleJoinAsSpectator} style={{marginRight: 10}}>Join as Spectator</button>
         </div>
-        {error && <p className="error">{error}</p>}
+        {error && <p className="error-message">{error}</p>}
         <h3>Or</h3>
         <button 
+          className="btn btn--primary"
           onClick={() => handleStartMatchmaking(gameType)}
           disabled={isJoiningMatchmaking}
-          style={{ opacity: isJoiningMatchmaking ? 0.5 : 1 }}
+          style={{marginBottom: 10}}
         >
           {isJoiningMatchmaking ? 'Joining...' : 'Matchmaking'}
         </button>
-        {error && <p className="error">{error}</p>}
-        
       </div>
     </div>
   );

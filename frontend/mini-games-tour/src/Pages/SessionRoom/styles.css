@@ -1,92 +1,90 @@
 .session-room {
-  color: #fff;
-  background-color: #0d1117;
-  height: 110vh;
-  padding: 40px;
-  padding-top: 104px; /* 64px navbar + 40px padding */
-  font-family: Arial, sans-serif;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
+  gap: 24px;
+  width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
+  overflow-x: hidden;
+  padding: 20px 0;
+  min-height: calc(100vh - 70px);
 }
 
-.session-room h2 {
-  font-size: 32px;
-  font-weight: bold;
-  margin-bottom: 20px;
-  color: #58a6ff;
-}
-
-.session-room p {
-  font-size: 18px;
-  margin: 6px 0;
-  color: #ccc;
-}
-
-.session-room strong {
-  color: #9be9a8;
-}
-
-.session-room button {
-  background-color: #dc3545;
-  color: #fff;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: bold;
-  margin-top: 10px;
-  transition: background-color 0.2s, transform 0.1s;
-}
-
-.session-room button:hover {
-  background-color: #ff4c4c;
-  transform: scale(1.05);
-}
-
-.session-room .reconnect-btn {
-  background-color: #007bff;
-}
-
-.session-room .reconnect-btn:hover {
-  background-color: #339cff;
-}
-
-.session-room .time-left {
+.session-header {
   text-align: center;
-  margin: 10px 0;
-  padding: 10px;
-  border-radius: 4px;
-  font-weight: bold;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.session-room .time-left.short {
-  background-color: #ffebee;
-  color: red;
+.session-role {
+  margin: 0;
+  color: var(--color-text-muted);
 }
 
-.session-room .time-left.medium {
-  background-color: #fff3e0;
-  color: orange;
+.session-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
 }
 
-.session-room .time-left.long {
-  background-color: #f5f5f5;
-  color: black;
+.session-actions .btn {
+  min-width: 120px;
 }
 
-.session-room .time-left.stable {
-  background-color: #e8f5e8;
-  color: green;
+.session-leave {
+  background: linear-gradient(135deg, var(--color-danger), #e9425f);
+  color: #05070d;
 }
 
-.session-room .game-board {
-  margin-top: 20px;
+.session-leave:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(255, 92, 122, 0.4);
+}
+
+.time-left {
+  margin-top: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.time-left.short {
+  background: rgba(255, 105, 125, 0.15);
+  color: #ff9fb1;
+}
+
+.time-left.medium {
+  background: rgba(255, 193, 79, 0.12);
+  color: #ffcf7a;
+}
+
+.time-left.long {
+  background: rgba(125, 184, 255, 0.12);
+  color: #9cc9ff;
+}
+
+.time-left.stable {
+  background: rgba(111, 231, 171, 0.15);
+  color: #7df5bd;
+}
+
+.game-board {
   display: flex;
   justify-content: center;
   align-items: center;
-  flex-wrap: wrap;
+  min-height: 400px;
+  padding: clamp(16px, 2vw, 24px);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.board-placeholder {
+  font-size: 1.2rem;
+  color: var(--color-text-muted);
 }

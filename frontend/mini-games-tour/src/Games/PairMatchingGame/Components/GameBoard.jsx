@@ -37,9 +37,9 @@ export default function GameBoard({ playerColor, connection, roomCode, playerId,
       </div>
 
       { winner && (
-        <div className="game-over">
+        <div className="game-over" style={{backgroundColor:'#0d111d'}}>
           <h3>🎉 Player {scores[1] === 5 ? 1 : 2} Wins!</h3>
-          <button onClick={resetGame}>Play Again</button>
+          <button onClick={resetGame} className="reset-button btn--primary">Play Again</button>
           {resetVote && (
             <p>Waiting for other player to confirm</p>
           )}

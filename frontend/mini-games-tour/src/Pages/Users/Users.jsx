@@ -22,24 +22,48 @@ const Users = () => {
     }
   }, [debouncedSearch])
 
+  const visibleUsers = user ? users.filter(item => item.username !== user.username) : [];
+
   return (
-    <div className='users'>
-      <h1>Users</h1>
-      <input
-        type="text"
-        placeholder="Search by username..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        className="search-input"
-      />
-      <div className='user-list'>
-        {user && users.map((item, i) => (
-          item.username !== user.username && (
-            <Link className='user-card' key={i} to={`/profile/${item.username}`}>
-              {item.username}
-            </Link>
-          )
-        ))}
+    <div className='users '>
+      <div className='users-card '>
+        <div className="users-header">
+          <div>
+            <p className="eyebrow">Community</p>
+            <h1>Browse players</h1>
+          </div>
+          <input
+            type="text"
+            placeholder="Search by username..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="search-input"
+          />
+        </div>
+        <div className='user-list'>
+          {visibleUsers.length ? (
+            visibleUsers.map((item, i) => {
+              // Calculate width based on username length
+              const minWidth = 120; // Minimum width in pixels
+              const charWidth = 10; // Approximate width per character
+              const padding = 28; // Horizontal padding (14px * 2)
+              const calculatedWidth = Math.max(minWidth, item.username.length * charWidth + padding);
+              
+              return (
+                <Link 
+                  className='user-card' 
+                  key={i} 
+                  to={`/profile/${item.username}`}
+                  style={{ width: `${calculatedWidth}px` }}
+                >
+                  {item.username}
+                </Link>
+              );
+            })
+          ) : (
+            <p className="users-empty">No players found.</p>
+          )}
+        </div>
       </div>
     </div>
   )
