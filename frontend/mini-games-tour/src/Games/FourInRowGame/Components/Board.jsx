@@ -61,14 +61,14 @@ export const Board = ({ playerColor, connection, roomCode, playerId, spectator =
                 {winner ? (
                     <span>
                         <div className='winnerText' style={{
-                            backgroundColor: winner === 'R' ? 'red' : 'yellow',
-                            color: '#fff',
+                            backgroundColor: winner === 'R' ? '#7db8ff' : '#a78bfa',
+                            color: '#05070d',
                         }}>
-                            Winner: {winner === 'R' ? 'Red' : 'Yellow'}    
+                            Winner: {winner === 'R' ? 'Blue' : 'Purple'}  
                         </div>
                     </span>
                 ) : (
-                    <span>Current Player: {currentPlayer === 'R' ? 'Red' : 'Yellow'}</span>
+                    <span style={{ color: 'var(--color-text)' }}>Current Player: {currentPlayer === 'R' ? 'Blue' : 'Purple'}</span>
                 )}
                 <button className='btn btn--primary resetGame' onClick={handleReset} disabled={spectator}>Reset</button>
             </div>
