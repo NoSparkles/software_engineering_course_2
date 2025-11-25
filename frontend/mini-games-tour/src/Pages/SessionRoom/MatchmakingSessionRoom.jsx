@@ -438,8 +438,8 @@ export default function MatchmakingSessionRoom() {
   }, [roomCloseTime, timeLeft, showTimer, isSpectator]);
 
   return (
-    <div className="session-room page-shell">
-      <div className="session-header card">
+    <div className="session-room">
+      <div className="session-header">
         <p className="eyebrow">Matchmaking session</p>
         <h2>{gameType.toUpperCase().replace(/-/g, ' ')} Matchmaking Session</h2>
         <p className="session-role">Player: <strong>{user?.username || playerId}</strong></p>
@@ -487,7 +487,7 @@ export default function MatchmakingSessionRoom() {
         )}
       </div>
 
-      <div className="game-board card">
+      <div className="game-board ">
         {(connectionState === "Connected" && board) ? (
           board
         ) : (

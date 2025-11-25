@@ -404,8 +404,8 @@ export default function SessionRoom() {
   }, [connectionState, board, roomCloseTime, timeLeft, showTimer, isSpectator]);
 
   return (
-    <div className="session-room page-shell">
-      <div className="session-header card">
+    <div className="session-room">
+      <div className="session-header">
         <p className="eyebrow">Live session</p>
         <h2>{gameType.toUpperCase()} Session</h2>
         <p className="room-code-chip">Room Code: <strong>{code}</strong></p>
@@ -441,7 +441,7 @@ export default function SessionRoom() {
         )}
       </div>
 
-      <div className="game-board card">
+      <div className="game-board">
         {(connectionState === "Connected" && board) ? (
           board
         ) : (

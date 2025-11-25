@@ -155,8 +155,8 @@ export default function WaitingRoom() {
   };
 
   return (
-    <div className="waiting-room page-shell">
-      <div className="waiting-card card">
+    <div className="waiting-room">
+      <div className="waiting-card">
         <p className="eyebrow">Private lobby</p>
         <h1>Waiting Room</h1>
         <h2 className="status-message">Game: {gameType.toUpperCase().replace(/-/g, ' ')}</h2>

@@ -173,8 +173,8 @@ export default function MatchmakingWaitingRoom() {
   // OnDisconnectedAsync handles disconnection and allows reconnection
 
   return (
-    <div className="matchmaking-waiting-room page-shell">
-      <div className="waiting-card card">
+    <div className="matchmaking-waiting-room">
+      <div className="waiting-card">
         <p className="eyebrow">Matchmaking</p>
         <h1>Finding your opponent</h1>
         <h2>Game: {gameType.toUpperCase()}</h2>
