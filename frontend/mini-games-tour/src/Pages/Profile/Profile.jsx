@@ -195,8 +195,8 @@ const Profile = () => {
   const theySentRequestToMe = profileUser.outgoingFriendRequests?.includes(viewer) // profileUser requested me
 
   return (
-    <div className='profile page-shell'>
-      <section className='profile-hero card'>
+    <div className='profile '>
+      <section className='profile-hero '>
         <h1>{profileUser.username}</h1>
         <div className="profile-hero__actions">
           {!isOwnProfile && (
@@ -256,7 +256,7 @@ const Profile = () => {
 
       <div className="profile-grid">
         {isOwnProfile && profileUser.incomingFriendRequests?.length > 0 && (
-          <div className='profile-card card'>
+          <div className='profile-card '>
             <h2>Incoming Friend Requests</h2>
             <div className="request-list">
               {profileUser.incomingFriendRequests.map((requester, i) => (
@@ -277,7 +277,7 @@ const Profile = () => {
         )}
 
         {isOwnProfile && incomingInviteToGameRequests?.length > 0 && (
-          <div className='profile-card card'>
+          <div className='profile-card'>
             <h2>Incoming Game Invites</h2>
             <div className="invite-list">
               {incomingInviteToGameRequests.map((invite, i) => {
@@ -297,7 +297,7 @@ const Profile = () => {
           </div>
         )}
 
-        <div className='profile-card card'>
+        <div className='profile-card '>
           <h2>Friends</h2>
           <div className='friends-container'>
             {profileUser.friends?.length
@@ -309,7 +309,7 @@ const Profile = () => {
           </div>
         </div>
 
-        <div className='profile-card card'>
+        <div className='profile-card'>
           <h2>Ranked stats</h2>
           <div className='games-info'>
             <div className='game-info'>

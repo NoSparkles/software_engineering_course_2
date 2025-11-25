@@ -25,8 +25,8 @@ const Users = () => {
   const visibleUsers = user ? users.filter(item => item.username !== user.username) : [];
 
   return (
-    <div className='users page-shell'>
-      <div className='users-card card'>
+    <div className='users '>
+      <div className='users-card '>
         <div className="users-header">
           <div>
             <p className="eyebrow">Community</p>
