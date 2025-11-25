@@ -34,8 +34,8 @@ export default function Register() {
   };
 
   return (
-    <div className="auth-page page-shell">
-      <form className="auth-card card" onSubmit={handleSubmit}>
+    <div className="auth-page">
+      <form className="auth-card" onSubmit={handleSubmit}>
         <div className="auth-card__header">
           <p className="eyebrow">Create account</p>
           <h2>Sign Up</h2>

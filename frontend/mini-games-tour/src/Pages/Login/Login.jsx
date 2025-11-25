@@ -27,8 +27,8 @@ export default function Login() {
   };
 
   return (
-    <div className="auth-page page-shell">
-      <form className="auth-card card" onSubmit={handleSubmit}>
+    <div className="auth-page">
+      <form className="auth-card " onSubmit={handleSubmit}>
         <div className="auth-card__header">
           <p className="eyebrow">Welcome back</p>
           <h2>Log In</h2>
