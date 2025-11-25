@@ -68,7 +68,7 @@ export const Board = ({ playerColor, connection, roomCode, playerId, spectator =
                         </div>
                     </span>
                 ) : (
-                    <span style={{ color: 'var(--color-text)' }}>Current Player: {currentPlayer === 'R' ? 'Red' : 'Yellow'}</span>
+                    <span style={{ color: 'var(--color-text)' , marginRight:10}}>Current Player: {currentPlayer === 'R' ? 'Red' : 'Yellow'}</span>
                 )}
                 <button className='btn btn--primary resetGame' onClick={handleReset} disabled={spectator}>Reset</button>
             </div>
