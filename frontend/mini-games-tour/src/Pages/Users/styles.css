@@ -39,8 +39,8 @@
 }
 
 .user-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   width: 100%;
   box-sizing: border-box;
@@ -63,6 +63,8 @@
   color: var(--color-primary);
   font-weight: 600;
   transition: transform 0.15s ease, border-color 0.15s ease;
+  display: inline-block;
+  box-sizing: border-box;
 }
 
 .user-card:hover {

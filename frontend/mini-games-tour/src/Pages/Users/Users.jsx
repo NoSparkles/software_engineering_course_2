@@ -42,11 +42,24 @@ const Users = () => {
         </div>
         <div className='user-list'>
           {visibleUsers.length ? (
-            visibleUsers.map((item, i) => (
-              <Link className='user-card' key={i} to={`/profile/${item.username}`}>
-                {item.username}
-              </Link>
-            ))
+            visibleUsers.map((item, i) => {
+              // Calculate width based on username length
+              const minWidth = 120; // Minimum width in pixels
+              const charWidth = 10; // Approximate width per character
+              const padding = 28; // Horizontal padding (14px * 2)
+              const calculatedWidth = Math.max(minWidth, item.username.length * charWidth + padding);
+              
+              return (
+                <Link 
+                  className='user-card' 
+                  key={i} 
+                  to={`/profile/${item.username}`}
+                  style={{ width: `${calculatedWidth}px` }}
+                >
+                  {item.username}
+                </Link>
+              );
+            })
           ) : (
             <p className="users-empty">No players found.</p>
           )}
