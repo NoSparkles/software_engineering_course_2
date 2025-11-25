@@ -167,7 +167,7 @@ export default function GameEntry() {
       <h2>{gameType.toUpperCase().replace(/-/g, ' ')} Game</h2>
 
       <div className="entry-section ">
-        <button className="btn btn--primary" onClick={handleCreateRoom}>Create Room</button>
+        <button className="btn btn--primary" onClick={handleCreateRoom} style={{marginTop: 10}}>Create Room</button>
         <h3>Or</h3>
         <h3>Join by Code</h3>
         <input
@@ -175,10 +175,11 @@ export default function GameEntry() {
           type="text"
           onChange={e => setCode(e.target.value.toUpperCase())}
           placeholder="Enter game code"
+          
         />
         <div className="entry-buttons">
-          <button className="btn btn--primary" onClick={handleJoinByCode}>Join</button>
-          <button className="btn btn--ghost" onClick={handleJoinAsSpectator}>Join as Spectator</button>
+          <button className="btn btn--primary" onClick={handleJoinByCode} style={{marginLeft: 10}}>Join</button>
+          <button className="btn btn--ghost" onClick={handleJoinAsSpectator} style={{marginRight: 10}}>Join as Spectator</button>
         </div>
         {error && <p className="error-message">{error}</p>}
         <h3>Or</h3>
@@ -186,6 +187,7 @@ export default function GameEntry() {
           className="btn btn--primary"
           onClick={() => handleStartMatchmaking(gameType)}
           disabled={isJoiningMatchmaking}
+          style={{marginBottom: 10}}
         >
           {isJoiningMatchmaking ? 'Joining...' : 'Matchmaking'}
         </button>
