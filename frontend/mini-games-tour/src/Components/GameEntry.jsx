@@ -163,20 +163,18 @@ export default function GameEntry() {
   };
 
   return (
-    <div className="game-entry-container page-shell">
+    <div className="game-entry-container ">
       <h2>{gameType.toUpperCase().replace(/-/g, ' ')} Game</h2>
 
-      <div className="entry-section card">
+      <div className="entry-section ">
         <button className="btn btn--primary" onClick={handleCreateRoom}>Create Room</button>
         <h3>Or</h3>
         <h3>Join by Code</h3>
         <input
           className='room-code'
           type="text"
-          value={code}
           onChange={e => setCode(e.target.value.toUpperCase())}
           placeholder="Enter game code"
-          maxLength={6}
         />
         <div className="entry-buttons">
           <button className="btn btn--primary" onClick={handleJoinByCode}>Join</button>

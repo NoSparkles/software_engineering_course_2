@@ -58,9 +58,12 @@
   color: var(--color-text-muted);
   font-weight: 600;
   cursor: pointer;
-  padding: 6px 12px;
+  padding: 8px 16px;
   border-radius: 999px;
   transition: background 0.2s ease, color 0.2s ease;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  min-height: 36px;
 }
 
 .navbar__links button:hover {
@@ -90,17 +93,16 @@
 /* Game Entry */
 .game-entry-container {
   color: #fff;
-  min-height: calc(100vh - 100px);
-  padding: 120px clamp(20px, 4vw, 24px) 48px;
+  min-height: calc(100vh);
+
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 32px;
+
   box-sizing: border-box;
-  background: radial-gradient(circle at 20% 20%, rgba(125, 184, 255, 0.08), transparent 45%);
-  width: 100%;
-  max-width: 100vw;
-  overflow-x: hidden;
+
+
+
 }
 
 .game-entry-container h2 {
@@ -110,12 +112,10 @@
 }
 
 .entry-section {
-  width: min(420px, calc(100% - 40px));
-  max-width: 100%;
   background: rgba(7, 10, 20, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
-  padding: clamp(20px, 4vw, 32px) clamp(20px, 4vw, 32px);
+
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -133,7 +133,7 @@
 }
 
 .room-code {
-  padding: 12px;
+  
   font-size: 1rem;
   width: 100%;
   text-transform: uppercase;
@@ -148,10 +148,15 @@
 .entry-section div,
 .entry-buttons {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   justify-content: center;
   flex-wrap: wrap;
   width: 100%;
+}
+
+.entry-buttons .btn {
+  flex: 1;
+
 }
 
 .disabled-button {

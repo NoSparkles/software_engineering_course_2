@@ -6,6 +6,8 @@
   max-width: 100%;
   box-sizing: border-box;
   overflow-x: hidden;
+  padding: 20px 0;
+  min-height: calc(100vh - 70px);
 }
 
 .session-header {
@@ -25,6 +27,11 @@
   justify-content: center;
   gap: 12px;
   flex-wrap: wrap;
+  width: 100%;
+}
+
+.session-actions .btn {
+  min-width: 120px;
 }
 
 .session-leave {
@@ -68,12 +75,13 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 420px;
+  min-height: 400px;
   padding: clamp(16px, 2vw, 24px);
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
   overflow-x: auto;
+  overflow-y: auto;
 }
 
 .board-placeholder {

@@ -91,6 +91,20 @@
   white-space: nowrap;
 }
 
+.friend-request .profile-hero__actions,
+.game-invite button {
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+}
+
+.friend-request .profile-hero__actions .btn,
+.game-invite .btn {
+  min-width: 80px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+}
+
 .friends-container {
   display: flex;
   flex-wrap: wrap;
@@ -146,9 +160,15 @@
 .join-invite-btn {
   border: none;
   border-radius: 999px;
-  padding: 8px 18px;
+  padding: 10px 20px;
   font-weight: 600;
   cursor: pointer;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .add-friend-btn,
