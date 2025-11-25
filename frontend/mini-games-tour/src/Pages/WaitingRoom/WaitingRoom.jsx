@@ -155,29 +155,33 @@ export default function WaitingRoom() {
   };
 
   return (
-    <div className="waiting-room">
-      <h1>Waiting Room</h1>
-      <h2 className="status-message">Game: {gameType.toUpperCase()}</h2>
-      <p>Room Code: {code}</p>
-      {
-        user && (
-          <>
-          {!sentInvite && (
-            <div className="invite-friends-waiting">
-                {user.friends.map((friend, i) => (
-                  <div className='invite-friend-box' key={i}>
-                    <span>{friend}</span>
-                    <button onClick={() => handleInviteFriendButton(friend)}>Invite</button>
-                  </div>
-                ))}
-            </div>
-          )}
-          {sentInvite && (
-            <span>Invite Was Sent!</span>
-          )}
-          </>
-        )
-      }
+    <div className="waiting-room page-shell">
+      <div className="waiting-card card">
+        <p className="eyebrow">Private lobby</p>
+        <h1>Waiting Room</h1>
+        <h2 className="status-message">Game: {gameType.toUpperCase().replace(/-/g, ' ')}</h2>
+        <p className="room-code-chip">Room Code: {code}</p>
+        <p className="room-status">{status}</p>
+        {user && user.friends?.length > 0 && (
+          <div className="invite-wrapper">
+            {!sentInvite ? (
+              <>
+                <h3>Invite a friend</h3>
+                <div className="invite-friends-waiting">
+                  {user.friends.map((friend, i) => (
+                    <div className='invite-friend-box' key={i}>
+                      <span>{friend}</span>
+                      <button className="btn btn--ghost" onClick={() => handleInviteFriendButton(friend)}>Invite</button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <span className="invite-sent">Invite was sent!</span>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,60 +1,71 @@
-.users {
-  color: #fff;
-  background-color: #0d1117;
-  min-height: 100vh;
-  padding: 40px;
-  padding-top: 104px;
-  font-family: Arial, sans-serif;
+.users-card {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  gap: 24px;
+  width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
 }
 
-.users h1 {
-  font-size: 28px;
-  text-align: center;
-  margin-bottom: 20px;
+.users-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.users-header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 2.4rem);
 }
 
 .search-input {
   width: 100%;
-  max-width: 400px;
-  padding: 10px 15px;
-  margin-bottom: 20px;
-  border-radius: 6px;
-  border: 1px solid #30363d;
-  background-color: #161b22;
-  color: #fff;
-  font-size: 16px;
+  max-width: 360px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-elevated);
+  color: var(--color-text);
+  font-size: 1rem;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .search-input:focus {
-  outline: none;
-  border-color: #58a6ff;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(125, 184, 255, 0.2);
 }
 
 .user-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
+  gap: 12px;
   width: 100%;
+  box-sizing: border-box;
+}
+
+.users-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--color-text-muted);
+  margin: 20px 0 0;
 }
 
 .user-card {
-  background-color: #161b22;
-  padding: 12px 20px;
-  border-radius: 8px;
-  color: #58a6ff;
-  text-decoration: none;
-  font-size: 16px;
-  transition: background-color 0.2s, color 0.2s;
+  padding: 14px;
+  border-radius: 16px;
   text-align: center;
-  flex: 0 0 auto;
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--color-primary);
+  font-weight: 600;
+  transition: transform 0.15s ease, border-color 0.15s ease;
 }
 
 .user-card:hover {
-  background-color: #1f6feb;
-  color: #fff;
+  transform: translateY(-2px);
+  border-color: rgba(125, 184, 255, 0.45);
+  color: #d9e8ff;
 }

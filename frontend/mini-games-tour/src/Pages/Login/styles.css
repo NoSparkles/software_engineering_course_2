@@ -1,74 +1,49 @@
-/* Login.css */
-.login-form {
-  color: #fff;
-  background-color: #0d1117;
-  height: 100vh;
+.auth-page {
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
-  font-family: Arial, sans-serif;
+  min-height: calc(100vh - 80px);
+  width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
-  padding: 20px;
-  text-align: center;
+  overflow-x: hidden;
+  padding: 0 clamp(20px, 4vw, 24px);
 }
 
-.login-form h2 {
-  font-size: 32px;
-  margin-bottom: 30px;
-  color: #58a6ff;
-}
-
-.login-form-group {
+.auth-card {
+  width: min(420px, calc(100% - 40px));
+  max-width: 100%;
   display: flex;
   flex-direction: column;
-  margin-bottom: 20px;
+  gap: 18px;
+  box-sizing: border-box;
+}
+
+.auth-card__header .eyebrow {
+  margin: 0;
+  letter-spacing: 0.18em;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.auth-card__header h2 {
+  margin: 6px 0 8px;
+}
+
+.auth-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.auth-error {
+  color: var(--color-danger);
+  font-size: 0.9rem;
+  margin: 4px 0 0;
+}
+
+.auth-submit {
   width: 100%;
-  max-width: 300px;
-  text-align: left;
-}
-
-.login-form-group label {
-  margin-bottom: 6px;
-  font-size: 16px;
-  color: #9be9a8;
-}
-
-.login-form-group input {
-  padding: 10px;
-  font-size: 16px;
-  border-radius: 6px;
-  border: 1px solid #161b22;
-  background-color: #161b22;
-  color: #fff;
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.login-form-group input:focus {
-  border-color: #58a6ff;
-  box-shadow: 0 0 5px #58a6ff;
-}
-
-.login-btn {
-  background-color: #1f6feb;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 10px 20px;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.2s;
   margin-top: 10px;
-}
-
-.login-btn:hover {
-  background-color: #58a6ff;
-}
-
-.login-error-message {
-  margin-top: 15px;
-  color: #ff4c4c;
-  font-weight: bold;
 }

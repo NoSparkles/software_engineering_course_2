@@ -1,85 +1,112 @@
-.waiting-room {
-  color: #fff;
-  background-color: #0d1117;
-  height: 100vh;
-  padding: 40px;
-  padding-top: 104px; /* 64px navbar + 40px padding */
-  font-family: Arial, sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  box-sizing: border-box;
-}
-
-.waiting-room h1 {
-  font-size: 32px;
-  font-weight: bold;
-  margin-bottom: 20px;
-  color: #58a6ff;
-}
-
-.waiting-room .status-message {
-  font-size: 24px;
-  font-weight: bold;
-  color: #9be9a8;
-  margin-bottom: 15px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.waiting-room p {
-  font-size: 20px;
-  font-weight: bold;
-  color: #ffcc00;
-  background-color: #161b22;
-  padding: 10px 20px;
-  border-radius: 8px;
-  letter-spacing: 2px;
-}
-
-/* Matchmaking Waiting Room */
+.waiting-room,
 .matchmaking-waiting-room {
-  color: #fff;
-  background-color: #0d1117;
-  height: 100vh;
-  padding: 40px;
-  padding-top: 104px; /* 64px navbar + 40px padding */
-  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 80px);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.waiting-card {
+  width: min(500px, calc(100% - 40px));
+  max-width: 100%;
+  text-align: center;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+  gap: 18px;
   box-sizing: border-box;
 }
 
-.matchmaking-waiting-room h1 {
-  font-size: 32px;
-  font-weight: bold;
-  margin-bottom: 20px;
-  color: #58a6ff;
+.waiting-card h1 {
+  margin: 0;
 }
 
-.matchmaking-waiting-room h2 {
-  font-size: 24px;
-  font-weight: bold;
-  color: #9be9a8;
-  margin-bottom: 20px;
+.waiting-card h2 {
+  margin: 0;
+  color: var(--color-primary);
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
-.matchmaking-waiting-room .matchmaking-info p {
-  font-size: 18px;
-  font-style: italic;
-  color: #ffcc00;
-  background-color: #161b22;
-  padding: 12px 24px;
-  border-radius: 8px;
-  max-width: 500px;
-  text-align: center;
+.waiting-card h3 {
+  margin: 12px 0 8px;
+  font-size: 1rem;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.status-message {
+  font-size: 1rem;
+  color: var(--color-primary);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.room-code-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+  padding: 8px 16px;
+  display: inline-flex;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.room-status {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.invite-wrapper {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.invite-friends-waiting {
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.invite-friend-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  width: 100%;
+  box-sizing: border-box;
+  gap: 12px;
+}
+
+.invite-friend-box span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invite-sent {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.matchmaking-info .hint {
+  color: var(--color-text-muted);
+  margin: 6px 0 0;
+  font-size: 0.9rem;
 }
 
 .invite-friends-waiting {
@@ -89,14 +116,3 @@
   padding-right: 10px; /* optional: helps prevent content from being hidden behind scrollbar */
 }
 
-.invite-friend-box {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #161b22;
-  gap: 20px;
-  padding: 8px 12px;
-  margin-bottom: 8px;
-  border-radius: 6px;
-  color: #fff;
-}

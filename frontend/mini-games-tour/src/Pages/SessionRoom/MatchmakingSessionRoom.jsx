@@ -438,62 +438,60 @@ export default function MatchmakingSessionRoom() {
   }, [roomCloseTime, timeLeft, showTimer, isSpectator]);
 
   return (
-    <div className="session-room">
-      <h2>{gameType.toUpperCase()} Matchmaking Session</h2>
-      <p>Player: <strong>{user?.username || playerId}</strong></p>
-      <p>
-        {isSpectator ? (
-          <>Role: <strong>Spectator</strong></>
+    <div className="session-room page-shell">
+      <div className="session-header card">
+        <p className="eyebrow">Matchmaking session</p>
+        <h2>{gameType.toUpperCase().replace(/-/g, ' ')} Matchmaking Session</h2>
+        <p className="session-role">Player: <strong>{user?.username || playerId}</strong></p>
+        <p className="session-role">
+          {isSpectator ? (
+            <>Role: <strong>Spectator</strong></>
+          ) : (
+            <>Assigned Color: <strong>{playerColor ? (playerColor === "R" ? "Red" : "Yellow") : "Not assigned yet"}</strong></>
+          )}
+        </p>
+        
+        <p className="session-role">
+          Connection: <strong style={{
+            color: connectionState === "Connected" ? "#7df5bd" : 
+                   connectionState === "Reconnecting" ? "#ffcf7a" : 
+                   connectionState === "Disconnected" ? "#ff9fb1" : "#9fb0d1"
+          }}>{connectionState}</strong>
+        </p>
+        
+        <div className="session-actions">
+          {connectionState === "Disconnected" && (
+            <button className="btn btn--ghost" onClick={() => {
+              if (connection) connection.start().catch(err => console.error("Reconnection failed:", err));
+            }}>
+              Reconnect
+            </button>
+          )}
+          <button 
+            className="btn btn--primary session-leave"
+            onClick={handleLeaveRoom} 
+            disabled={isLeavingRoom}
+          >
+            {isLeavingRoom ? 'Leaving...' : '🚪 Leave Room'}
+          </button>
+        </div>
+
+        {showTimer ? (
+          <div className={`time-left ${timeLeft <= 10 ? 'short' : timeLeft <= 20 ? 'medium' : 'long'}`}>
+            {timeLeft > 0 ? `Room will close in ${timeLeft} seconds` : "Room is closing now!"}
+          </div>
         ) : (
-          <>Assigned Color: <strong>{playerColor ? (playerColor === "R" ? "Red" : "Yellow") : "Not assigned yet"}</strong></>
+          <div className="time-left stable">
+            The room will remain open until all players have left.
+          </div>
         )}
-      </p>
-      
-      <p>Connection: <strong style={{
-        color: connectionState === "Connected" ? "green" : 
-               connectionState === "Reconnecting" ? "orange" : 
-               connectionState === "Disconnected" ? "red" : "gray"
-      }}>{connectionState}</strong></p>
-      {connectionState === "Disconnected" && (
-        <button className="reconnect-btn" onClick={() => {
-          if (connection) connection.start().catch(err => console.error("Reconnection failed:", err));
-        }}>
-          Reconnect
-        </button>
-      )}
-      <div style={{ marginTop: '20px', textAlign: 'center' }}>
-        <button 
-          onClick={handleLeaveRoom} 
-          disabled={isLeavingRoom}
-          style={{ 
-            opacity: isLeavingRoom ? 0.5 : 1,
-            cursor: isLeavingRoom ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {isLeavingRoom ? '🚪 Leaving...' : '🚪 Leave Room'}
-        </button>
       </div>
 
-      {showTimer ? (
-        <div className={`time-left ${timeLeft <= 10 ? 'short' : timeLeft <= 20 ? 'medium' : 'long'}`}>
-          {timeLeft > 0 ? `Room will close in ${timeLeft} seconds` : "Room is closing now!"}
-        </div>
-      ) : (
-        <div className="time-left stable">
-          The room will remain open until all players have left.
-        </div>
-      )}
-
-      <div className="game-board">
+      <div className="game-board card">
         {(connectionState === "Connected" && board) ? (
           board
         ) : (
-          <div style={{
-            padding: '40px',
-            textAlign: 'center',
-            fontSize: '1.5em',
-            color: '#666'
-          }}>
+          <div className="board-placeholder">
             🔌 Connecting to game...
           </div>
         )}

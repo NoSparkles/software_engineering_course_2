@@ -404,51 +404,48 @@ export default function SessionRoom() {
   }, [connectionState, board, roomCloseTime, timeLeft, showTimer, isSpectator]);
 
   return (
-    <div className="session-room">
-      <h2>{gameType.toUpperCase()} Session</h2>
-      <p>Room Code: <strong>{code}</strong></p>
-      <p>
+    <div className="session-room page-shell">
+      <div className="session-header card">
+        <p className="eyebrow">Live session</p>
+        <h2>{gameType.toUpperCase()} Session</h2>
+        <p className="room-code-chip">Room Code: <strong>{code}</strong></p>
+        <p className="session-role">
         {isSpectator ? (
           <>Role: <strong>Spectator</strong></>
         ) : (
           <>Assigned Color: <strong>{playerColor ? (playerColor === "R" ? "Red" : "Yellow") : "Not assigned yet"}</strong></>
         )}
-      </p>
+        </p>
 
-      {connectionState === "Disconnected" && (
-        <button className="reconnect-btn" onClick={() => {
-          if (connection) connection.start().catch(err => console.error("Reconnection failed:", err));
-        }}>
-          Reconnect
-        </button>
-      )}
+        <div className="session-actions">
+          {connectionState === "Disconnected" && (
+            <button className="btn btn--ghost" onClick={() => {
+              if (connection) connection.start().catch(err => console.error("Reconnection failed:", err));
+            }}>
+              Reconnect
+            </button>
+          )}
+          <button className="btn btn--primary session-leave" onClick={handleLeaveRoom}>
+            Leave Room
+          </button>
+        </div>
 
-      <div style={{ marginTop: '20px', textAlign: 'center' }}>
-        <button onClick={handleLeaveRoom}>
-          🚪 Leave Room
-        </button>
+        {showTimer ? (
+          <div className={`time-left ${timeLeft <= 10 ? 'short' : timeLeft <= 20 ? 'medium' : 'long'}`}>
+            {timeLeft > 0 ? `Room will close in ${timeLeft} seconds` : "Room is closing now!"}
+          </div>
+        ) : (
+          <div className="time-left stable">
+            The room will remain open until all players have left.
+          </div>
+        )}
       </div>
 
-      {showTimer ? (
-        <div className={`time-left ${timeLeft <= 10 ? 'short' : timeLeft <= 20 ? 'medium' : 'long'}`}>
-          {timeLeft > 0 ? `Room will close in ${timeLeft} seconds` : "Room is closing now!"}
-        </div>
-      ) : (
-        <div className="time-left stable">
-          The room will remain open until all players have left.
-        </div>
-      )}
-
-      <div className="game-board">
+      <div className="game-board card">
         {(connectionState === "Connected" && board) ? (
           board
         ) : (
-          <div style={{
-            padding: '40px',
-            textAlign: 'center',
-            fontSize: '1.5em',
-            color: '#666'
-          }}>
+          <div className="board-placeholder">
             🔌 Connecting to game...
           </div>
         )}

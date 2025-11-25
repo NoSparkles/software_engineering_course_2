@@ -173,11 +173,15 @@ export default function MatchmakingWaitingRoom() {
   // OnDisconnectedAsync handles disconnection and allows reconnection
 
   return (
-    <div className="matchmaking-waiting-room">
-      <h1>Matchmaking Waiting Room</h1>
-      <h2>Game: {gameType.toUpperCase()}</h2>
-      <div className="matchmaking-info">
-        <p>You are in matchmaking mode. The system will automatically pair you with another player.</p>
+    <div className="matchmaking-waiting-room page-shell">
+      <div className="waiting-card card">
+        <p className="eyebrow">Matchmaking</p>
+        <h1>Finding your opponent</h1>
+        <h2>Game: {gameType.toUpperCase()}</h2>
+        <div className="matchmaking-info">
+          <p>{status}</p>
+          <p className="hint">Sit tight—once another player is ready you'll be dropped straight into the session.</p>
+        </div>
       </div>
     </div>
   );

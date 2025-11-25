@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import './styles.css';
 
 export default function LeaderBoard() {
@@ -6,11 +6,7 @@ export default function LeaderBoard() {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [popupHeight, setPopupHeight] = useState(0);
 
-  const popupRef = useRef(null);
-
-  // Fetch users when leaderboard is opened
   useEffect(() => {
     const fetchLeaderboard = async () => {
       setLoading(true);
@@ -36,30 +32,17 @@ export default function LeaderBoard() {
     if (open) fetchLeaderboard();
   }, [open]);
 
-  useEffect(() => {
-    if (open && popupRef.current) {
-      const resizeObserver = new ResizeObserver(() => {
-        const rect = popupRef.current.getBoundingClientRect();
-        setPopupHeight(rect.height);
-      });
-      resizeObserver.observe(popupRef.current);
-
-      return () => resizeObserver.disconnect();
-    }
-  }, [open, players]);
-
   const handleToggle = () => {
     setOpen(prev => !prev);
     if (open) {
       setPlayers([]);
       setError(null);
-      setPopupHeight(0);
     }
   };
 
   const renderPlayers = () => {
     if (loading) return <p>Loading leaderboard...</p>;
-    if (error) return <p style={{ color: 'red' }}>{error}</p>;
+    if (error) return <p style={{ color: 'var(--color-danger)' }}>{error}</p>;
     if (!players.length) return <p>No players found.</p>;
 
     const sortedPlayers = players
@@ -73,12 +56,16 @@ export default function LeaderBoard() {
       .sort((a, b) => b.totalMmr - a.totalMmr);
 
     return (
-      <ul>
+      <ul className="leaderboard-panel__list">
         {sortedPlayers.map((p, i) => (
-          <li key={p.username || i}>
-            {i + 1}. {p.username} - {p.totalMmr} MMR
-            <div style={{ fontSize: '0.8em', color: '#ccc', marginLeft: '20px' }}>
-              RPS: {p.rps} | 4-in-Row: {p.four} | Matching: {p.match}
+          <li className="leaderboard-panel__item" key={p.username || i}>
+            <div className="leaderboard-panel__row">
+              <strong>#{i + 1}</strong>
+              <span>{p.username}</span>
+              <span>{p.totalMmr} MMR</span>
+            </div>
+            <div className="leaderboard-panel__meta">
+              RPS: {p.rps} • 4-in-Row: {p.four} • Matching: {p.match}
             </div>
           </li>
         ))}
@@ -87,22 +74,23 @@ export default function LeaderBoard() {
   };
 
   return (
-    <div>
-      <button
-        className={`leaderboard ${open ? 'open' : ''}`}
-        onClick={handleToggle}
-        style={{
-          bottom: open ? popupHeight + 20 : 0,
-          transition: 'bottom 0.3s ease',
-        }}
-      >
-        Leaderboard
+    <div className="leaderboard-shell">
+      <button className="btn btn--ghost" onClick={handleToggle}>
+        {open ? 'Hide Leaderboard' : 'Leaderboard'}
       </button>
 
       {open && (
-        <div ref={popupRef} className="leaderboard-popup">
+        <div className="leaderboard-panel is-visible">
+          <div className="leaderboard-panel__header">
+            <div>
+              <p className="leaderboard-panel__eyebrow">Live standings</p>
+              <h4>Top competitors</h4>
+            </div>
+            <button className="btn btn--ghost" onClick={handleToggle}>
+              Close
+            </button>
+          </div>
           {renderPlayers()}
-          <button onClick={handleToggle}>Close</button>
         </div>
       )}
     </div>
