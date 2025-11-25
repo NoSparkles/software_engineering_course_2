@@ -246,6 +246,7 @@
 .leaderboard-panel {
   width: min(320px, calc(100vw - 48px));
   max-width: calc(100vw - 48px);
+  max-height: 80vh;
   padding: 20px 22px;
   border-radius: 20px;
   background: rgba(8, 10, 22, 0.95);
@@ -253,6 +254,9 @@
   box-shadow: 0 24px 45px rgba(0, 0, 0, 0.45);
   animation: leaderboard-slide-up 0.25s ease forwards;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 @keyframes leaderboard-slide-up {
@@ -288,6 +292,10 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  min-height: 0;
 }
 
 .leaderboard-panel__item {
