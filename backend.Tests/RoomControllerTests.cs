@@ -12,7 +12,7 @@ namespace backend.Tests {
     public class RoomControllerTests
     {
         private readonly GameDbContext _context;
-        private readonly RoomService _roomService;
+        private readonly IRoomService _roomService;
         private readonly RoomController _controller;
         public RoomControllerTests()
         {

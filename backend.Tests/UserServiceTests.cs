@@ -18,8 +18,8 @@ namespace backend.Tests
     public class UserServiceTests
     {
         private readonly GameDbContext _context;
-        private readonly UserService _service;
-        private readonly RoomService _roomService;
+        private readonly IUserService _service;
+        private readonly IRoomService _roomService;
 
         public UserServiceTests()
         {

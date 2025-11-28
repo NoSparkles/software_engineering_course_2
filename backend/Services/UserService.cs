@@ -12,7 +12,7 @@ using Exceptions;
 
 namespace Services
 {
-    public class UserService
+    public class UserService : IUserService
     {
         static public readonly byte[] KEY;
         static UserService()
@@ -295,7 +295,7 @@ namespace Services
             return true;
         }
 
-        public async Task<User?> RemoveInviteFriendToGameExpired(string username, RoomService roomService)
+        public async Task<User?> RemoveInviteFriendToGameExpired(string username, IRoomService roomService)
         {
             var user = await _context.Users
                 .Include(u => u.IncomingInviteToGameRequests)
@@ -363,7 +363,7 @@ namespace Services
             return user;
         }
     
-        private bool RoomExistsInMemory(string roomKey, RoomService roomService)
+        private bool RoomExistsInMemory(string roomKey, IRoomService roomService)
         {
             var parts = roomKey.Split(':');
             if (parts.Length != 2) return false;

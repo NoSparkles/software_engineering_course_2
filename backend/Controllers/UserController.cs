@@ -12,10 +12,10 @@ namespace Controllers
     [Route("[controller]")]
     public class UserController : ControllerBase
     {
-        private readonly UserService _userService;
-        private readonly RoomService _roomService;
+        private readonly IUserService _userService;
+        private readonly IRoomService _roomService;
         private readonly ExceptionManager<UserNotFoundException> mgr;
-        public UserController(UserService userService, RoomService roomService)
+        public UserController(IUserService userService, IRoomService roomService)
         {
             _userService = userService;
             _roomService = roomService;

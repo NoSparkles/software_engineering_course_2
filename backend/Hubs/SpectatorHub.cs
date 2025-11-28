@@ -8,12 +8,12 @@ namespace Hubs
 {
     public class SpectatorHub : Hub
     {
-        private readonly RoomService RoomService;
+        private readonly IRoomService RoomService;
         // Map connectionId -> (roomKey, spectatorId) 
         private static readonly ConcurrentDictionary<string, (string roomKey, string spectatorId)> ConnectionRoomMap =
             new ConcurrentDictionary<string, (string roomKey, string spectatorId)>();
 
-        public SpectatorHub(RoomService roomService)
+        public SpectatorHub(IRoomService roomService)
         {
             RoomService = roomService;
         }
