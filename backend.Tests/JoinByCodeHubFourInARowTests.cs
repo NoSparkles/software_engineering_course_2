@@ -18,8 +18,8 @@ namespace backend.Tests
     public class JoinByCodeHubFourInARowTests
     {
         private readonly JoinByCodeHub _hub;
-        private readonly UserService _userService;
-        private readonly RoomService _roomService;
+        private readonly IUserService _userService;
+        private readonly IRoomService _roomService;
         private readonly ISingleClientProxy _callerProxy;
         private readonly IHubCallerClients _clients;
         private readonly GameDbContext _context;

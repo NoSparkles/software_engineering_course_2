@@ -10,7 +10,7 @@ namespace Services
     using Microsoft.AspNetCore.SignalR;
     using Hubs;
 
-    public class RoomService
+    public class RoomService : IRoomService
     {
         private readonly IHubContext<SpectatorHub>? SpectatorHubContext;
         public ConcurrentDictionary<string, Room> Rooms { get; set; } // roomKey -> Room

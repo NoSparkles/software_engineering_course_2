@@ -8,9 +8,9 @@ namespace Controllers
     [Route("api/[controller]")]
     public class SessionController : ControllerBase
     {
-        private readonly RoomService RoomService;
+        private readonly IRoomService RoomService;
 
-        public SessionController(RoomService roomService)
+        public SessionController(IRoomService roomService)
         {
             RoomService = roomService;
         }

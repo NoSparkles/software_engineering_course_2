@@ -8,10 +8,10 @@ namespace Hubs
 {
     public class MatchMakingHub : Hub, IgameHub
     {
-        private readonly RoomService RoomService;
-        private readonly UserService UserService; // added
+        private readonly IRoomService RoomService;
+        private readonly IUserService UserService; // added
 
-        public MatchMakingHub(UserService userService, RoomService roomService)
+        public MatchMakingHub(IUserService userService, IRoomService roomService)
         {
             UserService = userService; // added
             RoomService = roomService;

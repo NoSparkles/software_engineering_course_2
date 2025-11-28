@@ -8,10 +8,10 @@ namespace Hubs
 {
     public class JoinByCodeHub : Hub, IgameHub
     {
-        private readonly UserService UserService;
-        private readonly RoomService RoomService;
+        private readonly IUserService UserService;
+        private readonly IRoomService RoomService;
 
-        public JoinByCodeHub(UserService userService, RoomService roomService)
+        public JoinByCodeHub(IUserService userService, IRoomService roomService)
         {
             UserService = userService;
             RoomService = roomService;

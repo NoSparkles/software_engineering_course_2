@@ -17,7 +17,7 @@ namespace backend.Tests
     public class SessionControllerTests
     {
         private readonly GameDbContext _context;
-        private readonly RoomService _roomService;
+        private readonly IRoomService _roomService;
         private readonly SessionController _controller;
 
         public SessionControllerTests()
