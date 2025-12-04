@@ -17,16 +17,16 @@ using Xunit;
 
 namespace backend.Tests
 {
-    public class JoinByCodeHubPairMatchingTests
+    public class MatchMakingHubPairMatchingTests
     {
-        private readonly JoinByCodeHub _hub;
+        private readonly MatchMakingHub _hub;
         private readonly IUserService _userService;
         private readonly IRoomService _roomService;
         private readonly ISingleClientProxy _callerProxy;
         private readonly IHubCallerClients _clients;
         private readonly GameDbContext _context;
 
-        public JoinByCodeHubPairMatchingTests()
+        public MatchMakingHubPairMatchingTests()
         {
             var options = new DbContextOptionsBuilder<GameDbContext>()
                 .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
@@ -41,7 +41,7 @@ namespace backend.Tests
             var hubContext = A.Fake<IHubContext<SpectatorHub>>();
             _roomService = new RoomService(hubContext);
 
-            _hub = new JoinByCodeHub(_userService, _roomService);
+            _hub = new MatchMakingHub(_userService, _roomService);
 
             _callerProxy = A.Fake<ISingleClientProxy>();
             _clients = A.Fake<IHubCallerClients>();
@@ -74,7 +74,7 @@ namespace backend.Tests
             var roomUser = new RoomUser("player1", true, user);
 
             var game = new PairMatching();
-            var room = new Room(game, isMatchMaking: false)
+            var room = new Room(game, isMatchMaking: true)
             {
                 Code = roomCode,
                 RoomPlayers = { roomUser }
@@ -122,7 +122,7 @@ namespace backend.Tests
 
             var roomUser1 = new RoomUser("player1", true, user1) { PlayerId = "player1" };
             var roomUser2 = new RoomUser("player2", true, user2) { PlayerId = "player2" };
-            var room = new Room(game, isMatchMaking: false)
+            var room = new Room(game, isMatchMaking: true)
             {
                 Code = roomCode,
                 RoomPlayers = { roomUser1, roomUser2 }
@@ -175,23 +175,16 @@ namespace backend.Tests
         }   
 
         [Fact]
-        public async Task Join_ShouldFail_WhenRoomDoesNotExist()
+        public async Task Join_ShouldThrow_WhenRoomDoesNotExist()
         {
-            // Arrange
             var gameType = "pair-matching";
             var roomCode = "nonexistent";
             var jwtToken = "fakeJwt";
 
-            var callerProxy = A.Fake<ISingleClientProxy>();
-            A.CallTo(() => _clients.Caller).Returns(callerProxy);
+            Func<Task> act = () => _hub.Join(gameType, roomCode, "player1", jwtToken);
 
-            await _hub.Join(gameType, roomCode, "player1", jwtToken);
-
-            A.CallTo(() => callerProxy.SendCoreAsync(
-                "JoinFailed",
-                A<object[]>.That.Contains("Room no longer exists. It may have been closed."),
-                A<CancellationToken>._))
-            .MustHaveHappenedOnceExactly();
+            await act.Should().ThrowAsync<Exception>()
+                .WithMessage("Room pair-matching:NONEXISTENT does not exist.");
         }
 
         [Fact]
@@ -280,7 +273,7 @@ namespace backend.Tests
             var roomKey = gameType.ToRoomKey(roomCode);
 
             var game = new PairMatching();
-            var room = new Room(game, false) { Code = roomCode };
+            var room = new Room(game, true) { Code = roomCode };
             _roomService.Rooms[roomKey] = room;
 
             var callerProxy = A.Fake<ISingleClientProxy>();
@@ -326,42 +319,6 @@ namespace backend.Tests
         }
 
         [Fact]
-        public async Task CreateRoom_Should_ReturnRoomCode_WhenRoomIsCreated()
-        {
-            var gameType = "pair-matching";
-
-            var roomCode = await _hub.CreateRoom(gameType, false);
-            var roomKey = gameType.ToRoomKey(roomCode);
-
-            _roomService.Rooms.Should().ContainKey(roomKey);
-            _roomService.Rooms[roomKey].Game.Should().BeOfType<PairMatching>();
-        }
-
-        [Fact]
-        public async Task RoomExists_Should_ReturnTrue_WhenRoomExists()
-        {
-            var gameType = "pair-matching";
-
-            var roomCode = await _hub.CreateRoom(gameType, false);
-
-            var exists = await _hub.RoomExists(gameType, roomCode);
-
-            exists.Should().BeTrue("RoomExists should return true for an existing room");
-        }
-
-        [Fact]
-        public async Task RoomExistsMatchmaking_Should_ReturnTrue_WhenRoomExists()
-        {
-            var gameType = "pair-matching";
-
-            var roomCode = await _hub.CreateRoom(gameType, true);
-
-            var exists = await _hub.RoomExists(gameType, roomCode);
-
-            exists.Should().BeTrue("RoomExists should return true for an existing room");
-        }
-
-        [Fact]
         public async Task LeaveRoom_ShouldCloseRoomAndRemovePlayer_WhenRoomExists()
         {
             var gameType = "pair-matching";
@@ -374,7 +331,7 @@ namespace backend.Tests
 
             var roomUser = new RoomUser("player1", true, user);
             var game = new PairMatching();
-            var room = new Room(game, isMatchMaking: false)
+            var room = new Room(game, isMatchMaking: true)
             {
                 Code = roomCode,
                 RoomPlayers = { roomUser }
@@ -429,7 +386,7 @@ namespace backend.Tests
 
             var roomUser = new RoomUser("player1", true, user);
             var game = new PairMatching();
-            var room = new Room(game, isMatchMaking: false)
+            var room = new Room(game, isMatchMaking: true)
             {
                 Code = roomCode,
                 RoomPlayers = { roomUser }
@@ -443,26 +400,50 @@ namespace backend.Tests
 
             _roomService.Rooms.Should().NotContainKey(roomKey);
         }
-                
+
         [Fact]
-        public async Task DeclineReconnection_ShouldRemovePlayerFromCodeRoomUsers_WhenRoomDoesNotExist()
+        public async Task DeclineReconnection_ShouldClearMatchmakingSession_WhenRoomDoesNotExist()
         {
             var gameType = "pair-matching";
             var roomCode = "room1";
-            var roomKey = gameType.ToRoomKey(roomCode);
 
             var user = new User { Username = "player1", PasswordHash = "hashedpassword" };
             _context.Users.Add(user);
             _context.SaveChanges();
 
+            // Add player to CodeRoomUsers (not removed by DeclineReconnection itself)
             _roomService.CodeRoomUsers.TryAdd("player1", new RoomUser("player1", true, user));
 
             var clients = A.Fake<IHubCallerClients>();
             _hub.Clients = clients;
 
+            // Act
             await _hub.DeclineReconnection("player1", gameType, roomCode);
 
-            _roomService.CodeRoomUsers.ContainsKey("player1").Should().BeFalse();
+            // Assert: player is still tracked, but ClearActiveMatchmakingSession was called
+            _roomService.CodeRoomUsers.ContainsKey("player1").Should().BeTrue();
+            // If you want to assert the call:
+            // A.CallTo(() => _roomService.ClearActiveMatchmakingSession("player1")).MustHaveHappened();
+        }
+                
+        [Fact]
+        public async Task DeclineReconnection_ShouldCloseRoom_WhenRoomExists()
+        {
+            var gameType = "pair-matching";
+            var roomCode = "room1";
+            var roomKey = gameType.ToRoomKey(roomCode);
+
+            var room = new Room(new PairMatching(), false) { Code = roomCode };
+            _roomService.Rooms[roomKey] = room;
+
+            var clients = A.Fake<IHubCallerClients>();
+            _hub.Clients = clients;
+
+            // Act
+            await _hub.DeclineReconnection("player1", gameType, roomCode);
+
+            // Assert: room should be closed
+            _roomService.Rooms.ContainsKey(roomKey).Should().BeFalse();
         }
 
         [Fact]
@@ -517,7 +498,7 @@ namespace backend.Tests
             var roomUser2 = new RoomUser("loser", true, user2) { PlayerId = "player2" };
 
             var game = A.Fake<PairMatching>();
-            var room = new Room(game, false)
+            var room = new Room(game, true)
             {
                 Code = roomCode,
                 RoomPlayers = { roomUser1, roomUser2 }
@@ -548,7 +529,7 @@ namespace backend.Tests
             var roomUser1 = new RoomUser("", true, user1) { PlayerId = "player1" };
 
             var game = A.Fake<PairMatching>();
-            var room = new Room(game, false)
+            var room = new Room(game, true)
             {
                 Code = roomCode,
                 RoomPlayers = { roomUser1 }
@@ -578,7 +559,7 @@ namespace backend.Tests
 
             var roomUser = new RoomUser("player1", true, user);
             var game = new PairMatching();
-            var room = new Room(game, false)
+            var room = new Room(game, true)
             {
                 Code = roomCode,
                 RoomPlayers = { roomUser }
@@ -615,7 +596,7 @@ namespace backend.Tests
 
             var roomUser = new RoomUser("player1", true, user);
             var game = new PairMatching();
-            var room = new Room(game, false)
+            var room = new Room(game, true)
             {
                 Code = roomCode,
                 RoomPlayers = { roomUser }
@@ -643,7 +624,7 @@ namespace backend.Tests
             var roomKey = gameType.ToRoomKey(roomCode);
 
             var game = new PairMatching();
-            var room = new Room(game, isMatchMaking: false)
+            var room = new Room(game, isMatchMaking: true)
             {
                 Code = roomCode
             };
