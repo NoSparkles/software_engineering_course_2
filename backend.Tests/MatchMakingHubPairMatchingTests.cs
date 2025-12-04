@@ -35,7 +35,6 @@ namespace backend.Tests
             _context = new GameDbContext(options);
             _context.Database.EnsureCreated();
 
-            // 👇 Use a fake IUserService instead of a real UserService
             _userService = A.Fake<IUserService>();
 
             var hubContext = A.Fake<IHubContext<SpectatorHub>>();
@@ -411,19 +410,14 @@ namespace backend.Tests
             _context.Users.Add(user);
             _context.SaveChanges();
 
-            // Add player to CodeRoomUsers (not removed by DeclineReconnection itself)
             _roomService.CodeRoomUsers.TryAdd("player1", new RoomUser("player1", true, user));
 
             var clients = A.Fake<IHubCallerClients>();
             _hub.Clients = clients;
 
-            // Act
             await _hub.DeclineReconnection("player1", gameType, roomCode);
 
-            // Assert: player is still tracked, but ClearActiveMatchmakingSession was called
             _roomService.CodeRoomUsers.ContainsKey("player1").Should().BeTrue();
-            // If you want to assert the call:
-            // A.CallTo(() => _roomService.ClearActiveMatchmakingSession("player1")).MustHaveHappened();
         }
                 
         [Fact]
@@ -439,10 +433,8 @@ namespace backend.Tests
             var clients = A.Fake<IHubCallerClients>();
             _hub.Clients = clients;
 
-            // Act
             await _hub.DeclineReconnection("player1", gameType, roomCode);
 
-            // Assert: room should be closed
             _roomService.Rooms.ContainsKey(roomKey).Should().BeFalse();
         }
 
@@ -522,7 +514,7 @@ namespace backend.Tests
             var roomCode = "room1";
             var roomKey = gameType.ToRoomKey(roomCode);
 
-            var user1 = new User { Username = "", PasswordHash = "pw" }; // missing username
+            var user1 = new User { Username = "", PasswordHash = "pw" };
             _context.Users.Add(user1);
             _context.SaveChanges();
 

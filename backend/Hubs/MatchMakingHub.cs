@@ -21,7 +21,6 @@ namespace Hubs
         {
             var roomKey = gameType.ToRoomKey(roomCode);
 
-            // Check if room exists
             if (!RoomService.Rooms.ContainsKey(roomKey))
             {
                 Console.WriteLine($"ReportWin failed: Room {roomKey} no longer exists");
@@ -38,7 +37,6 @@ namespace Hubs
             var game = room.Game;
             await game.ReportWin(playerId, Clients);
 
-            // Determine winner/loser usernames (only if both are known)
             var winner = room.RoomPlayers.FirstOrDefault(p => p.PlayerId == playerId);
             var loser = room.RoomPlayers.FirstOrDefault(p => p.PlayerId != null && p.PlayerId != playerId);
 
@@ -60,7 +58,6 @@ namespace Hubs
         {
             var roomKey = gameType.ToRoomKey(roomCode);
 
-            // Check if room exists
             if (!RoomService.Rooms.ContainsKey(roomKey))
             {
                 Console.WriteLine($"HandleCommand failed: Room {roomKey} no longer exists");
@@ -107,7 +104,6 @@ namespace Hubs
                     throw new Exception($"Room {roomKey} does not exist.");
                 }
                 Console.WriteLine($"Ensuring connection is in group: {roomKey}");
-                // Always add the connection to the group, even if already present
                 await Groups.AddToGroupAsync(Context.ConnectionId, roomKey);
                 Console.WriteLine($"Calling JoinAsPlayerMatchMaking");
                 await RoomService.JoinAsPlayerMatchMaking(gameType, roomCode, playerId, user, Context.ConnectionId, Clients);

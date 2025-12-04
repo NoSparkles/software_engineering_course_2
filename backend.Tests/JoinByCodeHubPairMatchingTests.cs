@@ -35,7 +35,6 @@ namespace backend.Tests
             _context = new GameDbContext(options);
             _context.Database.EnsureCreated();
 
-            // 👇 Use a fake IUserService instead of a real UserService
             _userService = A.Fake<IUserService>();
 
             var hubContext = A.Fake<IHubContext<SpectatorHub>>();
@@ -177,7 +176,6 @@ namespace backend.Tests
         [Fact]
         public async Task Join_ShouldFail_WhenRoomDoesNotExist()
         {
-            // Arrange
             var gameType = "pair-matching";
             var roomCode = "nonexistent";
             var jwtToken = "fakeJwt";
@@ -541,7 +539,7 @@ namespace backend.Tests
             var roomCode = "room1";
             var roomKey = gameType.ToRoomKey(roomCode);
 
-            var user1 = new User { Username = "", PasswordHash = "pw" }; // missing username
+            var user1 = new User { Username = "", PasswordHash = "pw" };
             _context.Users.Add(user1);
             _context.SaveChanges();
 
