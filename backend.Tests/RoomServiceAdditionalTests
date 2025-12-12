@@ -1,0 +1,665 @@
+using Xunit;
+using FluentAssertions;
+using Services;
+using Microsoft.AspNetCore.SignalR;
+using FakeItEasy;
+using Hubs;
+using Models.InMemoryModels;
+using Models;
+using Games;
+using System.Collections.Concurrent;
+
+namespace backend.Tests
+{
+    public class RoomServiceAdditionalTests
+    {
+        private readonly RoomService _service;
+        private readonly IHubContext<SpectatorHub> _hubContext;
+        private readonly IHubCallerClients _fakeClients;
+
+        public RoomServiceAdditionalTests()
+        {
+            _hubContext = A.Fake<IHubContext<SpectatorHub>>();
+            _service = new RoomService(_hubContext);
+            _fakeClients = A.Fake<IHubCallerClients>();
+        }
+
+        [Fact]
+        public void Get_Rooms_Should_Return_Correct_Collection()
+        {
+            // Arrange
+            var roomCode1 = _service.CreateRoom("rock-paper-scissors", false);
+            var roomCode2 = _service.CreateRoom("four-in-a-row", false);
+
+            // Act
+            var rooms = _service.Rooms;
+
+            // Assert
+            rooms.Should().NotBeNull();
+            rooms.Should().HaveCount(2);
+            rooms.Keys.Should().Contain($"rock-paper-scissors:{roomCode1}");
+            rooms.Keys.Should().Contain($"four-in-a-row:{roomCode2}");
+        }
+
+        [Fact]
+        public void Get_CodeRoomUsers_Should_Return_Correct_Mappings()
+        {
+            // Arrange
+            var roomCode = _service.CreateRoom("rock-paper-scissors", false);
+            var roomKey = $"rock-paper-scissors:{roomCode}";
+            var room = _service.GetRoomByKey(roomKey);
+            
+            var roomUser = new RoomUser { PlayerId = "player1", Username = "testUser" };
+            room!.RoomPlayers.Add(roomUser);
+            _service.CodeRoomUsers["player1"] = roomUser;
+
+            // Act
+            var codeRoomUsers = _service.CodeRoomUsers;
+
+            // Assert
+            codeRoomUsers.Should().NotBeNull();
+            codeRoomUsers.Should().ContainKey("player1");
+            codeRoomUsers["player1"].PlayerId.Should().Be("player1");
+        }
+
+        [Fact]
+        public void Get_MatchMakingRoomUsers_Should_Return_Correct_Mappings()
+        {
+            // Arrange
+            var roomCode = _service.CreateRoom("rock-paper-scissors", true);
+            var roomKey = $"rock-paper-scissors:{roomCode}";
+            var room = _service.GetRoomByKey(roomKey);
+            
+            var roomUser = new RoomUser { PlayerId = "player1", Username = "testUser" };
+            room!.RoomPlayers.Add(roomUser);
+            _service.MatchMakingRoomUsers["player1"] = roomUser;
+
+            // Act
+            var matchMakingRoomUsers = _service.MatchMakingRoomUsers;
+
+            // Assert
+            matchMakingRoomUsers.Should().NotBeNull();
+            matchMakingRoomUsers.Should().ContainKey("player1");
+            matchMakingRoomUsers["player1"].PlayerId.Should().Be("player1");
+        }
+
+        [Fact]
+        public void Get_ActiveMatchmakingSessions_Should_Return_Correct_Mappings()
+        {
+            // Arrange
+            _service.ActiveMatchmakingSessions["player1"] = "room-key-1";
+            _service.ActiveMatchmakingSessions["player2"] = "room-key-2";
+
+            // Act
+            var activeSessions = _service.ActiveMatchmakingSessions;
+
+            // Assert
+            activeSessions.Should().NotBeNull();
+            activeSessions.Should().HaveCount(2);
+            activeSessions.Should().ContainKey("player1");
+            activeSessions.Should().ContainKey("player2");
+        }
+
+        [Fact]
+        public async Task CancelRoomTimer_Should_Cancel_Timer_And_Clear_CloseTime()
+        {
+            // Arrange
+            var roomCode = _service.CreateRoom("rock-paper-scissors", false);
+            var roomKey = $"rock-paper-scissors:{roomCode}";
+            var room = _service.GetRoomByKey(roomKey)!;
+            
+            var cts = new CancellationTokenSource();
+            room.RoomTimerCancellation = cts;
+            room.RoomCloseTime = DateTime.UtcNow.AddSeconds(30);
+
+            // Act
+            await _service.CancelRoomTimer(room);
+
+            // Assert
+            room.RoomCloseTime.Should().BeNull();
+            room.RoomTimerCancellation.Should().BeNull();
+            cts.IsCancellationRequested.Should().BeTrue();
+        }
+
+        [Fact]
+        public void CancelRoomTimer_Should_Handle_Already_Disposed_Token()
+        {
+            // Arrange
+            var roomCode = _service.CreateRoom("rock-paper-scissors", false);
+            var roomKey = $"rock-paper-scissors:{roomCode}";
+            var room = _service.GetRoomByKey(roomKey)!;
+            
+            var cts = new CancellationTokenSource();
+            cts.Dispose();
+            room.RoomTimerCancellation = cts;
+            room.RoomCloseTime = DateTime.UtcNow.AddSeconds(30);
+
+            // Act
+            var act = async () => await _service.CancelRoomTimer(room);
+
+            // Assert - Should not throw
+            act.Should().NotThrowAsync();
+            room.RoomCloseTime.Should().BeNull();
+            room.RoomTimerCancellation.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task JoinAsPlayerNotMatchMaking_Should_Handle_Player_Reconnection()
+        {
+            // Arrange
+            var roomCode = _service.CreateRoom("rock-paper-scissors", false);
+            var roomKey = $"rock-paper-scissors:{roomCode}";
+            var room = _service.GetRoomByKey(roomKey)!;
+            
+            var user = new User { Username = "player1", PasswordHash = "hash" };
+            var roomUser = new RoomUser { PlayerId = "player1", Username = "player1", User = user };
+            room.RoomPlayers.Add(roomUser);
+            room.DisconnectedPlayers["player1"] = roomUser;
+            room.RoomCloseTime = DateTime.UtcNow.AddSeconds(30);
+            
+            var mockClient = A.Fake<IClientProxy>();
+            A.CallTo(() => _fakeClients.Client("conn1")).Returns(mockClient);
+            A.CallTo(() => _fakeClients.Group(roomKey)).Returns(mockClient);
+
+            // Act
+            await _service.JoinAsPlayerNotMatchMaking("rock-paper-scissors", roomCode, "player1", user, "conn1", _fakeClients);
+
+            // Assert
+            room.DisconnectedPlayers.Should().NotContainKey("player1");
+            room.RoomCloseTime.Should().BeNull();
+            room.RoomTimerCancellation.Should().BeNull();
+            
+            A.CallTo(() => mockClient.SendCoreAsync("PlayerReconnected", A<object?[]>._, A<CancellationToken>._))
+                .MustHaveHappened();
+        }
+
+        [Fact]
+        public async Task JoinAsPlayerMatchMaking_Should_Handle_Player_Reconnection()
+        {
+            // Arrange
+            var roomCode = _service.CreateRoom("rock-paper-scissors", true);
+            var roomKey = $"rock-paper-scissors:{roomCode}";
+            var room = _service.GetRoomByKey(roomKey)!;
+            
+            var user = new User { Username = "player1", PasswordHash = "hash" };
+            var roomUser = new RoomUser { PlayerId = "player1", Username = "player1", User = user };
+            room.RoomPlayers.Add(roomUser);
+            room.DisconnectedPlayers["player1"] = roomUser;
+            room.RoomCloseTime = DateTime.UtcNow.AddSeconds(30);
+            
+            var mockClient = A.Fake<IClientProxy>();
+            A.CallTo(() => _fakeClients.Client("conn1")).Returns(mockClient);
+            A.CallTo(() => _fakeClients.Group(roomKey)).Returns(mockClient);
+
+            // Act
+            await _service.JoinAsPlayerMatchMaking("rock-paper-scissors", roomCode, "player1", user, "conn1", _fakeClients);
+
+            // Assert
+            room.DisconnectedPlayers.Should().NotContainKey("player1");
+            room.RoomCloseTime.Should().BeNull();
+            room.RoomTimerCancellation.Should().BeNull();
+            _service.ActiveMatchmakingSessions.Should().ContainKey("player1");
+            
+            A.CallTo(() => mockClient.SendCoreAsync("PlayerReconnected", A<object?[]>._, A<CancellationToken>._))
+                .MustHaveHappened();
+        }
+
+        [Fact]
+        public async Task JoinAsPlayerNotMatchMaking_Should_Start_Game_When_Second_Player_Joins()
+        {
+            // Arrange
+            var roomCode = _service.CreateRoom("rock-paper-scissors", false);
+            var roomKey = $"rock-paper-scissors:{roomCode}";
+            
+            var user1 = new User { Username = "player1", PasswordHash = "hash1" };
+            var user2 = new User { Username = "player2", PasswordHash = "hash2" };
+            
+            var mockClient = A.Fake<IClientProxy>();
+            A.CallTo(() => _fakeClients.Client("conn1")).Returns(mockClient);
+            A.CallTo(() => _fakeClients.Client("conn2")).Returns(mockClient);
+            A.CallTo(() => _fakeClients.Group(roomKey)).Returns(mockClient);
+
+            // Act - First player joins
+            await _service.JoinAsPlayerNotMatchMaking("rock-paper-scissors", roomCode, "player1", user1, "conn1", _fakeClients);
+            
+            // Act - Second player joins (should start game)
+            await _service.JoinAsPlayerNotMatchMaking("rock-paper-scissors", roomCode, "player2", user2, "conn2", _fakeClients);
+
+            // Assert
+            var room = _service.GetRoomByKey(roomKey);
+            room!.GameStarted.Should().BeTrue();
+            room.RoomPlayers.Should().HaveCount(2);
+            
+            A.CallTo(() => mockClient.SendCoreAsync("StartGame", A<object?[]>._, A<CancellationToken>._))
+                .MustHaveHappened();
+        }
+
+        [Fact]
+        public async Task JoinAsPlayerMatchMaking_Should_Send_MatchFound_For_Matchmaking_Rooms()
+        {
+            // Arrange
+            var roomCode = _service.CreateRoom("rock-paper-scissors", true);
+            var roomKey = $"rock-paper-scissors:{roomCode}";
+            
+            var user1 = new User { Username = "player1", PasswordHash = "hash1" };
+            var user2 = new User { Username = "player2", PasswordHash = "hash2" };
+            
+            var mockClient = A.Fake<IClientProxy>();
+            A.CallTo(() => _fakeClients.Client("conn1")).Returns(mockClient);
+            A.CallTo(() => _fakeClients.Client("conn2")).Returns(mockClient);
+            A.CallTo(() => _fakeClients.Group(roomKey)).Returns(mockClient);
+
+            // Act - First player joins
+            await _service.JoinAsPlayerMatchMaking("rock-paper-scissors", roomCode, "player1", user1, "conn1", _fakeClients);
+            
+            // Act - Second player joins (should start game and send MatchFound)
+            await _service.JoinAsPlayerMatchMaking("rock-paper-scissors", roomCode, "player2", user2, "conn2", _fakeClients);
+
+            // Assert
+            var room = _service.GetRoomByKey(roomKey);
+            room!.GameStarted.Should().BeTrue();
+            room.IsMatchMaking.Should().BeTrue();
+            
+            A.CallTo(() => mockClient.SendCoreAsync("MatchFound", A<object?[]>._, A<CancellationToken>._))
+                .MustHaveHappened();
+            A.CallTo(() => mockClient.SendCoreAsync("StartGame", A<object?[]>._, A<CancellationToken>._))
+                .MustHaveHappened();
+        }
+
+        [Fact]
+        public async Task JoinAsPlayerNotMatchMaking_Should_Send_GameState_To_Reconnecting_Player()
+        {
+            // Arrange
+            var roomCode = _service.CreateRoom("four-in-a-row", false);
+            var roomKey = $"four-in-a-row:{roomCode}";
+            var room = _service.GetRoomByKey(roomKey)!;
+            
+            var user = new User { Username = "player1", PasswordHash = "hash" };
+            var roomUser = new RoomUser { PlayerId = "player1", Username = "player1", User = user };
+            room.RoomPlayers.Add(roomUser);
+            room.DisconnectedPlayers["player1"] = roomUser;
+            room.GameStarted = true;
+            
+            // Set up game state
+            var game = room.Game as FourInARowGame;
+            game!.AssignPlayerColors(roomUser, new RoomUser { PlayerId = "player2" });
+            
+            var mockClient = A.Fake<IClientProxy>();
+            A.CallTo(() => _fakeClients.Client("conn1")).Returns(mockClient);
+            A.CallTo(() => _fakeClients.Group(roomKey)).Returns(mockClient);
+
+            // Act
+            await _service.JoinAsPlayerNotMatchMaking("four-in-a-row", roomCode, "player1", user, "conn1", _fakeClients);
+
+            // Assert
+            A.CallTo(() => mockClient.SendCoreAsync("ReceiveMove", A<object?[]>._, A<CancellationToken>._))
+                .MustHaveHappened();
+        }
+
+        [Fact]
+        public async Task JoinAsPlayerMatchMaking_Should_Send_GameState_To_Reconnecting_Player()
+        {
+            // Arrange
+            var roomCode = _service.CreateRoom("pair-matching", true);
+            var roomKey = $"pair-matching:{roomCode}";
+            var room = _service.GetRoomByKey(roomKey)!;
+            
+            var user = new User { Username = "player1", PasswordHash = "hash" };
+            var roomUser = new RoomUser { PlayerId = "player1", Username = "player1", User = user };
+            room.RoomPlayers.Add(roomUser);
+            room.DisconnectedPlayers["player1"] = roomUser;
+            room.GameStarted = true;
+            
+            // Set up game state
+            var game = room.Game as PairMatching;
+            game!.AssignPlayerColors(roomUser, new RoomUser { PlayerId = "player2" });
+            
+            var mockClient = A.Fake<IClientProxy>();
+            A.CallTo(() => _fakeClients.Client("conn1")).Returns(mockClient);
+            A.CallTo(() => _fakeClients.Group(roomKey)).Returns(mockClient);
+
+            // Act
+            await _service.JoinAsPlayerMatchMaking("pair-matching", roomCode, "player1", user, "conn1", _fakeClients);
+
+            // Assert
+            A.CallTo(() => mockClient.SendCoreAsync("ReceiveBoard", A<object?[]>._, A<CancellationToken>._))
+                .MustHaveHappened();
+        }
+
+        [Fact]
+        public async Task HandlePlayerDisconnect_Should_Send_Correct_Events_To_Remaining_Players()
+        {
+            // Arrange
+            var roomCode = _service.CreateRoom("rock-paper-scissors", false);
+            var roomKey = $"rock-paper-scissors:{roomCode}";
+            var room = _service.GetRoomByKey(roomKey)!;
+            
+            var roomUser1 = new RoomUser { PlayerId = "player1", Username = "user1" };
+            var roomUser2 = new RoomUser { PlayerId = "player2", Username = "user2" };
+            room.RoomPlayers.Add(roomUser1);
+            room.RoomPlayers.Add(roomUser2);
+            
+            var mockClient = A.Fake<IClientProxy>();
+            A.CallTo(() => _fakeClients.Group(roomKey)).Returns(mockClient);
+
+            // Act
+            await _service.HandlePlayerDisconnect("rock-paper-scissors", roomCode, "player1", _fakeClients);
+
+            // Assert
+            room.DisconnectedPlayers.Should().ContainKey("player1");
+            room.RoomCloseTime.Should().NotBeNull();
+            
+            A.CallTo(() => mockClient.SendCoreAsync("RoomPlayersUpdate", A<object?[]>._, A<CancellationToken>._))
+                .MustHaveHappened();
+            A.CallTo(() => mockClient.SendCoreAsync("PlayerDisconnected", A<object?[]>._, A<CancellationToken>._))
+                .MustHaveHappened();
+        }
+
+        [Fact]
+        public async Task HandlePlayerLeave_Should_Send_Correct_Events()
+        {
+            // Arrange
+            var roomCode = _service.CreateRoom("rock-paper-scissors", false);
+            var roomKey = $"rock-paper-scissors:{roomCode}";
+            var room = _service.GetRoomByKey(roomKey)!;
+            
+            var roomUser1 = new RoomUser { PlayerId = "player1", Username = "user1" };
+            var roomUser2 = new RoomUser { PlayerId = "player2", Username = "user2" };
+            room.RoomPlayers.Add(roomUser1);
+            room.RoomPlayers.Add(roomUser2);
+            
+            var mockCaller = A.Fake<IClientProxy>();
+            var mockGroup = A.Fake<IClientProxy>();
+            A.CallTo(() => _fakeClients.Caller).Returns(mockCaller);
+            A.CallTo(() => _fakeClients.Group(roomKey)).Returns(mockGroup);
+
+            // Act
+            await _service.HandlePlayerLeave("rock-paper-scissors", roomCode, "player1", _fakeClients);
+
+            // Assert
+            room.RoomPlayers.Should().NotContain(rp => rp.PlayerId == "player1");
+            room.DisconnectedPlayers.Should().ContainKey("player1");
+            room.RoomCloseTime.Should().NotBeNull();
+            
+            A.CallTo(() => mockGroup.SendCoreAsync("RoomPlayersUpdate", A<object?[]>._, A<CancellationToken>._))
+                .MustHaveHappened();
+            A.CallTo(() => mockGroup.SendCoreAsync("PlayerLeft", A<object?[]>._, A<CancellationToken>._))
+                .MustHaveHappened();
+            A.CallTo(() => mockCaller.SendCoreAsync("PlayerLeftRoom", A<object?[]>._, A<CancellationToken>._))
+                .MustHaveHappened();
+        }
+
+        [Fact]
+        public void CleanupInactiveMatchmakingSessions_Should_Handle_Concurrent_Modifications()
+        {
+            // Arrange - Simulate concurrent modifications
+            _service.ActiveMatchmakingSessions["player1"] = "room-key-1";
+            _service.ActiveMatchmakingSessions["player2"] = "room-key-2";
+            _service.ActiveMatchmakingSessions["player3"] = "room-key-3";
+            
+            // Create a room for player1 only
+            var roomCode = _service.CreateRoom("rock-paper-scissors", true);
+            var roomKey = $"rock-paper-scissors:{roomCode}";
+            var room = _service.GetRoomByKey(roomKey)!;
+            var roomUser = new RoomUser { PlayerId = "player1", Username = "testUser" };
+            room.RoomPlayers.Add(roomUser);
+
+            // Act
+            _service.CleanupInactiveMatchmakingSessions();
+
+            // Assert
+            _service.ActiveMatchmakingSessions.Should().ContainKey("player1");
+            _service.ActiveMatchmakingSessions.Should().NotContainKey("player2");
+            _service.ActiveMatchmakingSessions.Should().NotContainKey("player3");
+        }
+
+        [Fact]
+        public void GenerateRoomCode_Should_Not_Generate_Duplicate_Codes()
+        {
+            // Act - Generate many codes
+            var codes = new HashSet<string>();
+            for (int i = 0; i < 100; i++)
+            {
+                var roomCode = _service.CreateRoom("rock-paper-scissors", false);
+                codes.Add(roomCode);
+            }
+
+            // Assert - All should be unique
+            codes.Should().HaveCount(100);
+            
+            // Also verify they're all 6 characters
+            codes.Should().OnlyContain(code => code.Length == 6);
+            codes.Should().OnlyContain(code => code.All(c => char.IsLetterOrDigit(c)));
+        }
+
+        [Fact]
+        public async Task ReportWin_Should_Send_PlayerWon_Event()
+        {
+            // Arrange
+            var roomCode = _service.CreateRoom("rock-paper-scissors", false);
+            var roomKey = $"rock-paper-scissors:{roomCode}";
+            var room = _service.GetRoomByKey(roomKey)!;
+            
+            var roomUser = new RoomUser { PlayerId = "player1", Username = "winner" };
+            room.RoomPlayers.Add(roomUser);
+            room.GameStarted = true;
+            
+            var mockClient = A.Fake<IClientProxy>();
+            A.CallTo(() => _fakeClients.Group(roomKey)).Returns(mockClient);
+
+            // Act
+            await _service.ReportWin("player1", _fakeClients);
+
+            // Assert
+            A.CallTo(() => mockClient.SendCoreAsync("PlayerWon", A<object?[]>._, A<CancellationToken>._))
+                .MustHaveHappened();
+        }
+
+        [Fact]
+        public async Task StartRoomTimer_Should_Create_New_Timer_And_Cancel_Old_One()
+        {
+            // Arrange
+            var roomCode = _service.CreateRoom("rock-paper-scissors", false);
+            var roomKey = $"rock-paper-scissors:{roomCode}";
+            var room = _service.GetRoomByKey(roomKey)!;
+            
+            var oldCts = new CancellationTokenSource();
+            room.RoomTimerCancellation = oldCts;
+            room.RoomCloseTime = DateTime.UtcNow.AddSeconds(10);
+            
+            var mockClient = A.Fake<IClientProxy>();
+            A.CallTo(() => _fakeClients.Group(roomKey)).Returns(mockClient);
+
+            // Act
+            _service.StartRoomTimer(roomKey, room, _fakeClients, "Test reason");
+
+            // Assert
+            room.RoomTimerCancellation.Should().NotBeNull();
+            room.RoomTimerCancellation.Should().NotBeSameAs(oldCts);
+            room.RoomCloseTime.Should().NotBeNull();
+            room.RoomCloseTime.Should().BeCloseTo(DateTime.UtcNow.AddSeconds(30), TimeSpan.FromSeconds(2));
+            oldCts.IsCancellationRequested.Should().BeTrue();
+        }
+
+        [Fact]
+        public void Constructor_Should_Initialize_Dictionaries()
+        {
+            // Act
+            var service = new RoomService(_hubContext);
+
+            // Assert
+            service.Rooms.Should().NotBeNull();
+            service.Rooms.Should().BeOfType<ConcurrentDictionary<string, Room>>();
+            service.Rooms.Should().BeEmpty();
+            
+            service.CodeRoomUsers.Should().NotBeNull();
+            service.CodeRoomUsers.Should().BeOfType<ConcurrentDictionary<string, RoomUser>>();
+            service.CodeRoomUsers.Should().BeEmpty();
+            
+            service.MatchMakingRoomUsers.Should().NotBeNull();
+            service.MatchMakingRoomUsers.Should().BeOfType<ConcurrentDictionary<string, RoomUser>>();
+            service.MatchMakingRoomUsers.Should().BeEmpty();
+            
+            service.ActiveMatchmakingSessions.Should().NotBeNull();
+            service.ActiveMatchmakingSessions.Should().BeOfType<ConcurrentDictionary<string, string>>();
+            service.ActiveMatchmakingSessions.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task ForceRemovePlayerFromAllRooms_Should_Handle_Multiple_Rooms()
+        {
+            // Arrange - Create multiple rooms with same player
+            var roomCode1 = _service.CreateRoom("rock-paper-scissors", false);
+            var roomKey1 = $"rock-paper-scissors:{roomCode1}";
+            var room1 = _service.GetRoomByKey(roomKey1)!;
+            
+            var roomCode2 = _service.CreateRoom("four-in-a-row", false);
+            var roomKey2 = $"four-in-a-row:{roomCode2}";
+            var room2 = _service.GetRoomByKey(roomKey2)!;
+            
+            var roomUser = new RoomUser { PlayerId = "player1", Username = "user1" };
+            room1.RoomPlayers.Add(roomUser);
+            room2.RoomPlayers.Add(new RoomUser { PlayerId = "player1", Username = "user1" }); // Different instance
+            _service.CodeRoomUsers["player1"] = roomUser;
+            
+            var mockClient = A.Fake<IClientProxy>();
+            A.CallTo(() => _fakeClients.Group(roomKey1)).Returns(mockClient);
+            A.CallTo(() => _fakeClients.Group(roomKey2)).Returns(mockClient);
+
+            // Act
+            await _service.ForceRemovePlayerFromAllRooms("player1", _fakeClients);
+
+            // Assert
+            _service.Rooms.Should().NotContainKey(roomKey1);
+            _service.Rooms.Should().NotContainKey(roomKey2);
+            _service.CodeRoomUsers.Should().NotContainKey("player1");
+            
+            A.CallTo(() => mockClient.SendCoreAsync("RoomClosed", A<object?[]>._, A<CancellationToken>._))
+                .MustHaveHappened(Times.AtLeastOnce);
+        }
+
+        [Theory]
+        [InlineData("rock-paper-scissors")]
+        [InlineData("four-in-a-row")]
+        [InlineData("pair-matching")]
+        public void ToRoomKey_Extension_Should_Create_Correct_Key(string gameType)
+        {
+            // Arrange
+            var roomCode = "ABCDEF";
+
+            // Act
+            var roomKey = gameType.ToRoomKey(roomCode);
+
+            // Assert
+            roomKey.Should().Be($"{gameType}:{roomCode}");
+        }
+
+        [Fact]
+        public async Task HandlePlayerDisconnect_Should_Handle_All_Players_Disconnected_Scenario()
+        {
+            // Arrange - Create room with 2 players
+            var roomCode = _service.CreateRoom("rock-paper-scissors", false);
+            var roomKey = $"rock-paper-scissors:{roomCode}";
+            var room = _service.GetRoomByKey(roomKey)!;
+            
+            var roomUser1 = new RoomUser { PlayerId = "player1", Username = "user1" };
+            var roomUser2 = new RoomUser { PlayerId = "player2", Username = "user2" };
+            room.RoomPlayers.Add(roomUser1);
+            room.RoomPlayers.Add(roomUser2);
+            
+            var mockClient = A.Fake<IClientProxy>();
+            A.CallTo(() => _fakeClients.Group(roomKey)).Returns(mockClient);
+
+            // Act - First player disconnects
+            await _service.HandlePlayerDisconnect("rock-paper-scissors", roomCode, "player1", _fakeClients);
+            
+            // Act - Second player disconnects (all players now disconnected)
+            await _service.HandlePlayerDisconnect("rock-paper-scissors", roomCode, "player2", _fakeClients);
+
+            // Assert - Room should be removed
+            _service.Rooms.Should().NotContainKey(roomKey);
+            _service.CodeRoomUsers.Should().NotContainKey("player1");
+            _service.CodeRoomUsers.Should().NotContainKey("player2");
+            
+            A.CallTo(() => mockClient.SendCoreAsync("RoomClosed", A<object?[]>._, A<CancellationToken>._))
+                .MustHaveHappened();
+        }
+
+        [Fact]
+        public async Task CheckAndCloseRoomIfNeeded_Should_Not_Close_When_Players_Present()
+        {
+            // Arrange
+            var roomCode = _service.CreateRoom("rock-paper-scissors", false);
+            var roomKey = $"rock-paper-scissors:{roomCode}";
+            var room = _service.GetRoomByKey(roomKey)!;
+            
+            var roomUser = new RoomUser { PlayerId = "player1", Username = "user1" };
+            room.RoomPlayers.Add(roomUser);
+            room.DisconnectedPlayers["player1"] = roomUser;
+            room.RoomCloseTime = DateTime.UtcNow.AddSeconds(-1); // Expired
+            
+            var mockClient = A.Fake<IClientProxy>();
+            A.CallTo(() => _fakeClients.Group(roomKey)).Returns(mockClient);
+
+            // Act
+            await _service.CheckAndCloseRoomIfNeeded(roomKey, _fakeClients);
+
+            // Assert - Room should be closed due to expired timer with disconnected player
+            _service.Rooms.Should().NotContainKey(roomKey);
+            _service.CodeRoomUsers.Should().NotContainKey("player1");
+        }
+
+        [Fact]
+        public async Task CleanupExpiredRooms_Should_Handle_No_Expired_Rooms()
+        {
+            // Arrange - Create room with no disconnected players
+            var roomCode = _service.CreateRoom("rock-paper-scissors", false);
+            var roomKey = $"rock-paper-scissors:{roomCode}";
+            var room = _service.GetRoomByKey(roomKey)!;
+            
+            var roomUser = new RoomUser { PlayerId = "player1", Username = "user1" };
+            room.RoomPlayers.Add(roomUser);
+            
+            var mockClient = A.Fake<IClientProxy>();
+            A.CallTo(() => _fakeClients.Group(roomKey)).Returns(mockClient);
+
+            // Act
+            await _service.CleanupExpiredRooms(_fakeClients);
+
+            // Assert - Room should still exist
+            _service.Rooms.Should().ContainKey(roomKey);
+        }
+
+        [Fact]
+        public void GetUserCurrentGame_Should_Handle_RoomKey_Format()
+        {
+            // Arrange
+            var roomCode = _service.CreateRoom("rock-paper-scissors", false);
+            var roomKey = $"rock-paper-scissors:{roomCode}";
+            var room = _service.GetRoomByKey(roomKey)!;
+            
+            var roomUser = new RoomUser { PlayerId = "player1", Username = "testUser" };
+            room.RoomPlayers.Add(roomUser);
+
+            // Act
+            var (gameType, returnedRoomCode, isMatchmaking) = _service.GetUserCurrentGame("player1");
+
+            // Assert
+            gameType.Should().Be("rock-paper-scissors");
+            returnedRoomCode.Should().Be(roomCode);
+            isMatchmaking.Should().BeFalse();
+        }
+
+        [Fact]
+        public void GetUserCurrentGame_Should_Return_Null_For_NonExistent_User()
+        {
+            // Act
+            var (gameType, roomCode, isMatchmaking) = _service.GetUserCurrentGame("nonexistent");
+
+            // Assert
+            gameType.Should().BeNull();
+            roomCode.Should().BeNull();
+            isMatchmaking.Should().BeFalse();
+        }
+    }
+}
