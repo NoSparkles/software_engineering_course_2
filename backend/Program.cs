@@ -74,6 +74,13 @@ builder.Services.AddAuthentication(options =>
 
 var app = builder.Build();
 
+// Apply migrations at startup
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<GameDbContext>();
+    db.Database.Migrate();
+}
+
 // Middleware
 app.UseRouting();
 app.UseCors();
