@@ -9,11 +9,11 @@ namespace Hubs
     public class MatchMakingHub : Hub, IgameHub
     {
         private readonly IRoomService RoomService;
-        private readonly IUserService UserService; // added
+        private readonly IUserService UserService;
 
         public MatchMakingHub(IUserService userService, IRoomService roomService)
         {
-            UserService = userService; // added
+            UserService = userService;
             RoomService = roomService;
         }
 
