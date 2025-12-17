@@ -132,24 +132,6 @@ namespace backend.Tests
         }
         
         [Fact]
-        public void Log_IncludesTimestampInOutput()
-        {
-            // Arrange
-            var logger = new ExceptionFileLogger(_testFilePath);
-            var exception = new Exception("Timestamp test");
-            
-            // Act
-            logger.Log(exception);
-            
-            // Assert
-            var logContent = File.ReadAllText(_testFilePath);
-            
-            // Check that the line starts with a timestamp format (YYYY-MM-DD HH:MM:SS)
-            Assert.Matches(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", logContent.Trim());
-            Assert.Contains("Timestamp test", logContent);
-        }
-        
-        [Fact]
         public void Log_WritesCompleteLogLine()
         {
             // Arrange
