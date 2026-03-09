@@ -1,5 +1,8 @@
 # software_engineering_course_2
 
+## Demo video
+[Demo video](https://www.youtube.com/watch?v=rqgve6GNQQk)
+
 ## Commands to start tests:
 ```
 dotnet test backend.Tests --collect:"XPlat Code Coverage" --settings coverlet.runsettings
